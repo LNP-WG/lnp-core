@@ -33,8 +33,6 @@ extern crate amplify;
 extern crate amplify_derive;
 #[macro_use]
 extern crate lazy_static;
-#[macro_use]
-extern crate num_derive;
 
 extern crate chacha20poly1305;
 
@@ -61,8 +59,22 @@ pub extern crate miniscript;
 #[cfg(feature = "bulletproofs")]
 pub extern crate secp256k1zkp;
 
+pub extern crate client_side_validation;
+pub use client_side_validation::commit_encode_list;
 #[macro_use]
-extern crate lnpbp_derive;
+pub extern crate strict_encoding;
+pub use strict_encoding::{
+    strict_decode_self, strict_encode_list, test_encode,
+    test_enum_u8_exhaustive, test_garbage_exhaustive,
+};
+
+pub mod chain;
+pub mod dbc;
+#[cfg(feature = "elgamal")]
+pub mod elgamal;
+pub mod seals;
+pub mod short_id;
+pub mod tagged_hash;
 
 #[macro_use]
 pub mod test_helpers;
