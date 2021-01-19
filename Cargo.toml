@@ -1,18 +1,19 @@
 [package]
-name = "lnpbp"
+name = "lnp-core"
 version = "0.3.0-beta.1"
 license = "MIT"
-authors = ["Dr. Maxim Orlovsky <orlovsky@pandoracore.com>"]
-description = "LNP/BP Core Library implementing LNPBP specifications & standards"
-repository = "https://github.com/LNP-BP/rust-lnpbp"
-homepage = "https://github.com/LNP-BP"
-keywords = ["bitcoin", "lightning", "lnp-bp", "layer-3", "cryptography"]
+authors = ["Dr Maxim Orlovsky <orlovsky@pandoracore.com>"]
+description = "LNP Core Library: rust implementation of modular lightning channels architecture"
+repository = "https://github.com/LNP-BP/lnp-core"
+homepage = "https://lnp-bp.org"
+keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
+categories = ["cryptography::cryptocurrencies"]
 readme = "README.md"
 edition = "2018"
-exclude = [".github", "contrib", "client_side_validation", "strict_encoding"]
+exclude = [".github", "contrib"]
 
 [lib]
-name = "lnpbp"
+name = "lnp"
 path = "src/lib.rs"
 crate-type = ["dylib", "rlib", "staticlib"]
 
@@ -38,14 +39,11 @@ amplify = { version = "2.4", features = ["stringly_conversions"] }
 amplify_derive = "2.4.3"
 strict_encoding = { version = "1.0.0-rc.3", features = ["miniscript"] }
 strict_encoding_derive = "1.0.0-rc.1"
-client_side_validation = { version = "1.0.0-rc.2", path = "client_side_validation" }
+client_side_validation = "1.0.0-rc.2"
 # Dependencies on core rust-bitcoin ecosystem projects
 # ----------------------------------------------------
 bitcoin = { version = "~0.26.0", features = ["rand"] }
 bitcoin_hashes = "~0.9.4" # we need macro from here
-# <https://github.com/LNP-BP/LNPBPs/blob/master/lnpbp-0002.md#deterministic-public-key-extraction-from-bitcoin-script>
-# We have to fix version of miniscript as required by LNPBP-2 specification
-miniscript = { version = "~5.0.0", features = ["compiler"] }
 bech32 = "~0.7.2"
 # Core rust projects
 # ------------------
@@ -79,15 +77,11 @@ serde_json = "~1.0.60"
 # --------
 #   By default we use LNP with Tor support and URL support
 default = []
-all = ["serde", "elgamal"]
+all = ["serde"]
 serde = ["serde_crate", "serde_with", "serde_with_macros", "amplify/serde",
-         "bitcoin/use-serde", "bitcoin_hashes/serde", "miniscript/serde"]
-# Optional cryptographic functionality
-# ------------------------------------
-keygen = ["bitcoin/rand"]
-elgamal = [] # Provides ElGamal encryption module from this library
+         "bitcoin/use-serde", "bitcoin_hashes/serde"]
 
 [workspace]
-members = [".", "strict_encoding", "strict_encoding/derive", "client_side_validation"]
-default-members = [".", "strict_encoding", "strict_encoding/derive", "client_side_validation"]
+members = ["."]
+default-members = ["."]
 exclude = ["dep_test"]

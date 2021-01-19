@@ -45,16 +45,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "arrayvec"
-version = "0.3.25"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06f59fe10306bb78facd90d28c2038ad23ffaaefa85bac43c8a434cde383334f"
-dependencies = [
- "nodrop",
- "odds",
-]
-
-[[package]]
 name = "autocfg"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -189,12 +179,14 @@ dependencies = [
 
 [[package]]
 name = "client_side_validation"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1bb6b43b91362351ca42584b51964735f6eb922b773e5ff4717187da52a5e5d2"
 dependencies = [
  "amplify 3.0.0",
  "amplify_derive",
  "bitcoin_hashes",
- "strict_encoding 1.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "strict_encoding",
 ]
 
 [[package]]
@@ -232,7 +224,7 @@ dependencies = [
  "digest 0.9.0",
  "rand_core 0.5.1",
  "subtle 2.4.0",
- "zeroize 1.2.0",
+ "zeroize",
 ]
 
 [[package]]
@@ -328,7 +320,7 @@ dependencies = [
  "rand 0.7.3",
  "serde",
  "sha2 0.9.2",
- "zeroize 1.2.0",
+ "zeroize",
 ]
 
 [[package]]
@@ -395,22 +387,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "grin_secp256k1zkp"
-version = "0.7.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "daca5852d12dbd4df8b7b760eaad791d191ea546bf80c46b033bbcc650b35a5c"
-dependencies = [
- "arrayvec",
- "cc",
- "libc",
- "rand 0.5.6",
- "rustc-serialize",
- "serde",
- "serde_json",
- "zeroize 0.9.3",
-]
-
-[[package]]
 name = "hex"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -463,7 +439,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7fb9b38af92608140b86b693604b9ffcc5824240a484d1ecd4795bacb2fe88f3"
 
 [[package]]
-name = "lnpbp"
+name = "lnp-core"
 version = "0.3.0-beta.1"
 dependencies = [
  "amplify 2.4.0",
@@ -471,8 +447,8 @@ dependencies = [
  "bech32",
  "bitcoin",
  "bitcoin_hashes",
+ "client_side_validation",
  "lazy_static",
- "miniscript",
  "num-derive",
  "num-traits",
  "regex",
@@ -480,8 +456,8 @@ dependencies = [
  "serde_json",
  "serde_with",
  "serde_with_macros",
- "strict_encoding 1.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "strict_encoding_derive 1.0.0-rc.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "strict_encoding",
+ "strict_encoding_derive",
 ]
 
 [[package]]
@@ -497,14 +473,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ebf71c5e1499e9d4c5020e5260b3417f1a5a09ffafda707c34465b4da84e1eb"
 dependencies = [
  "bitcoin",
- "serde",
 ]
-
-[[package]]
-name = "nodrop"
-version = "0.1.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72ef4a56884ca558e5ddb05a1d1e7e1bfd9a68d9ed024c21704cc98872dae1bb"
 
 [[package]]
 name = "num-derive"
@@ -535,12 +504,6 @@ checksum = "9a64b1ec5cda2586e284722486d802acf1f7dbdc623e2bfc57e65ca1cd099290"
 dependencies = [
  "autocfg 1.0.1",
 ]
-
-[[package]]
-name = "odds"
-version = "0.2.26"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4eae0151b9dacf24fcc170d9995e511669a082856a91f958a2fe380bfab3fb22"
 
 [[package]]
 name = "opaque-debug"
@@ -639,19 +602,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "991431c3519a3f36861882da93630ce66b52918dcf1b8e2fd66b397fc96f28df"
 dependencies = [
  "proc-macro2 1.0.24",
-]
-
-[[package]]
-name = "rand"
-version = "0.5.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c618c47cd3ebd209790115ab837de41425723956ad3ce2e6a7f09890947cacb9"
-dependencies = [
- "cloudabi",
- "fuchsia-cprng",
- "libc",
- "rand_core 0.3.1",
- "winapi",
 ]
 
 [[package]]
@@ -827,12 +777,6 @@ name = "regex-syntax"
 version = "0.6.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b5eb417147ba9860a96cfe72a0b93bf88fee1744b5636ec99ab20c1aa9376581"
-
-[[package]]
-name = "rustc-serialize"
-version = "0.3.24"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dcf128d1287d2ea9d80910b5f1120d0b8eede3fbf1abe91c40d39ea7d51e6fda"
 
 [[package]]
 name = "rustc_version"
@@ -1013,20 +957,6 @@ checksum = "0f0242b8e50dd9accdd56170e94ca1ebd223b098eb9c83539a6e367d0f36ae68"
 [[package]]
 name = "strict_encoding"
 version = "1.0.0-rc.3"
-dependencies = [
- "amplify 3.0.0",
- "amplify_derive",
- "bitcoin",
- "chrono",
- "ed25519-dalek",
- "grin_secp256k1zkp",
- "miniscript",
- "strict_encoding_derive 1.0.0-rc.1",
-]
-
-[[package]]
-name = "strict_encoding"
-version = "1.0.0-rc.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6bd1bd070762bba6f022eefdeb4a6498db16b5906150dfcbbdfdf8b7f7a839f"
 dependencies = [
@@ -1034,18 +964,8 @@ dependencies = [
  "amplify_derive",
  "bitcoin",
  "chrono",
- "strict_encoding_derive 1.0.0-rc.1 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "strict_encoding_derive"
-version = "1.0.0-rc.1"
-dependencies = [
- "amplify 3.0.0",
- "proc-macro2 1.0.24",
- "quote 1.0.8",
- "strict_encoding 1.0.0-rc.3",
- "syn 1.0.58",
+ "miniscript",
+ "strict_encoding_derive",
 ]
 
 [[package]]
@@ -1108,18 +1028,6 @@ dependencies = [
  "proc-macro2 1.0.24",
  "quote 1.0.8",
  "unicode-xid 0.2.1",
-]
-
-[[package]]
-name = "synstructure"
-version = "0.10.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "02353edf96d6e4dc81aea2d8490a7e9db177bf8acb0e951c24940bf866cb313f"
-dependencies = [
- "proc-macro2 0.4.30",
- "quote 0.6.13",
- "syn 0.15.44",
- "unicode-xid 0.1.0",
 ]
 
 [[package]]
@@ -1272,32 +1180,11 @@ dependencies = [
 
 [[package]]
 name = "zeroize"
-version = "0.9.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45af6a010d13e4cf5b54c94ba5a2b2eba5596b9e46bf5875612d332a1f2b3f86"
-dependencies = [
- "zeroize_derive 0.9.3",
-]
-
-[[package]]
-name = "zeroize"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81a974bcdd357f0dca4d41677db03436324d45a4c9ed2d0b873a5a360ce41c36"
 dependencies = [
- "zeroize_derive 1.0.1",
-]
-
-[[package]]
-name = "zeroize_derive"
-version = "0.9.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "080616bd0e31f36095288bb0acdf1f78ef02c2fa15527d7e993f2a6c7591643e"
-dependencies = [
- "proc-macro2 0.4.30",
- "quote 0.6.13",
- "syn 0.15.44",
- "synstructure 0.10.2",
+ "zeroize_derive",
 ]
 
 [[package]]
@@ -1309,5 +1196,5 @@ dependencies = [
  "proc-macro2 1.0.24",
  "quote 1.0.8",
  "syn 1.0.58",
- "synstructure 0.12.4",
+ "synstructure",
 ]
