@@ -61,12 +61,16 @@ pub extern crate secp256k1zkp;
 
 pub extern crate client_side_validation;
 pub use client_side_validation::commit_encode_list;
+pub use client_side_validation::commit_verify;
 #[macro_use]
 pub extern crate strict_encoding;
 pub use strict_encoding::{
-    strict_decode_self, strict_encode_list, test_encode,
-    test_enum_u8_exhaustive, test_garbage_exhaustive,
+    impl_enum_strict_encoding, strict_decode_self, strict_encode_list,
+    test_encode, test_enum_u8_exhaustive, test_garbage_exhaustive,
 };
+#[macro_use]
+pub extern crate strict_encoding_derive;
+pub use strict_encoding_derive::{StrictDecode, StrictEncode};
 
 pub mod chain;
 pub mod dbc;
