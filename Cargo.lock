@@ -20,15 +20,6 @@ dependencies = [
 
 [[package]]
 name = "amplify"
-version = "2.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90a05a371d467d56ccd699e6f5d412a3e82b09e2a1856fc64124e7a51813ca2b"
-dependencies = [
- "amplify_derive",
-]
-
-[[package]]
-name = "amplify"
 version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "58a0bd5c3d6605f6f0cbf90d7af2cdd37215b1db193282753fd6bd1dce4b75b3"
@@ -225,11 +216,11 @@ dependencies = [
 
 [[package]]
 name = "client_side_validation"
-version = "1.0.0-rc.2+1"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1bb6b43b91362351ca42584b51964735f6eb922b773e5ff4717187da52a5e5d2"
+checksum = "bdfd8dba1ad3d1958eac41d2675f6802606917e61daa312ea5b68fd2f075e934"
 dependencies = [
- "amplify 3.0.0",
+ "amplify",
  "amplify_derive",
  "bitcoin_hashes",
  "strict_encoding",
@@ -339,11 +330,11 @@ dependencies = [
 
 [[package]]
 name = "descriptor-wallet"
-version = "0.3.0-rc.5"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b1f20e0b52ad2d492d8baa4be33d938668a0cf4492f30c51b103a1c403f5ef5"
+checksum = "be824a9c51233ac02952d1557b76fe706231ae09209325a78128864db2b8c31b"
 dependencies = [
- "amplify 3.0.0",
+ "amplify",
  "amplify_derive",
  "bitcoin",
  "lazy_static",
@@ -503,11 +494,11 @@ dependencies = [
 
 [[package]]
 name = "inet2_addr"
-version = "0.4.0-rc.2"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "657a1cbcbdebe2009972554e773d2a538307d03c74c04c0431ee74fb08cb2d54"
+checksum = "8d17de954f78b83e7327701a1be5e67878691eaabf6b3d83c8f07db800759b0c"
 dependencies = [
- "amplify 3.0.0",
+ "amplify",
  "amplify_derive",
  "ed25519-dalek",
  "parse_arg",
@@ -518,11 +509,11 @@ dependencies = [
 
 [[package]]
 name = "inet2_derive"
-version = "0.3.0-alpha.4"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3eba4efc4fb36052fb3cfb6831bf74ccea77c0174c22c0b2e77fd1ed46356689"
+checksum = "9f26ec35956b6895f4ee884b35034ae6d06521df6df7109530c87092c480e78d"
 dependencies = [
- "amplify 2.4.0",
+ "amplify",
  "proc-macro2 1.0.24",
  "quote 1.0.8",
  "syn 1.0.58",
@@ -530,11 +521,11 @@ dependencies = [
 
 [[package]]
 name = "internet2"
-version = "0.3.0-rc.4"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "07ce228460954b825fe89301f639a7d745e13b36db16d35a34328e73aa1ca87d"
+checksum = "3efdf9ece782cc7b9f91ed4182faca9c5a27fc9a9cec51abcd1b6271ac2cda4a"
 dependencies = [
- "amplify 3.0.0",
+ "amplify",
  "amplify_derive",
  "bitcoin",
  "cc",
@@ -596,9 +587,9 @@ checksum = "7fb9b38af92608140b86b693604b9ffcc5824240a484d1ecd4795bacb2fe88f3"
 
 [[package]]
 name = "lnp-core"
-version = "0.3.0-beta.1"
+version = "0.3.0-beta.2"
 dependencies = [
- "amplify 3.0.0",
+ "amplify",
  "amplify_derive",
  "bitcoin",
  "descriptor-wallet",
@@ -612,11 +603,11 @@ dependencies = [
 
 [[package]]
 name = "lnpbp"
-version = "0.3.0-beta.1+5"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61eaeee726a840a2855732b72af7716cac6d1b1f3c0531a36dc35f7fb6bc9e58"
+checksum = "2918519f7b03b2ae360e03ce944f2f13d315a26fa0eb01cc6fb68cad3dc88768"
 dependencies = [
- "amplify 3.0.0",
+ "amplify",
  "amplify_derive",
  "bitcoin",
  "bitcoin_hashes",
@@ -1184,11 +1175,11 @@ dependencies = [
 
 [[package]]
 name = "strict_encoding"
-version = "1.0.0-rc.6+3"
+version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "efb715a50ecf1a813f5711aeaf054fdff6557acbdcb0468c642bb4327ea10ba1"
+checksum = "0956cfdd7fcd053c0492e4cb5b293ac341de971bb2ff043aa5efdb3b0a29ca49"
 dependencies = [
- "amplify 3.0.0",
+ "amplify",
  "amplify_derive",
  "bitcoin",
  "chrono",
@@ -1198,11 +1189,11 @@ dependencies = [
 
 [[package]]
 name = "strict_encoding_derive"
-version = "1.0.0-rc.1"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f879c81dfff3bf07ad02d0c829598aacabc5692446eff4a5c771eb4ae59d235c"
+checksum = "89347dfd57ea3160e6de4d7b21b3236b8a40800c1760ebfcfe9d69e3634e8955"
 dependencies = [
- "amplify 3.0.0",
+ "amplify",
  "proc-macro2 1.0.24",
  "quote 1.0.8",
  "syn 1.0.58",
