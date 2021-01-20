@@ -15,13 +15,13 @@ use bitcoin::blockdata::{opcodes::all::*, script};
 use bitcoin::secp256k1::PublicKey;
 use bitcoin::util::psbt::PartiallySignedTransaction as Psbt;
 use bitcoin::{OutPoint, Transaction, TxIn, TxOut};
-
-use crate::bp::{
-    chain::AssetId, HashLock, HashPreimage, IntoPk, LockScript, PubkeyScript,
-    WitnessScript,
+use lnpbp::chain::AssetId;
+use wallet::{
+    HashLock, HashPreimage, IntoPk, LockScript, PubkeyScript, WitnessScript,
 };
-use crate::lnp::application::payment::{ChannelId, ExtensionId, TxType};
-use crate::lnp::application::{channel, ChannelExtension, Extension, Messages};
+
+use crate::payment::{ExtensionId, TxType};
+use crate::{channel, ChannelExtension, ChannelId, Extension, Messages};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct HtlcKnown {
@@ -127,7 +127,10 @@ impl Extension for Htlc {
                             hashlock: message.payment_hash,
                             id: message.htlc_id,
                             cltv_expiry: message.cltv_expiry,
+                            #[cfg(feature = "rgb")]
                             asset_id: message.asset_id,
+                            #[cfg(not(feature = "rgb"))]
+                            asset_id: None,
                         };
                         self.received_htlcs.push(htlc);
 

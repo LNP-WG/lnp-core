@@ -11,9 +11,10 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
-use crate::bp::LexOrder;
-use crate::lnp::application::payment::ExtensionId;
-use crate::lnp::application::{channel, ChannelExtension, Extension, Messages};
+use wallet::LexOrder;
+
+use crate::payment::ExtensionId;
+use crate::{channel, ChannelExtension, Extension, Messages};
 
 pub struct Bip96;
 

@@ -15,15 +15,15 @@
 //! with it. Relies on transport layer (BOLT-8-based) protocol.
 
 use amplify::Bipolar;
-
-use crate::lnp::application::Messages;
-use crate::lnp::presentation::{Error, LightningEncode, Unmarshall};
-use crate::lnp::session::{
+use internet2::presentation::{Error, LightningEncode, Unmarshall};
+use internet2::session::{
     self, Accept, Connect, LocalNode, PlainTranscoder, Session, Split,
     ToNodeAddr,
 };
-use crate::lnp::transport::{ftcp, zmqsocket};
-use crate::lnp::{LIGHTNING_P2P_DEFAULT_PORT, LNPWP_UNMARSHALLER};
+use internet2::transport::{ftcp, zmqsocket};
+
+use crate::Messages;
+use crate::{LIGHTNING_P2P_DEFAULT_PORT, LNPWP_UNMARSHALLER};
 
 pub trait RecvMessage {
     fn recv_message(&mut self) -> Result<Messages, Error>;

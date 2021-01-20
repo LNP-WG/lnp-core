@@ -11,8 +11,6 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
-use amplify::internet::InetSocketAddr;
-use amplify::{DumbDefault, Wrapper};
 #[cfg(feature = "serde")]
 use serde_with::{As, DisplayFromStr};
 use std::collections::BTreeMap;
@@ -20,17 +18,19 @@ use std::convert::TryFrom;
 use std::fmt::Debug;
 use std::io;
 
+use amplify::{DumbDefault, Wrapper};
 use bitcoin::hashes::hex::{Error, FromHex};
 use bitcoin::hashes::Hash;
 use bitcoin::OutPoint;
-
-use crate::bp::chain::AssetId;
-use crate::bp::Slice32;
-use crate::lnp;
-use crate::lnp::application::{channel, extension};
-use crate::paradigms::strict_encoding::{
+use internet2::addr::InetSocketAddr;
+use internet2::lightning_encoding;
+use lnpbp::chain::AssetId;
+use strict_encoding::{
     self, strict_deserialize, strict_serialize, StrictDecode, StrictEncode,
 };
+use wallet::Slice32;
+
+use crate::{channel, extension};
 
 /// Shorthand for representing asset - amount pairs
 pub type AssetsBalance = BTreeMap<AssetId, u64>;
@@ -48,7 +48,6 @@ pub type AssetsBalance = BTreeMap<AssetId, u64>;
     StrictEncode,
     StrictDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display(Debug)]
 pub enum ExtensionId {
     /// The channel itself
@@ -109,7 +108,6 @@ impl extension::Nomenclature for ExtensionId {}
     StrictEncode,
     StrictDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display(Debug)]
 #[non_exhaustive]
 pub enum TxType {
@@ -159,7 +157,6 @@ impl channel::TxRole for TxType {}
     StrictDecode,
 )]
 #[display(Debug)]
-#[lnpbp_crate(crate)]
 #[non_exhaustive]
 #[repr(u8)]
 pub enum Lifecycle {
@@ -209,7 +206,6 @@ impl Default for Lifecycle {
     LightningEncode,
     LightningDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display(LowerHex)]
 #[wrapper(FromStr, LowerHex, UpperHex)]
 pub struct ChannelId(
@@ -235,6 +231,13 @@ impl ChannelId {
         slice[30] ^= vout[0];
         slice[31] ^= vout[1];
         ChannelId::from_inner(Slice32::from_inner(slice))
+    }
+
+    /// With some lightning messages (like error) channel id consisting of all
+    /// zeros has a special meaning of "applicable to all opened channels". This
+    /// function allow to detect this kind of [`ChannelId`]
+    pub fn is_wildcard(&self) -> bool {
+        self.to_inner().to_inner() == [0u8; 32]
     }
 }
 
@@ -262,7 +265,6 @@ impl ChannelId {
     LightningEncode,
     LightningDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display(LowerHex)]
 #[wrapper(FromStr, LowerHex, UpperHex)]
 pub struct TempChannelId(
@@ -329,8 +331,8 @@ impl StrictDecode for NodeColor {
     }
 }
 
-impl lnp::encoding::Strategy for NodeColor {
-    type Strategy = lnp::encoding::strategies::AsStrict;
+impl lightning_encoding::Strategy for NodeColor {
+    type Strategy = lightning_encoding::strategies::AsStrict;
 }
 
 #[cfg_attr(
@@ -356,7 +358,6 @@ impl lnp::encoding::Strategy for NodeColor {
     LightningEncode,
     LightningDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display(LowerHex)]
 #[wrapper(FromStr, LowerHex, UpperHex)]
 pub struct Alias(
@@ -473,8 +474,8 @@ impl StrictDecode for ShortChannelId {
     }
 }
 
-impl lnp::encoding::Strategy for ShortChannelId {
-    type Strategy = lnp::encoding::strategies::AsStrict;
+impl lightning_encoding::Strategy for ShortChannelId {
+    type Strategy = lightning_encoding::strategies::AsStrict;
 }
 
 #[derive(
@@ -487,12 +488,8 @@ impl lnp::encoding::Strategy for ShortChannelId {
     Eq,
     StrictEncode,
     StrictDecode,
+    LightningEncode,
+    LightningDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display(Debug)]
 pub struct AddressList(Vec<InetSocketAddr>);
-
-// TODO: Fix since this will not work; LN encoding uses BigSize for array length
-impl lnp::encoding::Strategy for AddressList {
-    type Strategy = lnp::encoding::strategies::AsStrict;
-}

@@ -19,16 +19,16 @@ use std::io;
 use bitcoin::hashes::{sha256, Hmac};
 use bitcoin::secp256k1::{PublicKey, Signature};
 use bitcoin::{Script, Txid};
+use internet2::lightning_encoding::{self, LightningDecode, LightningEncode};
+use internet2::{CreateUnmarshaller, Payload, Unmarshall, Unmarshaller};
+use lnpbp::chain::AssetId;
+use wallet::SECP256K1_PUBKEY_DUMB;
+use wallet::{HashLock, HashPreimage};
 
 use super::payment::{
     AddressList, Alias, ChannelId, NodeColor, ShortChannelId, TempChannelId,
 };
-use super::Features;
-use crate::bp::chain::AssetId;
-use crate::bp::{HashLock, HashPreimage};
-use crate::lightning_encoding::{self, LightningDecode, LightningEncode};
-use crate::lnp::{CreateUnmarshaller, Payload, Unmarshall, Unmarshaller};
-use crate::SECP256K1_PUBKEY_DUMB;
+use crate::Features;
 
 #[cfg(feature = "rgb")]
 use crate::rgb::Consignment;
@@ -40,7 +40,7 @@ lazy_static! {
 
 #[derive(Clone, Debug, Display, LnpApi)]
 #[lnp_api(encoding = "lightning")]
-#[lnpbp_crate(crate)]
+#[encoding_crate("internet2")]
 #[non_exhaustive]
 pub enum Messages {
     // Part I: Generic messages outside of channel operations
@@ -198,7 +198,6 @@ pub enum Messages {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display("init({global_features}, {local_features}, {assets:#?})")]
 pub struct Init {
     pub global_features: Features,
@@ -219,7 +218,6 @@ pub struct Init {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display(Debug)]
 pub struct Ping {
     pub ignored: Vec<u8>,
@@ -232,11 +230,10 @@ pub struct Ping {
 /// # Specification
 /// <https://github.com/lightningnetwork/lightning-rfc/blob/master/01-messaging.md#the-error-message>
 #[derive(Clone, PartialEq, Debug, Error, LightningEncode, LightningDecode)]
-#[lnpbp_crate(crate)]
 pub struct Error {
     /// The channel is referred to by channel_id, unless channel_id is 0 (i.e.
     /// all bytes are 0), in which case it refers to all channels.
-    pub channel_id: Option<ChannelId>,
+    pub channel_id: ChannelId,
 
     /// Any specific error details, either as string or binary data
     pub data: Vec<u8>,
@@ -245,10 +242,10 @@ pub struct Error {
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.write_str("Error")?;
-        if let Some(channel_id) = self.channel_id {
-            write!(f, " on channel {}", channel_id)?;
-        } else {
+        if self.channel_id.is_wildcard() {
             f.write_str(" on all channels")?;
+        } else {
+            write!(f, " on channel {}", self.channel_id)?;
         }
         // NB: if data is not composed solely of printable ASCII characters (For
         // reference: the printable character set includes byte values 32
@@ -263,7 +260,6 @@ impl Display for Error {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display("open_channel({chain_hash}, {temporary_channel_id}, {funding_satoshis}, {channel_flags}, ...)")]
 pub struct OpenChannel {
     /// The genesis hash of the blockchain where the channel is to be opened
@@ -340,7 +336,6 @@ pub struct OpenChannel {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display("accept_channel({temporary_channel_id}, ...)")]
 pub struct AcceptChannel {
     /// A temporary channel ID, until the funding outpoint is announced
@@ -404,7 +399,6 @@ pub struct AcceptChannel {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display("funding_created({temporary_channel_id}, {funding_txid}:{funding_output_index}, ...signature)")]
 pub struct FundingCreated {
     /// A temporary channel ID, until the funding is established
@@ -424,7 +418,6 @@ pub struct FundingCreated {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display("funding_signed({channel_id}, ...signature)")]
 pub struct FundingSigned {
     /// The channel ID
@@ -437,7 +430,6 @@ pub struct FundingSigned {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display("funding_locked({channel_id}, {next_per_commitment_point})")]
 pub struct FundingLocked {
     /// The channel ID
@@ -450,7 +442,6 @@ pub struct FundingLocked {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display("shutdown({channel_id}, {scriptpubkey})")]
 pub struct Shutdown {
     /// The channel ID
@@ -464,7 +455,6 @@ pub struct Shutdown {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display("closing_signed({channel_id}, ...)")]
 pub struct ClosingSigned {
     /// The channel ID
@@ -480,8 +470,7 @@ pub struct ClosingSigned {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
-#[lnpbp_crate(crate)]
-#[display("update_add_htlc({channel_id}, {htlc_id}, {amount_msat}, {payment_hash}, {asset_id:#?}, ...)")]
+#[display("update_add_htlc({channel_id}, {htlc_id}, {amount_msat}, {payment_hash}, ...)")]
 pub struct UpdateAddHtlc {
     /// The channel ID
     pub channel_id: ChannelId,
@@ -506,14 +495,12 @@ pub struct UpdateAddHtlc {
     pub onion_routing_packet: OnionPacket,
 
     /// RGB Extension: TLV
-    #[cfg(feature = "rgb")]
     pub asset_id: Option<AssetId>,
 }
 
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display("update_fullfill_htlc({channel_id}, {htlc_id}, ...preimages)")]
 pub struct UpdateFulfillHtlc {
     /// The channel ID
@@ -529,7 +516,6 @@ pub struct UpdateFulfillHtlc {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display("update_fail_htlc({channel_id}, {htlc_id}, ...reason)")]
 pub struct UpdateFailHtlc {
     /// The channel ID
@@ -549,7 +535,6 @@ pub struct UpdateFailHtlc {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display("update_fail_malformed_htlc({channel_id}, {htlc_id}, ...onion)")]
 pub struct UpdateFailMalformedHtlc {
     /// The channel ID
@@ -568,7 +553,6 @@ pub struct UpdateFailMalformedHtlc {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display("commitment_signed({channel_id}, ...signatures)")]
 pub struct CommitmentSigned {
     /// The channel ID
@@ -584,7 +568,6 @@ pub struct CommitmentSigned {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display("revoke_and_ack({channel_id}, {next_per_commitment_point}, ...per_commitment_secret)")]
 pub struct RevokeAndAck {
     /// The channel ID
@@ -600,7 +583,6 @@ pub struct RevokeAndAck {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display("update_fee({channel_id}, {feerate_per_kw})")]
 pub struct UpdateFee {
     /// The channel ID
@@ -613,7 +595,6 @@ pub struct UpdateFee {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display("channel_reestablish({channel_id}, {next_commitment_number}, ...)")]
 pub struct ChannelReestablish {
     /// The channel ID
@@ -638,7 +619,6 @@ pub struct ChannelReestablish {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display(
     "announcement_signature({channel_id}, {short_channel_id}, ...signatures)"
 )]
@@ -659,7 +639,6 @@ pub struct AnnouncementSignatures {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display("channel_announcement({chain_hash}, {short_channel_id}, ...)")]
 pub struct ChannelAnnouncements {
     /// Node Signature 1
@@ -699,7 +678,6 @@ pub struct ChannelAnnouncements {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display("node_announcement({node_id}, {alias}, {addresses}, ...)")]
 pub struct NodeAnnouncements {
     /// Signature
@@ -727,7 +705,6 @@ pub struct NodeAnnouncements {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display("channel_id({chain_hash}, {short_channel_id}, {timestamp}, ...)")]
 pub struct ChannelUpdate {
     /// Signature
@@ -768,7 +745,6 @@ pub struct ChannelUpdate {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display("query_short_channel_ids({chain_hash}, {short_ids:#?}, ...tlvs)")]
 pub struct QueryShortChannelIds {
     /// chain hash
@@ -784,7 +760,6 @@ pub struct QueryShortChannelIds {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display("reply_short_channel_ids_end({chain_hash}, {full_information})")]
 pub struct ReplyShortChannelIdsEnd {
     /// chain hash
@@ -797,7 +772,6 @@ pub struct ReplyShortChannelIdsEnd {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display(
     "querry_channel_range({chain_hash}, {first_blocknum}, {number_of_blocks}, ...tlvs)"
 )]
@@ -818,7 +792,6 @@ pub struct QueryChannelRange {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display(
     "reply_channel_range({chain_hash}, {first_blocknum}, {number_of_blocks}, ...)"
 )]
@@ -845,7 +818,6 @@ pub struct ReplyChannelRange {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display("gossip_time_stamp_filter({chain_hash}, {first_timestamp}, {timestamp_range})")]
 pub struct GossipTimestampFilter {
     /// chain hash
@@ -862,7 +834,6 @@ pub struct GossipTimestampFilter {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display("assign_funds({channel_id}, {outpoint}, ...)")]
 pub struct AssignFunds {
     /// The channel ID
@@ -929,7 +900,6 @@ impl DumbDefault for OpenChannel {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display(Debug)]
 pub struct OnionPacket {
     pub version: u8,

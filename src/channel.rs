@@ -35,7 +35,6 @@ use super::Messages;
     StrictEncode,
     StrictDecode,
 )]
-#[lnpbp_crate(crate)]
 #[display(doc_comments)]
 pub enum Error {
     /// Extension-specific error: {0}
@@ -193,7 +192,6 @@ impl TxRole for u16 {}
 impl TxIndex for u64 {}
 
 #[derive(Getters, Clone, PartialEq, StrictEncode, StrictDecode)]
-#[lnpbp_crate(crate)]
 #[cfg_attr(
     feature = "serde",
     derive(Serialize, Deserialize),

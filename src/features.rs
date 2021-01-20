@@ -13,10 +13,10 @@
 
 use std::collections::HashSet;
 use std::io;
+use strict_encoding::{self, StrictDecode, StrictEncode};
+use wallet::features::FlagVec;
 
-use crate::lightning_encoding::{self, LightningDecode, LightningEncode};
-use crate::standards::features::FlagVec;
-use crate::strict_encoding::{self, StrictDecode, StrictEncode};
+use internet2::lightning_encoding::{self, LightningDecode, LightningEncode};
 
 /// Some features don't make sense on a per-channels or per-node basis, so each
 /// feature defines how it is presented in those contexts. Some features may be

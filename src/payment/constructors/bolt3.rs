@@ -15,16 +15,16 @@ use amplify::DumbDefault;
 use bitcoin::blockdata::{opcodes::all::*, script};
 use bitcoin::secp256k1::PublicKey;
 use bitcoin::{OutPoint, Transaction, TxIn, TxOut};
-
-use crate::bp::{
-    IntoPk, LexOrder, LockScript, Psbt, PubkeyScript, WitnessScript,
+use wallet::LexOrder;
+use wallet::{
+    IntoPk, LockScript, Psbt, PubkeyScript, WitnessScript,
+    SECP256K1_PUBKEY_DUMB,
 };
-use crate::lnp::application::payment::ExtensionId;
-use crate::lnp::application::{channel, ChannelExtension, Extension, Messages};
-use crate::SECP256K1_PUBKEY_DUMB;
+
+use crate::payment::ExtensionId;
+use crate::{channel, ChannelExtension, Extension, Messages};
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, StrictEncode, StrictDecode)]
-#[lnpbp_crate(crate)]
 struct Keyset {
     pub revocation_basepoint: PublicKey,
     pub payment_basepoint: PublicKey,
@@ -42,7 +42,6 @@ impl DumbDefault for Keyset {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, StrictEncode, StrictDecode)]
-#[lnpbp_crate(crate)]
 pub struct Bolt3 {
     local_amount: u64,
     remote_amount: u64,

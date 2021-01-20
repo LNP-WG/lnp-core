@@ -14,13 +14,13 @@
 #![recursion_limit = "256"]
 // Coding conventions
 #![deny(
-non_upper_case_globals,
-non_camel_case_types,
-non_snake_case,
-unused_mut,
-unused_imports,
-dead_code,
-//missing_docs
+    non_upper_case_globals,
+    non_camel_case_types,
+    non_snake_case,
+    unused_mut,
+    unused_imports,
+    dead_code,
+    //missing_docs
 )]
 
 #[macro_use]
@@ -28,13 +28,11 @@ extern crate amplify;
 #[macro_use]
 extern crate amplify_derive;
 #[macro_use]
-extern crate strict_encoding;
+extern crate lnpbp;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
-extern crate num_derive;
-#[macro_use]
-extern crate bitcoin_hashes;
+extern crate internet2;
 
 #[cfg(feature = "serde")]
 #[macro_use]
