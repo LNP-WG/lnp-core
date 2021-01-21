@@ -1,6 +1,19 @@
 Change Log
 ==========
 
+v0.3.0-beta.3
+-------------
+- Removed dylib library compile option
+- Updated dependencies to match RGB Core Lib structure
+
+v0.3.0-beta.2
+-------------
+- LNP Core Lib is formed. First compiling version
+
+v0.3.0-beta.1
+-------------
+- Release of LNP/BP Core Lib before global refactoring and multi-repo split
+
 v0.3.0-alpha.3
 --------------
 - Internet2, LNP Core, Descriptor Wallet crates externalized and removed from
