@@ -1,6 +1,11 @@
 Change Log
 ==========
 
+v0.3.0-beta.4
+-------------
+- Strict encoding for message types
+- Peer connection data types moved to microservices crate
+
 v0.3.0-beta.3
 -------------
 - Removed dylib library compile option
