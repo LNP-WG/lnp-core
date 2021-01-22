@@ -46,7 +46,6 @@ pub mod factories;
 mod features;
 pub mod message;
 pub mod payment;
-pub mod peer_connection;
 pub mod prometheus;
 pub mod storm;
 
@@ -56,8 +55,5 @@ pub use extension::{
 pub use features::{FeatureContext, FeatureFlag, Features};
 pub use message::{Messages, OnionPacket, LNPWP_UNMARSHALLER};
 pub use payment::{ChannelId, TempChannelId};
-pub use peer_connection::{
-    PeerConnection, PeerReceiver, PeerSender, RecvMessage, SendMessage,
-};
 
 pub const LIGHTNING_P2P_DEFAULT_PORT: u16 = 9735;
