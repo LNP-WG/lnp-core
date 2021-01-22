@@ -1,6 +1,15 @@
 Change Log
 ==========
 
+v0.3.0
+------
+- LNP Core Library is extracted and externalized from LNP/BP Core Library
+- Internet2-related modules externalized and removed from this repository
+- BOLT-7 message types implementation
+- Initial work on HTLC extension
+- Strict encoding for message types
+- Rust bitcoin 0.26 & Miniscript 5.0 migration
+
 v0.3.0-beta.4
 -------------
 - Strict encoding for message types

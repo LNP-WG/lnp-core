@@ -296,7 +296,6 @@ impl FromHex for TempChannelId {
 }
 
 impl TempChannelId {
-    #[cfg(feature = "keygen")]
     pub fn random() -> Self {
         TempChannelId::from_inner(Slice32::random())
     }

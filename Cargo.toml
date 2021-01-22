@@ -1,6 +1,6 @@
 [package]
 name = "lnp-core"
-version = "0.3.0-beta.4"
+version = "0.3.0"
 license = "MIT"
 authors = ["Dr Maxim Orlovsky <orlovsky@pandoracore.com>"]
 description = "LNP Core Library: rust implementation of modular lightning channels architecture"
@@ -21,9 +21,9 @@ crate-type = ["rlib", "staticlib"]
 amplify = { version = "3", features = ["stringly_conversions"] }
 amplify_derive = "2.4.3"
 lnpbp = "0.3"
-rgb-core = { version = "0.3.0-beta.3", optional = true }
+rgb-core = { version = "0.3", optional = true }
 strict_encoding = "1"
-descriptor-wallet = "0.3.2"
+descriptor-wallet = { version = "0.3.3", features = ["keygen"] }
 bitcoin = { version = "0.26", features = ["rand"] }
 internet2 = { version = "0.3.6", features = ["bitcoin-ext", "lnpbp"] }
 serde_crate = { package = "serde", version = "1.0", features = ["derive"], optional = true }

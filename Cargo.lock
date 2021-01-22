@@ -357,9 +357,9 @@ dependencies = [
 
 [[package]]
 name = "descriptor-wallet"
-version = "0.3.2"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f449c0fd13646e09eb39e0434cf0bfdfa0a61a7ada55141b3c5f6b698b3f7604"
+checksum = "1b77341a3eb199357eca3f73ba48b260b72034168b52184c2b015b8203267d18"
 dependencies = [
  "amplify",
  "amplify_derive",
@@ -636,7 +636,7 @@ checksum = "7fb9b38af92608140b86b693604b9ffcc5824240a484d1ecd4795bacb2fe88f3"
 
 [[package]]
 name = "lnp-core"
-version = "0.3.0-beta.4"
+version = "0.3.0"
 dependencies = [
  "amplify",
  "amplify_derive",
@@ -1066,9 +1066,9 @@ checksum = "b5eb417147ba9860a96cfe72a0b93bf88fee1744b5636ec99ab20c1aa9376581"
 
 [[package]]
 name = "rgb-core"
-version = "0.3.0-beta.3"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a80aa5565c157cb6135bdeb5e1b7d7d648b0866fb5a0cb05c3dc6e948412d8c"
+checksum = "7aba08a3bad932cf993ae824d37e1dec93cc5a9f3b4a299118a60229467bef47"
 dependencies = [
  "amplify",
  "amplify_derive",
