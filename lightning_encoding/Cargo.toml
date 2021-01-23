@@ -1,0 +1,29 @@
+[package]
+name = "lightning_encoding"
+version = "0.3.10"
+license = "MIT"
+authors = ["Dr Maxim Orlovsky <orlovsky@pandoracore.com>"]
+description = "Network encoding for lightning network peer protocol data types"
+repository = "https://github.com/LNP-BP/lnp-core"
+homepage = "https://lnp-bp.org"
+keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
+categories = ["cryptography::cryptocurrencies", "network-programming"]
+readme = "README.md"
+edition = "2018"
+
+[lib]
+name = "lightning_encoding"
+path = "src/lib.rs"
+crate-type = ["rlib", "staticlib"]
+
+[dependencies]
+amplify = { version = "3", features = ["stringly_conversions"] }
+amplify_derive = "2.4.3"
+strict_encoding = "1"
+# lightning_encoding_derive = { version = "1", optional = true }
+bitcoin = { version = "0.26" }
+
+[features]
+default = ["derive"]
+all = ["derive"]
+derive = [] #"lightning_encoding_derive"]

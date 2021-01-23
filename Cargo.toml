@@ -10,7 +10,7 @@ keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
 categories = ["cryptography::cryptocurrencies"]
 readme = "README.md"
 edition = "2018"
-exclude = [".github", "contrib"]
+exclude = [".github", "contrib", "lightning_encoding", "lnp2p"]
 
 [lib]
 name = "lnp"
@@ -37,6 +37,6 @@ rgb = ["rgb-core", "internet2/rgb"]
 serde = ["serde_crate", "serde_with", "amplify/serde", "bitcoin/use-serde"]
 
 [workspace]
-members = ["."]
-default-members = ["."]
+members = [".", "lightning_encoding"] #, "lnp2p", ]
+default-members = [".", "lightning_encoding"] #, "lnp2p", ]
 exclude = ["dep_test"]
