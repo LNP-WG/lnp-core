@@ -28,7 +28,7 @@ use wallet::{HashLock, HashPreimage};
 use super::payment::{
     AddressList, Alias, ChannelId, NodeColor, ShortChannelId, TempChannelId,
 };
-use crate::Features;
+use crate::InitFeatures;
 
 #[cfg(feature = "rgb")]
 use rgb::Consignment;
@@ -210,8 +210,8 @@ pub enum Messages {
 #[strict_encoding_crate(lnpbp::strict_encoding)]
 #[display("init({global_features}, {local_features}, {assets:#?})")]
 pub struct Init {
-    pub global_features: Features,
-    pub local_features: Features,
+    pub global_features: InitFeatures,
+    pub local_features: InitFeatures,
     #[tlv(type = 1)]
     pub assets: HashSet<AssetId>,
     /* #[tlv(unknown)]
@@ -836,7 +836,7 @@ pub struct ChannelAnnouncements {
     pub bitcoin_signature_2: Signature,
 
     /// feature bytes
-    pub features: Features,
+    pub features: InitFeatures,
 
     /// chain hash
     pub chain_hash: AssetId,
@@ -875,7 +875,7 @@ pub struct NodeAnnouncements {
     pub signature: Signature,
 
     /// feature bytes
-    pub features: Features,
+    pub features: InitFeatures,
 
     /// Time stamp
     pub timestamp: u32,

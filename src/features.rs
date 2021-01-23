@@ -11,12 +11,61 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
-use std::collections::HashSet;
+use std::collections::BTreeMap;
+use std::convert::TryFrom;
+use std::fmt::{self, Debug, Display, Formatter};
+use std::hash::Hash;
 use std::io;
+use std::str::FromStr;
 use strict_encoding::{self, StrictDecode, StrictEncode};
 use wallet::features::FlagVec;
 
 use internet2::lightning_encoding::{self, LightningDecode, LightningEncode};
+
+/// Feature-flags-related errors
+#[derive(
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Ord,
+    PartialOrd,
+    Hash,
+    Debug,
+    Display,
+    Error,
+    From,
+)]
+#[display(doc_comments)]
+pub enum Error {
+    #[from]
+    /// feature flags inconsistency: {0}
+    FeaturesInconsistency(NoRequiredFeatureError),
+
+    /// unknown even feature flag with number {0}
+    UnknownEvenFeature(u16),
+}
+
+/// Errors from internal features inconsistency happening when a feature is
+/// present, but it's required feature is not specified
+#[derive(
+    Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Debug, Display, Error,
+)]
+#[display(doc_comments)]
+pub enum NoRequiredFeatureError {
+    /// `gossip_queries_eq` feature requires `gossip_queries` feature
+    GossipQueries,
+
+    /// `payment_secret` feature requires `var_option_optin` feature
+    VarOptionOptin,
+
+    /// `basic_mpp` feature requires `payment_secret` feature
+    PaymentSecret,
+
+    /// `option_anchor_outputs` feature requires `option_static_remotekey`
+    /// feature
+    OptionStaticRemotekey,
+}
 
 /// Some features don't make sense on a per-channels or per-node basis, so each
 /// feature defines how it is presented in those contexts. Some features may be
@@ -26,32 +75,168 @@ use internet2::lightning_encoding::{self, LightningDecode, LightningEncode};
 ///
 /// # Specification
 /// <https://github.com/lightningnetwork/lightning-rfc/blob/master/09-features.md#bolt-9-assigned-feature-flags>
-#[derive(Clone, PartialEq, Eq, Hash, Debug, Display)]
-pub enum FeatureContext {
-    /// `I`: presented in the init message.
-    // TODO: Add `alt = doc_comments` when `amplify` crate will support it
-    #[display("I")]
-    Init,
-
-    /// `N`: N: presented in the node_announcement messages
-    #[display("N")]
-    NodeAnnouncement,
-
-    /// `C`: presented in the channel_announcement message.
-    #[display("C")]
-    ChannelAnnouncement,
-
-    /// `9`: presented in BOLT 11 invoices.
-    #[display("9")]
-    Bolt11Invoice,
+pub trait FeatureContext:
+    Display
+    + Debug
+    + Copy
+    + Clone
+    + PartialEq
+    + Eq
+    + PartialOrd
+    + Ord
+    + Hash
+    + Default
+{
 }
 
-#[derive(Clone, PartialEq, Eq, Debug, Display, Default)]
-#[display("flag<{context:?}, global={global}>, required={required}>")]
-pub struct FeatureFlag {
-    pub context: HashSet<FeatureContext>,
-    pub global: bool,
-    pub required: bool,
+/// Type representing `init` message feature context.
+#[derive(
+    Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display, Default,
+)]
+#[display("I", alt = "init")]
+pub struct InitContext;
+impl FeatureContext for InitContext {}
+
+/// Type representing `node_announcement` message feature context.
+#[derive(
+    Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display, Default,
+)]
+#[display("N", alt = "node_announcement")]
+pub struct NodeAnnouncementContext;
+impl FeatureContext for NodeAnnouncementContext {}
+
+/// Type representing `channel_announcement` message feature context.
+#[derive(
+    Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display, Default,
+)]
+#[display("C", alt = "channel_announcement")]
+pub struct ChannelAnnouncementContext;
+impl FeatureContext for ChannelAnnouncementContext {}
+
+/// Type representing BOLT-11 invoice feature context.
+#[derive(
+    Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display, Default,
+)]
+#[display("9", alt = "bolt11")]
+pub struct Bolt11Context;
+impl FeatureContext for Bolt11Context {}
+
+/// Specific named feature flags
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display)]
+#[non_exhaustive]
+#[repr(u16)]
+pub enum Feature {
+    /// Requires or supports extra `channel_reestablish` fields
+    #[display("option_data_loss_protect", alt = "0/1")]
+    OptionDataLossProtect = 0,
+
+    /// Sending node needs a complete routing information dump
+    #[display("initial_routing_sync", alt = "3")]
+    InitialRoutingSync = 2,
+
+    /// Commits to a shutdown scriptpubkey when opening channel
+    #[display("option_data_loss_protect", alt = "4/5")]
+    OptionUpfrontShutdownScript = 4,
+
+    /// More sophisticated gossip control
+    #[display("gossip_queries", alt = "6/7")]
+    GossipQueries = 6,
+
+    /// Requires/supports variable-length routing onion payloads
+    #[display("var_onion_optin", alt = "8/9")]
+    VarOnionOptin = 8,
+
+    /// Gossip queries can include additional information
+    #[display("gossip_queries_ex", alt = "10/11")]
+    GossipQueriesEx = 10,
+
+    /// Static key for remote output
+    #[display("option_static_remotekey", alt = "12/13")]
+    OptionStaticRemotekey = 12,
+
+    /// Node supports `payment_secret` field
+    #[display("payment_secret", alt = "14/15")]
+    PaymentSecret = 14,
+
+    /// Node can receive basic multi-part payments
+    #[display("basic_mpp", alt = "16/17")]
+    BasicMpp = 16,
+
+    /// Can create large channels
+    #[display("option_support_large_channel", alt = "18/19")]
+    OptionSupportLargeChannel = 18,
+
+    /// Anchor outputs
+    #[display("option_anchor_outputs", alt = "20/21")]
+    OptionAnchorOutputs = 20,
+}
+
+impl Feature {
+    /// Returns number of bit that is set by the flag
+    ///
+    /// # Arguments
+    /// `required`: which type of flag bit should be returned:
+    /// - `false` for even (non-required) bit variant
+    /// - `true` for odd (required) bit variant
+    ///
+    /// # Returns
+    /// Bit number in feature verctor if the feature is allowed for the provided
+    /// `required` condition; `None` otherwise.
+    pub fn bit(self, required: bool) -> Option<u16> {
+        if self == Feature::InitialRoutingSync && required {
+            return None;
+        }
+        Some(self as u16 + !required as u16)
+    }
+}
+
+/// Error reporting unrecognized feature name
+#[derive(
+    Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display, Error, From,
+)]
+#[display("the provided feature name is not known: {0}")]
+pub struct UnknownFeatureError(pub String);
+
+impl FromStr for Feature {
+    type Err = UnknownFeatureError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let feature = match s {
+            s if s == Feature::OptionDataLossProtect.to_string() => {
+                Feature::OptionDataLossProtect
+            }
+            s if s == Feature::InitialRoutingSync.to_string() => {
+                Feature::InitialRoutingSync
+            }
+            s if s == Feature::OptionUpfrontShutdownScript.to_string() => {
+                Feature::OptionUpfrontShutdownScript
+            }
+            s if s == Feature::GossipQueries.to_string() => {
+                Feature::GossipQueries
+            }
+            s if s == Feature::VarOnionOptin.to_string() => {
+                Feature::VarOnionOptin
+            }
+            s if s == Feature::GossipQueriesEx.to_string() => {
+                Feature::GossipQueriesEx
+            }
+            s if s == Feature::OptionStaticRemotekey.to_string() => {
+                Feature::OptionStaticRemotekey
+            }
+            s if s == Feature::PaymentSecret.to_string() => {
+                Feature::PaymentSecret
+            }
+            s if s == Feature::BasicMpp.to_string() => Feature::BasicMpp,
+            s if s == Feature::OptionSupportLargeChannel.to_string() => {
+                Feature::OptionSupportLargeChannel
+            }
+            s if s == Feature::OptionAnchorOutputs.to_string() => {
+                Feature::OptionAnchorOutputs
+            }
+            other => return Err(UnknownFeatureError(other.to_owned())),
+        };
+        Ok(feature)
+    }
 }
 
 /// Flags are numbered from the least-significant bit, at bit 0 (i.e. 0x1, an
@@ -62,89 +247,230 @@ pub struct FeatureFlag {
 ///
 /// # Specification
 /// <https://github.com/lightningnetwork/lightning-rfc/blob/master/09-features.md>
-#[derive(Clone, PartialEq, Eq, Debug, Display, Default)]
-#[display(Debug)]
-pub struct Features {
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct InitFeatures {
     /// Requires or supports extra `channel_reestablish` fields
-    // #[lnpwp_feature(0, 1)]
-    pub option_data_loss_protect: FeatureFlag,
+    pub option_data_loss_protect: Option<bool>,
 
     /// Sending node needs a complete routing information dump
-    // #[lnpwp_feature(3)]
-    pub initial_routing_sync: FeatureFlag,
+    pub initial_routing_sync: bool,
 
     /// Commits to a shutdown scriptpubkey when opening channel
-    // #[lnpwp_feature(4, 5)]
-    pub option_upfront_sutdown_script: FeatureFlag,
+    pub option_upfront_shutdown_script: Option<bool>,
 
     /// More sophisticated gossip control
-    // #[lnpwp_feature(6, 7)]
-    pub gossip_queries: FeatureFlag,
+    pub gossip_queries: Option<bool>,
 
     /// Requires/supports variable-length routing onion payloads
-    // #[lnpwp_feature(8, 9)]
-    pub var_onion_optin: FeatureFlag,
+    pub var_onion_optin: Option<bool>,
 
     /// Gossip queries can include additional information
-    // #[lnpwp_feature(10, 11, requires(gossip_queries))]
-    pub gossip_queries_ex: FeatureFlag,
+    pub gossip_queries_ex: Option<bool>,
 
     /// Static key for remote output
-    // #[lnpwp_feature(12, 13)]
-    pub option_static_remotekey: FeatureFlag,
+    pub option_static_remotekey: Option<bool>,
 
     /// Node supports `payment_secret` field
-    // #[lnpwp_feature(14, 15, requires(var_onion_optin))]
-    pub payment_secret: FeatureFlag,
+    pub payment_secret: Option<bool>,
 
     /// Node can receive basic multi-part payments
-    // #[lnpwp_feature(16, 17, requires(payment_secret))]
-    pub basic_mpp: FeatureFlag,
+    pub basic_mpp: Option<bool>,
 
     /// Can create large channels
-    // #[lnpwp_feature(18, 19)]
-    pub option_support_large_channel: FeatureFlag,
+    pub option_support_large_channel: Option<bool>,
 
     /// Anchor outputs
-    // #[lnpwp_feature(20, 21, requires(option_static_remotekey))]
-    pub option_anchor_outputs: FeatureFlag,
+    pub option_anchor_outputs: Option<bool>,
 
     /// Rest of feature flags which are unknown to the current implementation
     pub unknown: FlagVec,
 }
 
+impl Display for InitFeatures {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        for (feature, required) in self.known_features() {
+            Display::fmt(&feature, f)?;
+            if !required {
+                f.write_str("?")?;
+            }
+            f.write_str(", ")?;
+        }
+        Ok(())
+    }
+}
+
+impl InitFeatures {
+    pub fn check(&self) -> Result<(), Error> {
+        self.check_consistency()?;
+        self.check_unknown_even()
+    }
+
+    pub fn check_consistency(&self) -> Result<(), NoRequiredFeatureError> {
+        if self.gossip_queries_ex.is_some() && self.gossip_queries.is_none() {
+            return Err(NoRequiredFeatureError::GossipQueries);
+        }
+        if self.payment_secret.is_some() && self.var_onion_optin.is_none() {
+            return Err(NoRequiredFeatureError::VarOptionOptin);
+        }
+        if self.basic_mpp.is_some() && self.payment_secret.is_none() {
+            return Err(NoRequiredFeatureError::PaymentSecret);
+        }
+        if self.option_anchor_outputs.is_some()
+            && self.option_static_remotekey.is_none()
+        {
+            return Err(NoRequiredFeatureError::OptionStaticRemotekey);
+        }
+        Ok(())
+    }
+
+    pub fn check_unknown_even(&self) -> Result<(), Error> {
+        if let Some(flag) = self.unknown.iter().find(|flag| flag % 2 == 0) {
+            return Err(Error::UnknownEvenFeature(flag));
+        }
+        Ok(())
+    }
+
+    pub fn known_features(&self) -> BTreeMap<Feature, bool> {
+        let mut map = bmap! {};
+        if let Some(required) = self.option_data_loss_protect {
+            map.insert(Feature::OptionDataLossProtect, required);
+        }
+        if self.initial_routing_sync {
+            map.insert(Feature::InitialRoutingSync, false);
+        }
+        if let Some(required) = self.option_upfront_shutdown_script {
+            map.insert(Feature::OptionUpfrontShutdownScript, required);
+        }
+        if let Some(required) = self.gossip_queries {
+            map.insert(Feature::GossipQueries, required);
+        }
+        if let Some(required) = self.var_onion_optin {
+            map.insert(Feature::VarOnionOptin, required);
+        }
+        if let Some(required) = self.gossip_queries_ex {
+            map.insert(Feature::GossipQueriesEx, required);
+        }
+        if let Some(required) = self.option_static_remotekey {
+            map.insert(Feature::OptionStaticRemotekey, required);
+        }
+        if let Some(required) = self.payment_secret {
+            map.insert(Feature::PaymentSecret, required);
+        }
+        if let Some(required) = self.basic_mpp {
+            map.insert(Feature::BasicMpp, required);
+        }
+        if let Some(required) = self.option_support_large_channel {
+            map.insert(Feature::OptionSupportLargeChannel, required);
+        }
+        if let Some(required) = self.option_anchor_outputs {
+            map.insert(Feature::OptionAnchorOutputs, required);
+        }
+        map
+    }
+}
+
+impl TryFrom<FlagVec> for InitFeatures {
+    type Error = Error;
+
+    fn try_from(flags: FlagVec) -> Result<Self, Self::Error> {
+        let requirements = |feature: Feature| -> Option<bool> {
+            if let Some(true) = feature.bit(false).map(|bit| flags.is_set(bit))
+            {
+                Some(false)
+            } else if let Some(true) =
+                feature.bit(true).map(|bit| flags.is_set(bit))
+            {
+                Some(true)
+            } else {
+                None
+            }
+        };
+
+        let mut parsed = InitFeatures {
+            option_data_loss_protect: requirements(
+                Feature::OptionDataLossProtect,
+            ),
+            initial_routing_sync: flags.is_set(3),
+            option_upfront_shutdown_script: requirements(
+                Feature::OptionUpfrontShutdownScript,
+            ),
+            gossip_queries: requirements(Feature::GossipQueries),
+            var_onion_optin: requirements(Feature::VarOnionOptin),
+            gossip_queries_ex: requirements(Feature::GossipQueriesEx),
+            option_static_remotekey: requirements(
+                Feature::OptionStaticRemotekey,
+            ),
+            payment_secret: requirements(Feature::PaymentSecret),
+            basic_mpp: requirements(Feature::BasicMpp),
+            option_support_large_channel: requirements(
+                Feature::OptionSupportLargeChannel,
+            ),
+            option_anchor_outputs: requirements(Feature::OptionAnchorOutputs),
+            unknown: none!(),
+        };
+
+        parsed.unknown = flags ^ parsed.clone().into();
+        parsed.unknown.shrink();
+
+        parsed.check()?;
+
+        Ok(parsed)
+    }
+}
+
+impl From<InitFeatures> for FlagVec {
+    fn from(features: InitFeatures) -> Self {
+        let flags = features.unknown.shrunk();
+        features.known_features().into_iter().fold(
+            flags,
+            |mut flags, (feature, required)| {
+                flags.set(feature.bit(required).expect(
+                    "InitFeatures feature flag specification is broken",
+                ));
+                flags
+            },
+        )
+    }
+}
+
 /// TODO: Implement proper strict encoding for Features
 
-impl StrictEncode for Features {
+impl StrictEncode for InitFeatures {
     fn strict_encode<E: io::Write>(
         &self,
         e: E,
     ) -> Result<usize, strict_encoding::Error> {
-        Ok(0)
+        FlagVec::from(self.clone()).strict_encode(e)
     }
 }
 
-impl StrictDecode for Features {
+impl StrictDecode for InitFeatures {
     fn strict_decode<D: io::Read>(
         d: D,
     ) -> Result<Self, strict_encoding::Error> {
-        Ok(none!())
+        let vec = FlagVec::strict_decode(d)?;
+        Ok(InitFeatures::try_from(vec).map_err(|e| {
+            strict_encoding::Error::DataIntegrityError(e.to_string())
+        })?)
     }
 }
 
-impl LightningEncode for Features {
+impl LightningEncode for InitFeatures {
     fn lightning_encode<E: io::Write>(
         &self,
         e: E,
     ) -> Result<usize, std::io::Error> {
-        Ok(0)
+        FlagVec::from(self.clone()).lightning_encode(e)
     }
 }
 
-impl LightningDecode for Features {
+impl LightningDecode for InitFeatures {
     fn lightning_decode<D: io::Read>(
         d: D,
     ) -> Result<Self, lightning_encoding::Error> {
-        Ok(none!())
+        let vec = FlagVec::lightning_decode(d)?;
+        Ok(InitFeatures::try_from(vec).map_err(|e| {
+            lightning_encoding::Error::DataIntegrityError(e.to_string())
+        })?)
     }
 }

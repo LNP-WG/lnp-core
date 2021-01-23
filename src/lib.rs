@@ -43,7 +43,7 @@ extern crate serde_crate as serde;
 pub mod channel;
 pub mod extension;
 pub mod factories;
-mod features;
+pub mod features;
 pub mod message;
 pub mod payment;
 pub mod prometheus;
@@ -52,7 +52,10 @@ pub mod storm;
 pub use extension::{
     ChannelExtension, Extension, GossipExtension, RoutingExtension,
 };
-pub use features::{FeatureContext, FeatureFlag, Features};
+pub use features::{
+    Bolt11Context, ChannelAnnouncementContext, Feature, FeatureContext,
+    InitContext, InitFeatures, NoRequiredFeatureError, NodeAnnouncementContext,
+};
 pub use message::{Messages, OnionPacket, LNPWP_UNMARSHALLER};
 pub use payment::{ChannelId, TempChannelId};
 
