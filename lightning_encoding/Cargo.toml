@@ -1,6 +1,6 @@
 [package]
 name = "lightning_encoding"
-version = "0.3.10"
+version = "0.3.11"
 license = "Apache-2.0"
 authors = ["Dr Maxim Orlovsky <orlovsky@pandoracore.com>"]
 description = "Network encoding for lightning network peer protocol data types"
@@ -20,10 +20,10 @@ crate-type = ["rlib", "staticlib"]
 amplify = { version = "3", features = ["stringly_conversions"] }
 amplify_derive = "2.4.3"
 strict_encoding = "1"
-# lightning_encoding_derive = { version = "1", optional = true }
+lightning_encoding_derive = { version = "0.3", optional = true }
 bitcoin = { version = "0.26" }
 
 [features]
 default = ["derive"]
 all = ["derive"]
-derive = [] #"lightning_encoding_derive"]
+derive = ["lightning_encoding_derive"]

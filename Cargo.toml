@@ -37,6 +37,6 @@ rgb = ["rgb-core", "internet2/rgb"]
 serde = ["serde_crate", "serde_with", "amplify/serde", "bitcoin/use-serde"]
 
 [workspace]
-members = [".", "lightning_encoding"] #, "lnp2p", ]
-default-members = [".", "lightning_encoding"] #, "lnp2p", ]
+members = [".", "lightning_encoding", "lightning_encoding/derive"] #, "lnp2p", ]
+default-members = [".", "lightning_encoding", "lightning_encoding/derive"] #, "lnp2p", ]
 exclude = ["dep_test"]
