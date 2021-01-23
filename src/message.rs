@@ -1181,3 +1181,23 @@ impl DumbDefault for OnionPacket {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use bitcoin::hashes::hex::FromHex;
+    use internet2::TypedEnum;
+
+    #[test]
+    fn bolt1_testvec() {
+        let init_msg = Messages::Init(Init {
+            global_features: none!(),
+            local_features: none!(),
+            assets: none!(),
+        });
+        assert_eq!(
+            init_msg.serialize(),
+            Vec::<u8>::from_hex("001000000000").unwrap()
+        );
+    }
+}
