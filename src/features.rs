@@ -433,8 +433,6 @@ impl From<InitFeatures> for FlagVec {
     }
 }
 
-/// TODO: Implement proper strict encoding for Features
-
 impl StrictEncode for InitFeatures {
     fn strict_encode<E: io::Write>(
         &self,

@@ -11,6 +11,8 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
+//! Implemented after concept by Martin Habovštiak <martin.habovstiak@gmail.com>
+
 use std::io;
 use strict_encoding::{self, StrictDecode, StrictEncode};
 
