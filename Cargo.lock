@@ -597,7 +597,7 @@ dependencies = [
  "inet2_addr",
  "inet2_derive",
  "lazy_static",
- "lnpbp",
+ "lnpbp 0.3.0",
  "rgb-core",
  "strict_encoding",
  "url",
@@ -670,7 +670,7 @@ checksum = "7fb9b38af92608140b86b693604b9ffcc5824240a484d1ecd4795bacb2fe88f3"
 
 [[package]]
 name = "lnp-core"
-version = "0.3.0"
+version = "0.4.0-alpha.1"
 dependencies = [
  "amplify",
  "amplify_derive",
@@ -678,7 +678,7 @@ dependencies = [
  "descriptor-wallet",
  "internet2",
  "lazy_static",
- "lnpbp",
+ "lnpbp 0.4.0-alpha.1",
  "rgb-core",
  "serde",
  "serde_with",
@@ -702,6 +702,26 @@ dependencies = [
  "serde",
  "serde_with",
  "serde_with_macros",
+ "strict_encoding",
+ "strict_encoding_derive",
+]
+
+[[package]]
+name = "lnpbp"
+version = "0.4.0-alpha.1"
+source = "git+https://github.com/LNP-BP/rust-lnpbp#b91390669b6bf66bf44745db2dd5a88a7140ddbb"
+dependencies = [
+ "amplify",
+ "amplify_derive",
+ "bech32",
+ "bitcoin",
+ "bitcoin_hashes",
+ "client_side_validation",
+ "deflate",
+ "descriptor-wallet",
+ "inflate",
+ "lazy_static",
+ "miniscript",
  "strict_encoding",
  "strict_encoding_derive",
 ]
@@ -1122,7 +1142,7 @@ dependencies = [
  "grin_secp256k1zkp",
  "inflate",
  "lazy_static",
- "lnpbp",
+ "lnpbp 0.3.0",
  "miniscript",
  "num-derive",
  "num-traits",

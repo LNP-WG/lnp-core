@@ -1,6 +1,14 @@
 Change Log
 ==========
 
+v0.4.0-alpha.1
+--------------
+- Lightning encodings crate
+- Lightning derive crate
+- Lightning encodings completed & tested
+- Features type system completed
+- Init message features completed
+
 v0.3.0
 ------
 - LNP Core Library is extracted and externalized from LNP/BP Core Library
