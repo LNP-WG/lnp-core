@@ -53,7 +53,7 @@ fn encode_inner_struct(
         input.generics.split_for_impl();
     let ident_name = &input.ident;
 
-    let import = get_encoding_crate(input, "internet2");
+    let import = get_encoding_crate(input);
 
     let recurse = match data.fields {
         Fields::Named(ref fields) => fields
@@ -94,10 +94,10 @@ fn encode_inner_struct(
 
     Ok(quote! {
         #[allow(unused_qualifications)]
-        impl #impl_generics #import::lightning_encoding::LightningEncode for #ident_name #ty_generics #where_clause {
+        impl #impl_generics #import::LightningEncode for #ident_name #ty_generics #where_clause {
             #[inline]
             fn lightning_encode<E: ::std::io::Write>(&self, mut e: E) -> Result<usize, ::std::io::Error> {
-                use #import::lightning_encoding::LightningEncode;
+                use #import::LightningEncode;
 
                 #inner
             }
@@ -113,7 +113,7 @@ fn decode_inner_struct(
         input.generics.split_for_impl();
     let ident_name = &input.ident;
 
-    let import = get_encoding_crate(input, "internet2");
+    let import = get_encoding_crate(input);
 
     let inner = match data.fields {
         Fields::Named(ref fields) => {
@@ -123,7 +123,7 @@ fn decode_inner_struct(
                 .map(|f| {
                     let name = &f.ident;
                     quote_spanned! { f.span() =>
-                        #name: #import::lightning_encoding::LightningDecode::lightning_decode(&mut d)?,
+                        #name: #import::LightningDecode::lightning_decode(&mut d)?,
                     }
                 })
                 .collect();
@@ -139,7 +139,7 @@ fn decode_inner_struct(
                 .iter()
                 .map(|f| {
                     quote_spanned! { f.span() =>
-                        #import::lightning_encoding::LightningDecode::lightning_decode(&mut d)?,
+                        #import::LightningDecode::lightning_decode(&mut d)?,
                     }
                 })
                 .collect();
@@ -157,10 +157,10 @@ fn decode_inner_struct(
 
     Ok(quote! {
         #[allow(unused_qualifications)]
-        impl #impl_generics #import::lightning_encoding::LightningDecode for #ident_name #ty_generics #where_clause {
+        impl #impl_generics #import::LightningDecode for #ident_name #ty_generics #where_clause {
             #[inline]
-            fn lightning_decode<D: ::std::io::Read>(mut d: D) -> Result<Self, #import::lightning_encoding::Error> {
-                use #import::lightning_encoding::LightningDecode;
+            fn lightning_decode<D: ::std::io::Read>(mut d: D) -> Result<Self, #import::Error> {
+                use #import::LightningDecode;
 
                 Ok(#inner)
             }

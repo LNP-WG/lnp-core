@@ -43,10 +43,10 @@ macro_rules! attr_err {
     };
 }
 
-pub(crate) fn get_encoding_crate(input: &DeriveInput, default: &str) -> Path {
-    let name = "encoding_crate";
-    let example = "#[encoding_crate(crate_path)]";
-    let default = Path::from(Ident::new(default, input.span()));
+pub(crate) fn get_encoding_crate(input: &DeriveInput) -> Path {
+    let name = "lightning_encoding_crate";
+    let example = "#[lightning_encoding_crate(crate_path)]";
+    let default = Path::from(Ident::new("lightning_encoding", input.span()));
 
     let list = match attr_list(&input.attrs, name, example).ok().flatten() {
         Some(x) => x,
