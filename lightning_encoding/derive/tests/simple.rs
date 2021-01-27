@@ -1,4 +1,5 @@
-#[allow(dead_code)]
+#![allow(dead_code)]
+
 #[macro_use]
 extern crate lightning_encoding_derive;
 

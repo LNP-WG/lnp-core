@@ -213,8 +213,8 @@ pub struct Init {
     pub local_features: InitFeatures,
     #[tlv(type = 1)]
     pub assets: HashSet<AssetId>,
-    /* #[tlv(unknown)]
-     * pub unknown_tlvs: BTreeMap<tlv::Type, tlv::RawRecord>, */
+    #[tlv(unknown)]
+    pub unknown_tlvs: tlv::Map,
 }
 
 /// In order to allow for the existence of long-lived TCP connections, at
@@ -367,7 +367,7 @@ pub struct OpenChannel {
     pub shutdown_scriptpubkey: Option<Script>,
 
     /// The rest of TLVs with unknown odd type ids
-    #[tlv(type = unknown)]
+    #[tlv(unknown)]
     pub unknown_tlvs: tlv::Map,
 }
 
@@ -1228,6 +1228,7 @@ mod test {
             global_features: none!(),
             local_features: none!(),
             assets: none!(),
+            unknown_tlvs: none!(),
         });
         assert_eq!(
             init_msg.serialize(),

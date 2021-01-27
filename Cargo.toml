@@ -20,13 +20,13 @@ crate-type = ["rlib", "staticlib"]
 [dependencies]
 amplify = { version = "3", features = ["stringly_conversions"] }
 amplify_derive = "2.4.3"
-lnpbp = "0.3.1"
-rgb-core = { version = "0.3", optional = true }
+lnpbp = { git = "https://github.com/LNP-BP/rust-lnpbp" }
+rgb-core = { git = "https://github.com/rgb-org/rgb-core", optional = true }
 strict_encoding = "1"
-lightning_encoding = { version = "0.4.0-alpha.1", path = "lightning_encoding" }
-descriptor-wallet = { version = "0.3.5", features = ["keygen"] }
+lightning_encoding = { git = "https://github.com/LNP-BP/lnp-core", path = "lightning_encoding" }
+descriptor-wallet = { git = "https://github.com/LNP-BP/descriptor-wallet", features = ["keygen"] }
 bitcoin = { version = "0.26", features = ["rand"] }
-internet2 = "0.4.0-alpha.1"
+internet2 = { git = "https://github.com/internet2-org/rust-internet2" }
 serde_crate = { package = "serde", version = "1.0", features = ["derive"], optional = true }
 serde_with = { version = "1.5", features = ["hex"], optional = true }
 lazy_static = "1.4"

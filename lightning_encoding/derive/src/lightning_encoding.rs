@@ -13,11 +13,8 @@
 
 use amplify_derive_helpers::ExtractAttr;
 use proc_macro2::{Ident, TokenStream as TokenStream2};
-use std::collections::HashMap;
 use syn::spanned::Spanned;
-use syn::{
-    Data, DataStruct, DeriveInput, Error, Fields, Index, Lit, LitInt, Result,
-};
+use syn::{Data, DataStruct, DeriveInput, Error, Fields, Index, Lit, Result};
 
 use crate::util::get_encoding_crate;
 
@@ -58,7 +55,7 @@ fn encode_inner_struct(
     let ident_name = &input.ident;
 
     let import = get_encoding_crate(input);
-    let mut tlvs = HashMap::<LitInt, Ident>::new();
+    let mut tlvs: Vec<TokenStream2> = vec![];
     let mut unknown_tlv: Option<Ident> = None;
 
     let recurse = match data.fields {
@@ -77,8 +74,8 @@ fn encode_inner_struct(
                             return Ok(quote! {})
                         }
                         match tlv.arg_literal_value("type").map_err(|err| Error::new_spanned(f, err.to_string()))? {
-                            Lit::Int(int) => {
-                                tlvs.insert(int, (*name).clone());
+                            Lit::Int(_int) => {
+                                tlvs.push(quote! { });
                             }
                             _ => return Err(Error::new_spanned(f, "incorrect value for TLV type argument"))
                         }
