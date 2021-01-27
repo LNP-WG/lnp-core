@@ -247,7 +247,7 @@ impl FromStr for Feature {
 ///
 /// # Specification
 /// <https://github.com/lightningnetwork/lightning-rfc/blob/master/09-features.md>
-#[derive(Clone, PartialEq, Eq, Debug, Default)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default)]
 pub struct InitFeatures {
     /// Requires or supports extra `channel_reestablish` fields
     pub option_data_loss_protect: Option<bool>,
