@@ -19,14 +19,14 @@ use std::io;
 use bitcoin::hashes::{sha256, Hmac};
 use bitcoin::secp256k1::{PublicKey, Signature};
 use bitcoin::{Script, Txid};
-use internet2::lightning_encoding::{self, LightningDecode, LightningEncode};
-use internet2::{CreateUnmarshaller, Payload, Unmarshall, Unmarshaller};
+use internet2::{tlv, CreateUnmarshaller, Payload, Unmarshall, Unmarshaller};
+use lightning_encoding::{self, LightningDecode, LightningEncode};
 use lnpbp::chain::AssetId;
 use wallet::SECP256K1_PUBKEY_DUMB;
 use wallet::{HashLock, HashPreimage};
 
 use super::payment::{
-    AddressList, Alias, ChannelId, NodeColor, ShortChannelId, TempChannelId,
+    Alias, ChannelId, NodeColor, ShortChannelId, TempChannelId,
 };
 use crate::InitFeatures;
 
@@ -38,23 +38,22 @@ lazy_static! {
         Messages::create_unmarshaller();
 }
 
-#[derive(Clone, Debug, Display, LnpApi, StrictEncode, StrictDecode)]
-#[lnp_api(encoding = "lightning")]
+#[derive(Clone, Debug, Display, Api, StrictEncode, StrictDecode)]
+#[api(encoding = "lightning")]
 #[strict_encoding_crate(lnpbp::strict_encoding)]
-#[encoding_crate("internet2")]
 #[non_exhaustive]
 pub enum Messages {
     // Part I: Generic messages outside of channel operations
     // ======================================================
     /// Once authentication is complete, the first message reveals the features
     /// supported or required by this node, even if this is a reconnection.
-    #[lnp_api(type = 16)]
+    #[api(type = 16)]
     #[display(inner)]
     Init(Init),
 
     /// For simplicity of diagnosis, it's often useful to tell a peer that
     /// something is incorrect.
-    #[lnp_api(type = 17)]
+    #[api(type = 17)]
     #[display(inner)]
     Error(Error),
 
@@ -62,7 +61,7 @@ pub enum Messages {
     /// times it may be required that both ends keep alive the TCP connection
     /// at the application level. Such messages also allow obfuscation of
     /// traffic patterns.
-    #[lnp_api(type = 18)]
+    #[api(type = 18)]
     #[display(inner)]
     Ping(Ping),
 
@@ -71,7 +70,7 @@ pub enum Messages {
     /// explicitly notifying the other end that the receiver is still active.
     /// Within the received ping message, the sender will specify the number of
     /// bytes to be included within the data payload of the pong message.
-    #[lnp_api(type = 19)]
+    #[api(type = 19)]
     #[display("pong(...)")]
     Pong(Vec<u8>),
 
@@ -80,113 +79,113 @@ pub enum Messages {
     //
     // 1. Channel establishment
     // ------------------------
-    #[lnp_api(type = 32)]
+    #[api(type = 32)]
     #[display(inner)]
     OpenChannel(OpenChannel),
 
-    #[lnp_api(type = 33)]
+    #[api(type = 33)]
     #[display(inner)]
     AcceptChannel(AcceptChannel),
 
-    #[lnp_api(type = 34)]
+    #[api(type = 34)]
     #[display(inner)]
     FundingCreated(FundingCreated),
 
-    #[lnp_api(type = 35)]
+    #[api(type = 35)]
     #[display(inner)]
     FundingSigned(FundingSigned),
 
-    #[lnp_api(type = 36)]
+    #[api(type = 36)]
     #[display(inner)]
     FundingLocked(FundingLocked),
 
-    #[lnp_api(type = 38)]
+    #[api(type = 38)]
     #[display(inner)]
     Shutdown(Shutdown),
 
-    #[lnp_api(type = 39)]
+    #[api(type = 39)]
     #[display(inner)]
     ClosingSigned(ClosingSigned),
 
     // 2. Normal operations
     // --------------------
-    #[lnp_api(type = 128)]
+    #[api(type = 128)]
     #[display(inner)]
     UpdateAddHtlc(UpdateAddHtlc),
 
-    #[lnp_api(type = 130)]
+    #[api(type = 130)]
     #[display(inner)]
     UpdateFulfillHtlc(UpdateFulfillHtlc),
 
-    #[lnp_api(type = 131)]
+    #[api(type = 131)]
     #[display(inner)]
     UpdateFailHtlc(UpdateFailHtlc),
 
-    #[lnp_api(type = 135)]
+    #[api(type = 135)]
     #[display(inner)]
     UpdateFailMalformedHtlc(UpdateFailMalformedHtlc),
 
-    #[lnp_api(type = 132)]
+    #[api(type = 132)]
     #[display(inner)]
     CommitmentSigned(CommitmentSigned),
 
-    #[lnp_api(type = 133)]
+    #[api(type = 133)]
     #[display(inner)]
     RevokeAndAck(RevokeAndAck),
 
-    #[lnp_api(type = 134)]
+    #[api(type = 134)]
     #[display(inner)]
     UpdateFee(UpdateFee),
 
-    #[lnp_api(type = 136)]
+    #[api(type = 136)]
     #[display(inner)]
     ChannelReestablish(ChannelReestablish),
 
     // 3. Bolt 7 Gossip
     // -----------------
-    #[lnp_api(type = 259)]
+    #[api(type = 259)]
     #[display(inner)]
     AnnouncementSignatures(AnnouncementSignatures),
 
-    #[lnp_api(type = 256)]
+    #[api(type = 256)]
     #[display(inner)]
     ChannelAnnouncements(ChannelAnnouncements),
 
-    #[lnp_api(type = 257)]
+    #[api(type = 257)]
     #[display(inner)]
     NodeAnnouncements(NodeAnnouncements),
 
-    #[lnp_api(type = 258)]
+    #[api(type = 258)]
     #[display(inner)]
     ChannelUpdate(ChannelUpdate),
 
     /// Extended Gossip queries
     /// Negotiating the gossip_queries option via init enables a number of
     /// extended queries for gossip synchronization.
-    #[lnp_api(type = 261)]
+    #[api(type = 261)]
     #[display(inner)]
     QueryShortChannelIds(QueryShortChannelIds),
 
-    #[lnp_api(type = 262)]
+    #[api(type = 262)]
     #[display(inner)]
     ReplyShortChannelIdsEnd(ReplyShortChannelIdsEnd),
 
-    #[lnp_api(type = 263)]
+    #[api(type = 263)]
     #[display(inner)]
     QueryChannelRange(QueryChannelRange),
 
-    #[lnp_api(type = 264)]
+    #[api(type = 264)]
     #[display(inner)]
     ReplyChannelRange(ReplyChannelRange),
 
-    #[lnp_api(type = 265)]
+    #[api(type = 265)]
     #[display(inner)]
     GossipTimestampFilter(GossipTimestampFilter),
 
     // 4. RGB
     // ------
     #[cfg(feature = "rgb")]
-    #[lnp_api(type = 57156)]
+    #[api(type = 57156)]
     #[display(inner)]
     AssignFunds(AssignFunds),
 }
@@ -361,14 +360,15 @@ pub struct OpenChannel {
 
     /// Channel flags
     pub channel_flags: u8,
-    /* TODO: Uncomment once TLVs derivation will be implemented
-     * /// Optionally, a request to pre-set the to-sender output's
-     * scriptPubkey /// for when we collaboratively close
-     * #[lnpwp(tlv=0)]
-     * pub shutdown_scriptpubkey: Option<Script>, */
 
-    /* #[lpwpw(unknown_tlvs)]
-     * pub unknown_tlvs: BTreeMap<u64, Vec<u8>>, */
+    /// Optionally, a request to pre-set the to-sender output's scriptPubkey
+    /// for when we collaboratively close
+    #[tlv(type = 0)]
+    pub shutdown_scriptpubkey: Option<Script>,
+
+    /// The rest of TLVs with unknown odd type ids
+    #[tlv(type = unknown)]
+    pub unknown_tlvs: tlv::Map,
 }
 
 #[derive(
@@ -894,6 +894,40 @@ pub struct NodeAnnouncements {
 }
 
 #[derive(
+    Wrapper,
+    Clone,
+    Debug,
+    Display,
+    From,
+    PartialEq,
+    Eq,
+    LightningEncode,
+    LightningDecode,
+    StrictEncode,
+    StrictDecode,
+)]
+// TODO: Do manual lightning encoding implementations, since they must be
+//       encoded not as <bigsize> <array>, but as a u16 (little-endian!!! strict
+//       encoding uses big endian)
+#[display(Debug)] // TODO: Re-imlement display manually to format addrsses
+pub struct AddressList(Vec<AnnouncedNodeAddr>);
+
+#[derive(
+    Clone,
+    Debug,
+    From,
+    PartialEq,
+    Eq,
+    LightningEncode,
+    LightningDecode,
+    StrictEncode,
+    StrictDecode,
+)]
+// TODO: Impement sturcture data and encodings according to
+//       <https://github.com/lightningnetwork/lightning-rfc/blob/master/07-routing-gossip.md#the-node_announcement-message>
+pub struct AnnouncedNodeAddr();
+
+#[derive(
     Clone,
     PartialEq,
     Eq,
@@ -1145,8 +1179,8 @@ impl DumbDefault for OpenChannel {
             htlc_basepoint: *SECP256K1_PUBKEY_DUMB,
             first_per_commitment_point: *SECP256K1_PUBKEY_DUMB,
             channel_flags: 0,
-            /* shutdown_scriptpubkey: None,
-             * unknown_tlvs: none!(), */
+            shutdown_scriptpubkey: None,
+            unknown_tlvs: none!(),
         }
     }
 }

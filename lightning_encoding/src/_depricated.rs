@@ -1,11 +1,3 @@
-impl Strategy for crate::bp::HashLock {
-    type Strategy = AsWrapped;
-}
-
-impl Strategy for crate::bp::HashPreimage {
-    type Strategy = AsWrapped;
-}
-
 mod _inet {
     use super::*;
     use inet2_addr::{InetAddr, InetSocketAddr, InetSocketAddrExt};
@@ -49,28 +41,6 @@ mod _lnpbp {
         fn lightning_decode<D: io::Read>(d: D) -> Result<Self, Error> {
             AssetId::lightning_decode(d).map(|id| Some(id)).or(Ok(None))
         }
-    }
-}
-
-#[cfg(feature = "descriptor-wallet")]
-mod _wallet {
-    use super::*;
-    use wallet::{features, HashLock, HashPreimage, Slice32};
-
-    impl Strategy for Slice32 {
-        type Strategy = strategies::AsWrapped;
-    }
-
-    impl Strategy for HashPreimage {
-        type Strategy = strategies::AsWrapped;
-    }
-
-    impl Strategy for HashLock {
-        type Strategy = strategies::AsWrapped;
-    }
-
-    impl Strategy for features::FlagVec {
-        type Strategy = strategies::AsStrict;
     }
 }
 

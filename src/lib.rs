@@ -33,6 +33,8 @@ extern crate lnpbp;
 extern crate lazy_static;
 #[macro_use]
 extern crate internet2;
+#[macro_use]
+extern crate lightning_encoding;
 
 #[cfg(feature = "serde")]
 #[macro_use]

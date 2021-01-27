@@ -22,8 +22,6 @@ use amplify::{DumbDefault, Wrapper};
 use bitcoin::hashes::hex::{Error, FromHex};
 use bitcoin::hashes::Hash;
 use bitcoin::OutPoint;
-use internet2::addr::InetSocketAddr;
-use internet2::lightning_encoding;
 use lnpbp::chain::AssetId;
 use strict_encoding::{
     self, strict_deserialize, strict_serialize, StrictDecode, StrictEncode,
@@ -476,19 +474,3 @@ impl StrictDecode for ShortChannelId {
 impl lightning_encoding::Strategy for ShortChannelId {
     type Strategy = lightning_encoding::strategies::AsStrict;
 }
-
-#[derive(
-    Wrapper,
-    Clone,
-    Debug,
-    Display,
-    From,
-    PartialEq,
-    Eq,
-    StrictEncode,
-    StrictDecode,
-    LightningEncode,
-    LightningDecode,
-)]
-#[display(Debug)]
-pub struct AddressList(Vec<InetSocketAddr>);

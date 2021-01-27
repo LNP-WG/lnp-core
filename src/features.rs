@@ -20,7 +20,7 @@ use std::str::FromStr;
 use strict_encoding::{self, StrictDecode, StrictEncode};
 use wallet::features::FlagVec;
 
-use internet2::lightning_encoding::{self, LightningDecode, LightningEncode};
+use lightning_encoding::{self, LightningDecode, LightningEncode};
 
 /// Feature-flags-related errors
 #[derive(
