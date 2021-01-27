@@ -157,7 +157,7 @@ fn decode_inner_struct(
                             match tlv.arg_literal_value("type").map_err(|err| Error::new_spanned(f, err.to_string()))? {
                                 Lit::Int(_int) => {
                                     // tlvs.insert(int, (*name).clone());
-                                    tlvs.push(quote! { #name: None, })
+                                    tlvs.push(quote! { #name: Default::default(), })
                                 }
                                 _ => return Err(Error::new_spanned(f, "incorrect value for TLV type argument"))
                             }

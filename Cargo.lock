@@ -596,7 +596,7 @@ dependencies = [
 [[package]]
 name = "internet2"
 version = "0.4.0-alpha.2"
-source = "git+https://github.com/internet2-org/rust-internet2#ac2c20f2a41f86e2d8732ceb90bdcd55e3188eb8"
+source = "git+https://github.com/internet2-org/rust-internet2#2e0ef2ae012181478bafb71bb3c20d2651362138"
 dependencies = [
  "amplify",
  "amplify_derive",
@@ -649,7 +649,7 @@ dependencies = [
 [[package]]
 name = "lightning_encoding"
 version = "0.4.0-alpha.2+1"
-source = "git+https://github.com/LNP-BP/lnp-core#95576e924964cd8695d053b4a71b2a01f0831e3f"
+source = "git+https://github.com/LNP-BP/lnp-core#f69269824367362bb8bdcd53b380f91a17d1154b"
 dependencies = [
  "amplify",
  "amplify_derive",
@@ -673,7 +673,7 @@ dependencies = [
 [[package]]
 name = "lightning_encoding_derive"
 version = "0.4.0-alpha.1"
-source = "git+https://github.com/LNP-BP/lnp-core#95576e924964cd8695d053b4a71b2a01f0831e3f"
+source = "git+https://github.com/LNP-BP/lnp-core#f69269824367362bb8bdcd53b380f91a17d1154b"
 dependencies = [
  "amplify",
  "amplify_derive_helpers",

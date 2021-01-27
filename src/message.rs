@@ -596,6 +596,7 @@ pub struct UpdateAddHtlc {
     pub onion_routing_packet: OnionPacket,
 
     /// RGB Extension: TLV
+    #[tlv(type = 1)]
     pub asset_id: Option<AssetId>,
 }
 
