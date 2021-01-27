@@ -16,6 +16,39 @@ use std::io;
 
 use super::{Error, LightningDecode, LightningEncode};
 
+impl<T> LightningEncode for Option<T>
+where
+    T: LightningEncode,
+{
+    fn lightning_encode<E: io::Write>(
+        &self,
+        mut e: E,
+    ) -> Result<usize, io::Error> {
+        Ok(1 + match self {
+            None => e.write(&[0u8])?,
+            Some(val) => {
+                e.write(&[1u8])?;
+                val.lightning_encode(&mut e)?
+            }
+        })
+    }
+}
+
+impl<T> LightningDecode for Option<T>
+where
+    T: LightningDecode,
+{
+    fn lightning_decode<D: io::Read>(mut d: D) -> Result<Self, Error> {
+        let mut flag = [0u8; 1];
+        d.read_exact(&mut flag)?;
+        match flag[0] {
+            0 => Ok(None),
+            1 => Ok(Some(T::lightning_decode(&mut d)?)),
+            _ => Err(Error::DataIntegrityError(s!("wrong optional encoding"))),
+        }
+    }
+}
+
 impl<T> LightningEncode for Vec<T>
 where
     T: LightningEncode,
