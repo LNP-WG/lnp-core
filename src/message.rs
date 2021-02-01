@@ -1116,7 +1116,7 @@ impl LightningDecode for Messages {
     ) -> Result<Self, lightning_encoding::Error> {
         Ok((&*LNPWP_UNMARSHALLER
             .unmarshall(&Vec::<u8>::lightning_decode(d)?)
-            .map_err(|_err| {
+            .map_err(|_| {
                 lightning_encoding::Error::DataIntegrityError(s!(
                     "can't unmarshall LMP message"
                 ))

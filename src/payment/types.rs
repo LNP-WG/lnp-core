@@ -478,17 +478,17 @@ impl lightning_encoding::Strategy for ShortChannelId {
     type Strategy = lightning_encoding::strategies::AsStrict;
 }
 
-#[derive(Clone, Debug, From, PartialEq, Eq)]
+#[derive(Clone, Debug, From, PartialEq, Eq, Hash, PartialOrd, Ord, Copy)]
 pub enum AnnouncedNodeAddr {
     /// An IPv4 address/port on which the peer is listening.
-    IPv4 {
+    IPV4 {
         /// The 4-byte IPv4 address
         addr: [u8; 4],
         /// The port on which the node is listening
         port: u16,
     },
     /// An IPv6 address/port on which the peer is listening.
-    IPv6 {
+    IPV6 {
         /// The 16-byte IPv6 address
         addr: [u8; 16],
         /// The port on which the node is listening
@@ -519,10 +519,10 @@ pub enum AnnouncedNodeAddr {
 }
 
 impl AnnouncedNodeAddr {
-    fn get_id(&self) -> u8 {
+    fn into_u8(&self) -> u8 {
         match self {
-            &AnnouncedNodeAddr::IPv4 { .. } => 1,
-            &AnnouncedNodeAddr::IPv6 { .. } => 2,
+            &AnnouncedNodeAddr::IPV4 { .. } => 1,
+            &AnnouncedNodeAddr::IPV6 { .. } => 2,
             &AnnouncedNodeAddr::OnionV2 { .. } => 3,
             &AnnouncedNodeAddr::OnionV3 { .. } => 4,
         }
@@ -532,8 +532,8 @@ impl AnnouncedNodeAddr {
 impl Uniform for AnnouncedNodeAddr {
     fn addr_format(&self) -> AddrFormat {
         match self {
-            AnnouncedNodeAddr::IPv4 { .. } => AddrFormat::IpV4,
-            AnnouncedNodeAddr::IPv6 { .. } => AddrFormat::IpV6,
+            AnnouncedNodeAddr::IPV4 { .. } => AddrFormat::IpV4,
+            AnnouncedNodeAddr::IPV6 { .. } => AddrFormat::IpV6,
             AnnouncedNodeAddr::OnionV2 { .. } => AddrFormat::OnionV2,
             AnnouncedNodeAddr::OnionV3 { .. } => AddrFormat::OnionV3,
         }
@@ -541,13 +541,13 @@ impl Uniform for AnnouncedNodeAddr {
 
     fn addr(&self) -> RawAddr {
         match self {
-            AnnouncedNodeAddr::IPv4 { addr, .. } => {
+            AnnouncedNodeAddr::IPV4 { addr, .. } => {
                 let mut ip = [0u8; ADDR_LEN];
                 ip[29..].copy_from_slice(addr);
                 ip
             }
 
-            AnnouncedNodeAddr::IPv6 { addr, .. } => {
+            AnnouncedNodeAddr::IPV6 { addr, .. } => {
                 let mut ip = [0u8; ADDR_LEN];
                 ip[17..].copy_from_slice(addr);
                 ip
@@ -570,15 +570,10 @@ impl Uniform for AnnouncedNodeAddr {
     fn port(&self) -> Option<u16> {
         match self {
             // How to remove these unused variables?
-            AnnouncedNodeAddr::IPv4 { addr: _, port } => Some(port.clone()),
-            AnnouncedNodeAddr::IPv6 { addr: _, port } => Some(port.clone()),
-            AnnouncedNodeAddr::OnionV2 { addr: _, port } => Some(port.clone()),
-            AnnouncedNodeAddr::OnionV3 {
-                ed25519_pubkey: _,
-                checksum: _,
-                version: _,
-                port,
-            } => Some(port.clone()),
+            AnnouncedNodeAddr::IPV4 { port, .. } => Some(port.clone()),
+            AnnouncedNodeAddr::IPV6 { port, .. } => Some(port.clone()),
+            AnnouncedNodeAddr::OnionV2 { port, .. } => Some(port.clone()),
+            AnnouncedNodeAddr::OnionV3 { port, .. } => Some(port.clone()),
         }
     }
 
@@ -595,7 +590,7 @@ impl Uniform for AnnouncedNodeAddr {
             AddrFormat::IpV4 => {
                 let mut ip = [0u8; 4];
                 ip.copy_from_slice(&addr.addr[29..]);
-                Ok(AnnouncedNodeAddr::IPv4 {
+                Ok(AnnouncedNodeAddr::IPV4 {
                     addr: ip,
                     port: match addr.port {
                         Some(p) => p,
@@ -607,7 +602,7 @@ impl Uniform for AnnouncedNodeAddr {
             AddrFormat::IpV6 => {
                 let mut ip = [0u8; 16];
                 ip.copy_from_slice(&addr.addr[17..]);
-                Ok(AnnouncedNodeAddr::IPv6 {
+                Ok(AnnouncedNodeAddr::IPV6 {
                     addr: ip,
                     port: match addr.port {
                         Some(p) => p,
@@ -664,15 +659,15 @@ impl StrictEncode for AnnouncedNodeAddr {
         let mut len = 0;
 
         match self {
-            AnnouncedNodeAddr::IPv4 { addr, port } => {
-                len += e.write(&self.get_id().to_be_bytes()[..])?;
+            AnnouncedNodeAddr::IPV4 { addr, port } => {
+                len += e.write(&self.into_u8().to_be_bytes()[..])?;
                 len += e.write(&addr[..])?;
                 len += e.write(&port.to_be_bytes()[..])?;
                 Ok(len)
             }
-            AnnouncedNodeAddr::IPv6 { addr, port } => {
+            AnnouncedNodeAddr::IPV6 { addr, port } => {
                 let mut len = 0;
-                len += e.write(&self.get_id().to_be_bytes()[..])?;
+                len += e.write(&self.into_u8().to_be_bytes()[..])?;
                 len += e.write(&addr[..])?;
                 len += e.write(&port.to_be_bytes()[..])?;
 
@@ -680,7 +675,7 @@ impl StrictEncode for AnnouncedNodeAddr {
             }
             AnnouncedNodeAddr::OnionV2 { addr, port } => {
                 let mut len = 0;
-                len += e.write(&self.get_id().to_be_bytes()[..])?;
+                len += e.write(&self.into_u8().to_be_bytes()[..])?;
                 len += e.write(&addr[..])?;
                 len += e.write(&port.to_be_bytes()[..])?;
 
@@ -694,20 +689,20 @@ impl StrictEncode for AnnouncedNodeAddr {
                 port,
             } => {
                 let mut len = 0;
-                len += e.write(&self.get_id().to_be_bytes()[..])?;
+                len += e.write(&self.into_u8().to_be_bytes()[..])?;
                 len += e.write(&ed25519_pubkey[..])?;
                 if let Some(checksum) = checksum {
                     len += e.write(&checksum.to_be_bytes()[..])?;
                 } else {
                     return Err(strict_encoding::Error::DataIntegrityError(
-                        "checksum value must be present".to_string(),
+                        s!("checksum value must be present"),
                     ));
                 };
                 if let Some(version) = version {
                     len += e.write(&version.to_be_bytes()[..])?;
                 } else {
                     return Err(strict_encoding::Error::DataIntegrityError(
-                        "version value must be present".to_string(),
+                        s!("version value must be present"),
                     ));
                 }
                 len += e.write(&port.to_be_bytes()[..])?;
@@ -734,7 +729,7 @@ impl StrictDecode for AnnouncedNodeAddr {
                 d.read_exact(&mut port[..])?;
                 let port = u16::from_be_bytes(port);
 
-                Ok(AnnouncedNodeAddr::IPv4 {
+                Ok(AnnouncedNodeAddr::IPV4 {
                     addr: addr,
                     port: port,
                 })
@@ -747,7 +742,7 @@ impl StrictDecode for AnnouncedNodeAddr {
                 d.read_exact(&mut port[..])?;
                 let port = u16::from_be_bytes(port);
 
-                Ok(AnnouncedNodeAddr::IPv6 {
+                Ok(AnnouncedNodeAddr::IPV6 {
                     addr: addr,
                     port: port,
                 })
@@ -798,7 +793,9 @@ impl lightning_encoding::Strategy for AnnouncedNodeAddr {
     type Strategy = lightning_encoding::strategies::AsStrict;
 }
 
-#[derive(Wrapper, Clone, Debug, Display, From, PartialEq, Eq)]
+#[derive(
+    Wrapper, Clone, Debug, Display, Hash, Default, From, PartialEq, Eq,
+)]
 #[display(Debug)]
 pub struct AddressList(Vec<AnnouncedNodeAddr>);
 
@@ -845,12 +842,12 @@ mod test {
     #[test]
     fn test_address_encodings() {
         // Test vectors taken from https://github.com/rust-bitcoin/rust-lightning/blob/main/lightning/src/ln/msgs.rs
-        let ipv4 = AnnouncedNodeAddr::IPv4 {
+        let ipv4 = AnnouncedNodeAddr::IPV4 {
             addr: [255, 254, 253, 252],
             port: 9735,
         };
 
-        let ipv6 = AnnouncedNodeAddr::IPv6 {
+        let ipv6 = AnnouncedNodeAddr::IPV6 {
             addr: [
                 255, 254, 253, 252, 251, 250, 249, 248, 247, 246, 245, 244,
                 243, 242, 241, 240,
