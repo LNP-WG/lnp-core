@@ -481,14 +481,14 @@ impl lightning_encoding::Strategy for ShortChannelId {
 #[derive(Clone, Debug, From, PartialEq, Eq, Hash, PartialOrd, Ord, Copy)]
 pub enum AnnouncedNodeAddr {
     /// An IPv4 address/port on which the peer is listening.
-    IPV4 {
+    IpV4 {
         /// The 4-byte IPv4 address
         addr: [u8; 4],
         /// The port on which the node is listening
         port: u16,
     },
     /// An IPv6 address/port on which the peer is listening.
-    IPV6 {
+    IpV6 {
         /// The 16-byte IPv6 address
         addr: [u8; 16],
         /// The port on which the node is listening
@@ -521,8 +521,8 @@ pub enum AnnouncedNodeAddr {
 impl AnnouncedNodeAddr {
     fn into_u8(&self) -> u8 {
         match self {
-            &AnnouncedNodeAddr::IPV4 { .. } => 1,
-            &AnnouncedNodeAddr::IPV6 { .. } => 2,
+            &AnnouncedNodeAddr::IpV4 { .. } => 1,
+            &AnnouncedNodeAddr::IpV6 { .. } => 2,
             &AnnouncedNodeAddr::OnionV2 { .. } => 3,
             &AnnouncedNodeAddr::OnionV3 { .. } => 4,
         }
@@ -532,8 +532,8 @@ impl AnnouncedNodeAddr {
 impl Uniform for AnnouncedNodeAddr {
     fn addr_format(&self) -> AddrFormat {
         match self {
-            AnnouncedNodeAddr::IPV4 { .. } => AddrFormat::IpV4,
-            AnnouncedNodeAddr::IPV6 { .. } => AddrFormat::IpV6,
+            AnnouncedNodeAddr::IpV4 { .. } => AddrFormat::IpV4,
+            AnnouncedNodeAddr::IpV6 { .. } => AddrFormat::IpV6,
             AnnouncedNodeAddr::OnionV2 { .. } => AddrFormat::OnionV2,
             AnnouncedNodeAddr::OnionV3 { .. } => AddrFormat::OnionV3,
         }
@@ -541,13 +541,13 @@ impl Uniform for AnnouncedNodeAddr {
 
     fn addr(&self) -> RawAddr {
         match self {
-            AnnouncedNodeAddr::IPV4 { addr, .. } => {
+            AnnouncedNodeAddr::IpV4 { addr, .. } => {
                 let mut ip = [0u8; ADDR_LEN];
                 ip[29..].copy_from_slice(addr);
                 ip
             }
 
-            AnnouncedNodeAddr::IPV6 { addr, .. } => {
+            AnnouncedNodeAddr::IpV6 { addr, .. } => {
                 let mut ip = [0u8; ADDR_LEN];
                 ip[17..].copy_from_slice(addr);
                 ip
@@ -570,8 +570,8 @@ impl Uniform for AnnouncedNodeAddr {
     fn port(&self) -> Option<u16> {
         match self {
             // How to remove these unused variables?
-            AnnouncedNodeAddr::IPV4 { port, .. } => Some(port.clone()),
-            AnnouncedNodeAddr::IPV6 { port, .. } => Some(port.clone()),
+            AnnouncedNodeAddr::IpV4 { port, .. } => Some(port.clone()),
+            AnnouncedNodeAddr::IpV6 { port, .. } => Some(port.clone()),
             AnnouncedNodeAddr::OnionV2 { port, .. } => Some(port.clone()),
             AnnouncedNodeAddr::OnionV3 { port, .. } => Some(port.clone()),
         }
@@ -590,7 +590,7 @@ impl Uniform for AnnouncedNodeAddr {
             AddrFormat::IpV4 => {
                 let mut ip = [0u8; 4];
                 ip.copy_from_slice(&addr.addr[29..]);
-                Ok(AnnouncedNodeAddr::IPV4 {
+                Ok(AnnouncedNodeAddr::IpV4 {
                     addr: ip,
                     port: match addr.port {
                         Some(p) => p,
@@ -602,7 +602,7 @@ impl Uniform for AnnouncedNodeAddr {
             AddrFormat::IpV6 => {
                 let mut ip = [0u8; 16];
                 ip.copy_from_slice(&addr.addr[17..]);
-                Ok(AnnouncedNodeAddr::IPV6 {
+                Ok(AnnouncedNodeAddr::IpV6 {
                     addr: ip,
                     port: match addr.port {
                         Some(p) => p,
@@ -659,13 +659,13 @@ impl StrictEncode for AnnouncedNodeAddr {
         let mut len = 0;
 
         match self {
-            AnnouncedNodeAddr::IPV4 { addr, port } => {
+            AnnouncedNodeAddr::IpV4 { addr, port } => {
                 len += e.write(&self.into_u8().to_be_bytes()[..])?;
                 len += e.write(&addr[..])?;
                 len += e.write(&port.to_be_bytes()[..])?;
                 Ok(len)
             }
-            AnnouncedNodeAddr::IPV6 { addr, port } => {
+            AnnouncedNodeAddr::IpV6 { addr, port } => {
                 let mut len = 0;
                 len += e.write(&self.into_u8().to_be_bytes()[..])?;
                 len += e.write(&addr[..])?;
@@ -729,7 +729,7 @@ impl StrictDecode for AnnouncedNodeAddr {
                 d.read_exact(&mut port[..])?;
                 let port = u16::from_be_bytes(port);
 
-                Ok(AnnouncedNodeAddr::IPV4 {
+                Ok(AnnouncedNodeAddr::IpV4 {
                     addr: addr,
                     port: port,
                 })
@@ -742,7 +742,7 @@ impl StrictDecode for AnnouncedNodeAddr {
                 d.read_exact(&mut port[..])?;
                 let port = u16::from_be_bytes(port);
 
-                Ok(AnnouncedNodeAddr::IPV6 {
+                Ok(AnnouncedNodeAddr::IpV6 {
                     addr: addr,
                     port: port,
                 })
@@ -842,12 +842,12 @@ mod test {
     #[test]
     fn test_address_encodings() {
         // Test vectors taken from https://github.com/rust-bitcoin/rust-lightning/blob/main/lightning/src/ln/msgs.rs
-        let ipv4 = AnnouncedNodeAddr::IPV4 {
+        let ipv4 = AnnouncedNodeAddr::IpV4 {
             addr: [255, 254, 253, 252],
             port: 9735,
         };
 
-        let ipv6 = AnnouncedNodeAddr::IPV6 {
+        let ipv6 = AnnouncedNodeAddr::IpV6 {
             addr: [
                 255, 254, 253, 252, 251, 250, 249, 248, 247, 246, 245, 244,
                 243, 242, 241, 240,
