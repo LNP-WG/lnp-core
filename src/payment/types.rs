@@ -33,6 +33,8 @@ use wallet::Slice32;
 
 use crate::{channel, extension};
 
+use lightning_encoding::{LightningDecode, LightningEncode}; 
+
 /// Shorthand for representing asset - amount pairs
 pub type AssetsBalance = BTreeMap<AssetId, u64>;
 
@@ -651,11 +653,11 @@ impl Uniform for AnnouncedNodeAddr {
     }
 }
 
-impl StrictEncode for AnnouncedNodeAddr {
-    fn strict_encode<E: io::Write>(
+impl LightningEncode for AnnouncedNodeAddr {
+    fn lightning_encode<E: io::Write>(
         &self,
         mut e: E,
-    ) -> Result<usize, strict_encoding::Error> {
+    ) -> Result<usize, std::io::Error> {
         let mut len = 0;
 
         match self {
@@ -694,16 +696,12 @@ impl StrictEncode for AnnouncedNodeAddr {
                 if let Some(checksum) = checksum {
                     len += e.write(&checksum.to_be_bytes()[..])?;
                 } else {
-                    return Err(strict_encoding::Error::DataIntegrityError(
-                        s!("checksum value must be present"),
-                    ));
+                    return Err(std::io::ErrorKind::InvalidData.into());
                 };
                 if let Some(version) = version {
                     len += e.write(&version.to_be_bytes()[..])?;
                 } else {
-                    return Err(strict_encoding::Error::DataIntegrityError(
-                        s!("version value must be present"),
-                    ));
+                    return Err(std::io::ErrorKind::InvalidData.into());
                 }
                 len += e.write(&port.to_be_bytes()[..])?;
 
@@ -713,10 +711,10 @@ impl StrictEncode for AnnouncedNodeAddr {
     }
 }
 
-impl StrictDecode for AnnouncedNodeAddr {
-    fn strict_decode<D: io::Read>(
+impl LightningDecode for AnnouncedNodeAddr {
+    fn lightning_decode<D: io::Read>(
         mut d: D,
-    ) -> Result<Self, strict_encoding::Error> {
+    ) -> Result<Self, lightning_encoding::Error> {
         let mut type_byte = [0u8; 1];
         d.read_exact(&mut type_byte)?;
         let type_byte = u8::from_be_bytes(type_byte);
@@ -782,56 +780,52 @@ impl StrictDecode for AnnouncedNodeAddr {
                 })
             }
 
-            _ => Err(strict_encoding::Error::UnsupportedDataStructure(
-                "Wrong Network Address Format",
+            _ => Err(lightning_encoding::Error::DataIntegrityError(
+                s!("Wrong Network Address Format"),
             )),
         }
     }
 }
 
-impl lightning_encoding::Strategy for AnnouncedNodeAddr {
-    type Strategy = lightning_encoding::strategies::AsStrict;
+impl strict_encoding::Strategy for AnnouncedNodeAddr {
+    type Strategy = strict_encoding::strategies::UsingUniformAddr;
 }
-
 #[derive(
-    Wrapper, Clone, Debug, Display, Hash, Default, From, PartialEq, Eq,
+    Wrapper, Clone, Debug, Display, Hash, Default, From, PartialEq, Eq, StrictEncode, StrictDecode
 )]
 #[display(Debug)]
 pub struct AddressList(Vec<AnnouncedNodeAddr>);
 
-impl StrictEncode for AddressList {
-    fn strict_encode<E: io::Write>(
+impl LightningEncode for AddressList {
+    fn lightning_encode<E: io::Write>(
         &self,
         mut e: E,
-    ) -> Result<usize, strict_encoding::Error> {
+    ) -> Result<usize, std::io::Error> {
         let mut written = 0;
         let len = self.0.len() as u16;
         written += e.write(&len.to_be_bytes()[..])?;
         for addr in &self.0 {
-            written += addr.strict_encode(&mut e)?;
+            written += addr.lightning_encode(&mut e)?;
         }
         Ok(written)
     }
 }
 
-impl StrictDecode for AddressList {
-    fn strict_decode<D: io::Read>(
+impl LightningDecode for AddressList {
+    fn lightning_decode<D: io::Read>(
         mut d: D,
-    ) -> Result<Self, strict_encoding::Error> {
+    ) -> Result<Self, lightning_encoding::Error> {
         let mut len_bytes = [0u8; 2];
         d.read_exact(&mut len_bytes)?;
         let len = u16::from_be_bytes(len_bytes) as usize;
         let mut data = Vec::<AnnouncedNodeAddr>::with_capacity(len);
         for _ in 0..len {
-            data.push(AnnouncedNodeAddr::strict_decode(&mut d)?);
+            data.push(AnnouncedNodeAddr::lightning_decode(&mut d)?);
         }
         Ok(AddressList(data))
     }
 }
 
-impl lightning_encoding::Strategy for AddressList {
-    type Strategy = lightning_encoding::strategies::AsStrict;
-}
 
 #[cfg(test)]
 mod test {
