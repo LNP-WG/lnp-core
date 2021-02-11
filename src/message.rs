@@ -26,7 +26,7 @@ use wallet::SECP256K1_PUBKEY_DUMB;
 use wallet::{HashLock, HashPreimage};
 
 use super::payment::{
-    Alias, ChannelId, NodeColor, ShortChannelId, TempChannelId,
+    AddressList, Alias, ChannelId, NodeColor, ShortChannelId, TempChannelId,
 };
 use crate::InitFeatures;
 
@@ -895,40 +895,6 @@ pub struct NodeAnnouncements {
 }
 
 #[derive(
-    Wrapper,
-    Clone,
-    Debug,
-    Display,
-    From,
-    PartialEq,
-    Eq,
-    LightningEncode,
-    LightningDecode,
-    StrictEncode,
-    StrictDecode,
-)]
-// TODO: Do manual lightning encoding implementations, since they must be
-//       encoded not as <bigsize> <array>, but as a u16 (little-endian!!! strict
-//       encoding uses big endian)
-#[display(Debug)] // TODO: Re-imlement display manually to format addrsses
-pub struct AddressList(Vec<AnnouncedNodeAddr>);
-
-#[derive(
-    Clone,
-    Debug,
-    From,
-    PartialEq,
-    Eq,
-    LightningEncode,
-    LightningDecode,
-    StrictEncode,
-    StrictDecode,
-)]
-// TODO: Impement sturcture data and encodings according to
-//       <https://github.com/lightningnetwork/lightning-rfc/blob/master/07-routing-gossip.md#the-node_announcement-message>
-pub struct AnnouncedNodeAddr();
-
-#[derive(
     Clone,
     PartialEq,
     Eq,
@@ -1150,7 +1116,7 @@ impl LightningDecode for Messages {
     ) -> Result<Self, lightning_encoding::Error> {
         Ok((&*LNPWP_UNMARSHALLER
             .unmarshall(&Vec::<u8>::lightning_decode(d)?)
-            .map_err(|err| {
+            .map_err(|_| {
                 lightning_encoding::Error::DataIntegrityError(s!(
                     "can't unmarshall LMP message"
                 ))

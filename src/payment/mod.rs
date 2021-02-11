@@ -19,8 +19,8 @@ mod extenders;
 mod modifiers;
 
 pub use types::{
-    Alias, AssetsBalance, ChannelId, ExtensionId, Lifecycle, NodeColor,
-    ShortChannelId, TempChannelId, TxType,
+    AddressList, Alias, AnnouncedNodeAddr, AssetsBalance, ChannelId,
+    ExtensionId, Lifecycle, NodeColor, ShortChannelId, TempChannelId, TxType,
 };
 
 pub use constructors::{bolt3, eltoo, taproot, Bolt3};

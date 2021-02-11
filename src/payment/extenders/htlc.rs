@@ -149,7 +149,7 @@ impl Extension for Htlc {
                         .offered_htlcs
                         .iter()
                         .enumerate()
-                        .filter(|(index, htlc)| htlc.id == message.htlc_id)
+                        .filter(|(_, htlc)| htlc.id == message.htlc_id)
                         .next()
                         .ok_or(channel::Error::HTLC(
                             "HTLC id didn't match".to_string(),
@@ -179,11 +179,11 @@ impl Extension for Htlc {
             Messages::UpdateFailHtlc(message) => {
                 if message.channel_id == self.channel_id {
                     // get the offered HTLC to fail
-                    let (index, offered_htlc) = self
+                    let (index, _) = self
                         .offered_htlcs
                         .iter()
                         .enumerate()
-                        .filter(|(index, htlc)| htlc.id == message.htlc_id)
+                        .filter(|(_, htlc)| htlc.id == message.htlc_id)
                         .next()
                         .ok_or(channel::Error::HTLC(
                             "HTLC id didn't match".to_string(),
