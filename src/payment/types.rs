@@ -17,6 +17,7 @@ use std::collections::BTreeMap;
 use std::convert::TryFrom;
 use std::fmt::Debug;
 use std::io;
+use std::str::FromStr;
 
 use amplify::{DumbDefault, Wrapper};
 use bitcoin::hashes::hex::{Error, FromHex};
@@ -33,7 +34,7 @@ use wallet::Slice32;
 
 use crate::{channel, extension};
 
-use lightning_encoding::{LightningDecode, LightningEncode}; 
+use lightning_encoding::{LightningDecode, LightningEncode};
 
 /// Shorthand for representing asset - amount pairs
 pub type AssetsBalance = BTreeMap<AssetId, u64>;
@@ -403,6 +404,46 @@ impl ShortChannelId {
                 tx_index: tx_index,
                 output_index: output_index,
             });
+        }
+    }
+}
+
+#[derive(
+    Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display, Error,
+)]
+#[display(doc_comments)]
+pub enum ShortChannelIdParseError {
+    /// Wrong block height data
+    WrongBlockHeight,
+    /// Wrong transaction index number
+    WrongTxIndex,
+    /// Wrong output index number
+    WrongOutputIndex,
+    /// too many short channel id components; expected three (block height,
+    /// tx index and output index)
+    ExessiveComponents,
+}
+
+impl FromStr for ShortChannelId {
+    type Err = ShortChannelIdParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut split = s.split('x');
+        match (split.next(), split.next(), split.next(), split.next()) {
+            (Some(block_height), Some(tx_index), Some(output_index), None) => {
+                Ok(ShortChannelId {
+                    block_height: block_height.parse().map_err(|_| {
+                        ShortChannelIdParseError::WrongBlockHeight
+                    })?,
+                    tx_index: tx_index
+                        .parse()
+                        .map_err(|_| ShortChannelIdParseError::WrongTxIndex)?,
+                    output_index: output_index.parse().map_err(|_| {
+                        ShortChannelIdParseError::WrongOutputIndex
+                    })?,
+                })
+            }
+            _ => Err(ShortChannelIdParseError::ExessiveComponents),
         }
     }
 }
@@ -780,9 +821,9 @@ impl LightningDecode for AnnouncedNodeAddr {
                 })
             }
 
-            _ => Err(lightning_encoding::Error::DataIntegrityError(
-                s!("Wrong Network Address Format"),
-            )),
+            _ => Err(lightning_encoding::Error::DataIntegrityError(s!(
+                "Wrong Network Address Format"
+            ))),
         }
     }
 }
@@ -791,7 +832,17 @@ impl strict_encoding::Strategy for AnnouncedNodeAddr {
     type Strategy = strict_encoding::strategies::UsingUniformAddr;
 }
 #[derive(
-    Wrapper, Clone, Debug, Display, Hash, Default, From, PartialEq, Eq, StrictEncode, StrictDecode
+    Wrapper,
+    Clone,
+    Debug,
+    Display,
+    Hash,
+    Default,
+    From,
+    PartialEq,
+    Eq,
+    StrictEncode,
+    StrictDecode,
 )]
 #[display(Debug)]
 pub struct AddressList(Vec<AnnouncedNodeAddr>);
@@ -825,7 +876,6 @@ impl LightningDecode for AddressList {
         Ok(AddressList(data))
     }
 }
-
 
 #[cfg(test)]
 mod test {

@@ -20,7 +20,8 @@ mod modifiers;
 
 pub use types::{
     AddressList, Alias, AnnouncedNodeAddr, AssetsBalance, ChannelId,
-    ExtensionId, Lifecycle, NodeColor, ShortChannelId, TempChannelId, TxType,
+    ExtensionId, Lifecycle, NodeColor, ShortChannelId,
+    ShortChannelIdParseError, TempChannelId, TxType,
 };
 
 pub use constructors::{bolt3, eltoo, taproot, Bolt3};
