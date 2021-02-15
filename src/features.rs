@@ -11,12 +11,15 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
+#[cfg(feature = "serde")]
+use serde_with::{As, DisplayFromStr};
 use std::collections::BTreeMap;
 use std::convert::TryFrom;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::hash::Hash;
 use std::io;
 use std::str::FromStr;
+
 use strict_encoding::{self, StrictDecode, StrictEncode};
 use wallet::features::FlagVec;
 
@@ -248,41 +251,87 @@ impl FromStr for Feature {
 /// # Specification
 /// <https://github.com/lightningnetwork/lightning-rfc/blob/master/09-features.md>
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
 pub struct InitFeatures {
     /// Requires or supports extra `channel_reestablish` fields
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "As::<Option<DisplayFromStr>>")
+    )]
     pub option_data_loss_protect: Option<bool>,
 
     /// Sending node needs a complete routing information dump
     pub initial_routing_sync: bool,
 
     /// Commits to a shutdown scriptpubkey when opening channel
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "As::<Option<DisplayFromStr>>")
+    )]
     pub option_upfront_shutdown_script: Option<bool>,
 
     /// More sophisticated gossip control
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "As::<Option<DisplayFromStr>>")
+    )]
     pub gossip_queries: Option<bool>,
 
     /// Requires/supports variable-length routing onion payloads
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "As::<Option<DisplayFromStr>>")
+    )]
     pub var_onion_optin: Option<bool>,
 
     /// Gossip queries can include additional information
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "As::<Option<DisplayFromStr>>")
+    )]
     pub gossip_queries_ex: Option<bool>,
 
     /// Static key for remote output
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "As::<Option<DisplayFromStr>>")
+    )]
     pub option_static_remotekey: Option<bool>,
 
     /// Node supports `payment_secret` field
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "As::<Option<DisplayFromStr>>")
+    )]
     pub payment_secret: Option<bool>,
 
     /// Node can receive basic multi-part payments
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "As::<Option<DisplayFromStr>>")
+    )]
     pub basic_mpp: Option<bool>,
 
     /// Can create large channels
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "As::<Option<DisplayFromStr>>")
+    )]
     pub option_support_large_channel: Option<bool>,
 
     /// Anchor outputs
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "As::<Option<DisplayFromStr>>")
+    )]
     pub option_anchor_outputs: Option<bool>,
 
     /// Rest of feature flags which are unknown to the current implementation
+    #[cfg_attr(feature = "serde", serde(with = "As::<DisplayFromStr>"))]
     pub unknown: FlagVec,
 }
 
