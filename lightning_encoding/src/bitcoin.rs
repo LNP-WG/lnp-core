@@ -15,6 +15,8 @@ use bitcoin::{hashes, secp256k1};
 
 use super::{strategies, Strategy};
 
+// TODO: Verify byte order for lightnin encoded types
+
 impl Strategy for hashes::ripemd160::Hash {
     type Strategy = strategies::AsBitcoinHash;
 }
@@ -70,5 +72,21 @@ impl Strategy for secp256k1::PublicKey {
 }
 
 impl Strategy for secp256k1::Signature {
+    type Strategy = strategies::AsStrict;
+}
+
+impl Strategy for wallet::features::FlagVec {
+    type Strategy = strategies::AsStrict;
+}
+
+impl Strategy for wallet::Slice32 {
+    type Strategy = strategies::AsStrict;
+}
+
+impl Strategy for wallet::HashLock {
+    type Strategy = strategies::AsStrict;
+}
+
+impl Strategy for wallet::HashPreimage {
     type Strategy = strategies::AsStrict;
 }

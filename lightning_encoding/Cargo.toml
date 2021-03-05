@@ -1,6 +1,6 @@
 [package]
 name = "lightning_encoding"
-version = "0.4.0-alpha.2+1"
+version = "0.4.0-beta"
 license = "Apache-2.0"
 authors = ["Dr Maxim Orlovsky <orlovsky@pandoracore.com>"]
 description = "Network encoding for lightning network peer protocol data types"
@@ -21,6 +21,7 @@ amplify = { version = "3", features = ["stringly_conversions"] }
 amplify_derive = "2.4.3"
 strict_encoding = "1"
 lightning_encoding_derive = { git = "https://github.com/LNP-BP/lnp-core", optional = true }
+descriptor-wallet = { git = "https://github.com/LNP-BP/descriptor-wallet" }
 bitcoin = { version = "0.26" }
 
 [features]
