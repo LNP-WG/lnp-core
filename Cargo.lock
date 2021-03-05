@@ -701,7 +701,7 @@ dependencies = [
  "inet2_addr",
  "inet2_derive",
  "lazy_static",
- "lightning_encoding 0.4.0-alpha.2+1",
+ "lightning_encoding 0.4.0-beta (git+https://github.com/LNP-BP/lnp-core)",
  "strict_encoding",
  "url",
  "zmq",
@@ -742,12 +742,13 @@ checksum = "265d751d31d6780a3f956bb5b8022feba2d94eeee5a84ba64f4212eedca42213"
 
 [[package]]
 name = "lightning_encoding"
-version = "0.4.0-alpha.2+1"
-source = "git+https://github.com/LNP-BP/lnp-core#8771e3fc0d31bce5193b3817b91efcba0e788139"
+version = "0.4.0-beta"
+source = "git+https://github.com/LNP-BP/lnp-core#16e95f066b1573111736835d327ee8b91d6593da"
 dependencies = [
  "amplify",
  "amplify_derive",
  "bitcoin",
+ "descriptor-wallet",
  "lightning_encoding_derive 0.4.0-alpha.1 (git+https://github.com/LNP-BP/lnp-core)",
  "strict_encoding",
 ]
@@ -767,10 +768,10 @@ dependencies = [
 [[package]]
 name = "lightning_encoding_derive"
 version = "0.4.0-alpha.1"
+source = "git+https://github.com/LNP-BP/lnp-core#16e95f066b1573111736835d327ee8b91d6593da"
 dependencies = [
  "amplify",
  "amplify_derive_helpers",
- "lightning_encoding 0.4.0-beta",
  "proc-macro2 1.0.24",
  "quote 1.0.9",
  "syn 1.0.61",
@@ -779,10 +780,10 @@ dependencies = [
 [[package]]
 name = "lightning_encoding_derive"
 version = "0.4.0-alpha.1"
-source = "git+https://github.com/LNP-BP/lnp-core#8771e3fc0d31bce5193b3817b91efcba0e788139"
 dependencies = [
  "amplify",
  "amplify_derive_helpers",
+ "lightning_encoding 0.4.0-beta",
  "proc-macro2 1.0.24",
  "quote 1.0.9",
  "syn 1.0.61",
@@ -804,7 +805,7 @@ dependencies = [
  "descriptor-wallet",
  "internet2",
  "lazy_static",
- "lightning_encoding 0.4.0-alpha.2+1",
+ "lightning_encoding 0.4.0-beta (git+https://github.com/LNP-BP/lnp-core)",
  "lnpbp",
  "rgb-core",
  "serde",
@@ -827,7 +828,7 @@ dependencies = [
  "descriptor-wallet",
  "inflate",
  "lazy_static",
- "lightning_encoding 0.4.0-alpha.2+1",
+ "lightning_encoding 0.4.0-beta (git+https://github.com/LNP-BP/lnp-core)",
  "miniscript",
  "serde",
  "serde_with",
@@ -1282,7 +1283,7 @@ dependencies = [
  "grin_secp256k1zkp",
  "inflate",
  "lazy_static",
- "lightning_encoding 0.4.0-alpha.2+1",
+ "lightning_encoding 0.4.0-beta (git+https://github.com/LNP-BP/lnp-core)",
  "lnpbp",
  "miniscript",
  "num-derive",
