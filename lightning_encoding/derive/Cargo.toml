@@ -1,6 +1,6 @@
 [package]
 name = "lightning_encoding_derive"
-version = "0.4.0-alpha.1"
+version = "0.4.0"
 license = "Apache-2.0"
 authors = ["Dr. Maxim Orlovsky <orlovsky@pandoracore.com>"]
 description = "Derive macros for lightning network peer protocol encodings"
