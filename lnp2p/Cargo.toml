@@ -1,32 +1,30 @@
 [package]
-name = "lnp-core"
-version = "0.4.0-alpha.1"
+name = "lnp2p"
+version = "0.3.0"
 license = "MIT"
 authors = ["Dr Maxim Orlovsky <orlovsky@pandoracore.com>"]
-description = "LNP Core Library: rust implementation of modular lightning channels architecture"
+description = "LN P2P Library: rust implementation of lightning network peer protocol (BOLT-1, 2, 7, 9)"
 repository = "https://github.com/LNP-BP/lnp-core"
 homepage = "https://lnp-bp.org"
 keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
-categories = ["cryptography::cryptocurrencies"]
+categories = ["cryptography::cryptocurrencies", "network-programming"]
 readme = "README.md"
 edition = "2018"
-exclude = [".github", "contrib", "lightning_encoding", "lnp2p"]
 
 [lib]
-name = "lnp"
+name = "lnp2p"
 path = "src/lib.rs"
 crate-type = ["rlib", "staticlib"]
 
 [dependencies]
 amplify = { version = "3", features = ["stringly_conversions"] }
 amplify_derive = "2.4.3"
-lnpbp = "0.4"
-rgb-core = { git = "https://github.com/rgb-org/rgb-core", optional = true }
+lnpbp = "0.3"
+rgb-core = { version = "0.3", optional = true }
 strict_encoding = "1"
-lightning_encoding = "0.4.0-beta.1"
-descriptor-wallet = { version = "0.4", features = ["keygen"] }
+descriptor-wallet = { version = "0.3.3", features = ["keygen"] }
 bitcoin = { version = "0.26", features = ["rand"] }
-internet2 = { git = "https://github.com/internet2-org/rust-internet2" }
+internet2 = { version = "0.3.6", features = ["bitcoin-ext", "lnpbp"] }
 serde_crate = { package = "serde", version = "1.0", features = ["derive"], optional = true }
 serde_with = { version = "1.5", features = ["hex"], optional = true }
 lazy_static = "1.4"
@@ -34,10 +32,5 @@ lazy_static = "1.4"
 [features]
 default = []
 all = ["rgb", "serde"]
-rgb = ["rgb-core"]
+rgb = ["rgb-core", "internet2/rgb"]
 serde = ["serde_crate", "serde_with", "amplify/serde", "bitcoin/use-serde"]
-
-[workspace]
-members = [".", "lightning_encoding", "lightning_encoding/derive"] #, "lnp2p", ]
-default-members = [".", "lightning_encoding", "lightning_encoding/derive"] #, "lnp2p", ]
-exclude = ["dep_test"]
