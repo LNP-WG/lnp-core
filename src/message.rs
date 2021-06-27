@@ -42,19 +42,18 @@ lazy_static! {
 #[api(encoding = "lightning")]
 #[strict_encoding_crate(lnpbp::strict_encoding)]
 #[non_exhaustive]
+#[display(inner)]
 pub enum Messages {
     // Part I: Generic messages outside of channel operations
     // ======================================================
     /// Once authentication is complete, the first message reveals the features
     /// supported or required by this node, even if this is a reconnection.
     #[api(type = 16)]
-    #[display(inner)]
     Init(Init),
 
     /// For simplicity of diagnosis, it's often useful to tell a peer that
     /// something is incorrect.
     #[api(type = 17)]
-    #[display(inner)]
     Error(Error),
 
     /// In order to allow for the existence of long-lived TCP connections, at
@@ -62,7 +61,6 @@ pub enum Messages {
     /// at the application level. Such messages also allow obfuscation of
     /// traffic patterns.
     #[api(type = 18)]
-    #[display(inner)]
     Ping(Ping),
 
     /// The pong message is to be sent whenever a ping message is received. It
@@ -80,113 +78,88 @@ pub enum Messages {
     // 1. Channel establishment
     // ------------------------
     #[api(type = 32)]
-    #[display(inner)]
     OpenChannel(OpenChannel),
 
     #[api(type = 33)]
-    #[display(inner)]
     AcceptChannel(AcceptChannel),
 
     #[api(type = 34)]
-    #[display(inner)]
     FundingCreated(FundingCreated),
 
     #[api(type = 35)]
-    #[display(inner)]
     FundingSigned(FundingSigned),
 
     #[api(type = 36)]
-    #[display(inner)]
     FundingLocked(FundingLocked),
 
     #[api(type = 38)]
-    #[display(inner)]
     Shutdown(Shutdown),
 
     #[api(type = 39)]
-    #[display(inner)]
     ClosingSigned(ClosingSigned),
 
     // 2. Normal operations
     // --------------------
     #[api(type = 128)]
-    #[display(inner)]
     UpdateAddHtlc(UpdateAddHtlc),
 
     #[api(type = 130)]
-    #[display(inner)]
     UpdateFulfillHtlc(UpdateFulfillHtlc),
 
     #[api(type = 131)]
-    #[display(inner)]
     UpdateFailHtlc(UpdateFailHtlc),
 
     #[api(type = 135)]
-    #[display(inner)]
     UpdateFailMalformedHtlc(UpdateFailMalformedHtlc),
 
     #[api(type = 132)]
-    #[display(inner)]
     CommitmentSigned(CommitmentSigned),
 
     #[api(type = 133)]
-    #[display(inner)]
     RevokeAndAck(RevokeAndAck),
 
     #[api(type = 134)]
-    #[display(inner)]
     UpdateFee(UpdateFee),
 
     #[api(type = 136)]
-    #[display(inner)]
     ChannelReestablish(ChannelReestablish),
 
     // 3. Bolt 7 Gossip
     // -----------------
     #[api(type = 259)]
-    #[display(inner)]
     AnnouncementSignatures(AnnouncementSignatures),
 
     #[api(type = 256)]
-    #[display(inner)]
     ChannelAnnouncements(ChannelAnnouncements),
 
     #[api(type = 257)]
-    #[display(inner)]
     NodeAnnouncements(NodeAnnouncements),
 
     #[api(type = 258)]
-    #[display(inner)]
     ChannelUpdate(ChannelUpdate),
 
     /// Extended Gossip queries
     /// Negotiating the gossip_queries option via init enables a number of
     /// extended queries for gossip synchronization.
     #[api(type = 261)]
-    #[display(inner)]
     QueryShortChannelIds(QueryShortChannelIds),
 
     #[api(type = 262)]
-    #[display(inner)]
     ReplyShortChannelIdsEnd(ReplyShortChannelIdsEnd),
 
     #[api(type = 263)]
-    #[display(inner)]
     QueryChannelRange(QueryChannelRange),
 
     #[api(type = 264)]
-    #[display(inner)]
     ReplyChannelRange(ReplyChannelRange),
 
     #[api(type = 265)]
-    #[display(inner)]
     GossipTimestampFilter(GossipTimestampFilter),
 
     // 4. RGB
     // ------
     #[cfg(feature = "rgb")]
     #[api(type = 57156)]
-    #[display(inner)]
     AssignFunds(AssignFunds),
 }
 
