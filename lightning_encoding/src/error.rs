@@ -13,6 +13,8 @@
 
 use amplify::IoError;
 
+use strict_encoding::TlvError;
+
 #[derive(Clone, PartialEq, Eq, Hash, Debug, Display, Error, From)]
 #[display(doc_comments)]
 pub enum Error {
@@ -36,4 +38,13 @@ pub enum Error {
     /// Convenience type never for data structures using StrictDecode
     #[display(inner)]
     DataIntegrityError(String),
+
+    /// TLV encoding error
+    #[from]
+    #[display(inner)]
+    Tlv(TlvError),
+
+    /// An unsupported value `{0}` for enum `{0}` encountered during decode
+    /// operation
+    EnumValueNotKnown(&'static str, usize),
 }

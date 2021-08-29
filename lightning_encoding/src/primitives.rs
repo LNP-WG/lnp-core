@@ -32,3 +32,11 @@ impl Strategy for u64 {
 impl Strategy for usize {
     type Strategy = strategies::AsBigSize;
 }
+
+impl Strategy for amplify::flags::FlagVec {
+    type Strategy = strategies::AsStrict;
+}
+
+impl Strategy for amplify::Slice32 {
+    type Strategy = strategies::AsStrict;
+}

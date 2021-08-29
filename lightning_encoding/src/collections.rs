@@ -20,10 +20,7 @@ impl<T> LightningEncode for Option<T>
 where
     T: LightningEncode,
 {
-    fn lightning_encode<E: io::Write>(
-        &self,
-        mut e: E,
-    ) -> Result<usize, io::Error> {
+    fn lightning_encode<E: io::Write>(&self, mut e: E) -> Result<usize, Error> {
         Ok(1 + match self {
             None => e.write(&[0u8])?,
             Some(val) => {
@@ -53,10 +50,7 @@ impl<T> LightningEncode for Vec<T>
 where
     T: LightningEncode,
 {
-    fn lightning_encode<E: io::Write>(
-        &self,
-        mut e: E,
-    ) -> Result<usize, io::Error> {
+    fn lightning_encode<E: io::Write>(&self, mut e: E) -> Result<usize, Error> {
         let len = self.len().lightning_encode(&mut e)?;
         self.iter()
             .try_fold(len, |len, item| Ok(len + item.lightning_encode(&mut e)?))
@@ -81,10 +75,7 @@ impl<T> LightningEncode for HashSet<T>
 where
     T: LightningEncode,
 {
-    fn lightning_encode<E: io::Write>(
-        &self,
-        mut e: E,
-    ) -> Result<usize, io::Error> {
+    fn lightning_encode<E: io::Write>(&self, mut e: E) -> Result<usize, Error> {
         let len = self.len().lightning_encode(&mut e)?;
         self.iter()
             .try_fold(len, |len, item| Ok(len + item.lightning_encode(&mut e)?))
@@ -110,10 +101,7 @@ where
     K: LightningEncode,
     V: LightningEncode,
 {
-    fn lightning_encode<E: io::Write>(
-        &self,
-        mut e: E,
-    ) -> Result<usize, io::Error> {
+    fn lightning_encode<E: io::Write>(&self, mut e: E) -> Result<usize, Error> {
         let len = self.len().lightning_encode(&mut e)?;
         self.iter().try_fold(len, |len, (k, v)| {
             Ok(len
@@ -145,10 +133,7 @@ impl<T> LightningEncode for BTreeSet<T>
 where
     T: LightningEncode,
 {
-    fn lightning_encode<E: io::Write>(
-        &self,
-        mut e: E,
-    ) -> Result<usize, io::Error> {
+    fn lightning_encode<E: io::Write>(&self, mut e: E) -> Result<usize, Error> {
         let len = self.len().lightning_encode(&mut e)?;
         self.iter()
             .try_fold(len, |len, item| Ok(len + item.lightning_encode(&mut e)?))
@@ -174,10 +159,7 @@ where
     K: LightningEncode,
     V: LightningEncode,
 {
-    fn lightning_encode<E: io::Write>(
-        &self,
-        mut e: E,
-    ) -> Result<usize, io::Error> {
+    fn lightning_encode<E: io::Write>(&self, mut e: E) -> Result<usize, Error> {
         let len = self.len().lightning_encode(&mut e)?;
         self.iter().try_fold(len, |len, (k, v)| {
             Ok(len

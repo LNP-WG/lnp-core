@@ -32,8 +32,6 @@ pub use derive::{LightningDecode, LightningEncode};
 #[allow(unused_imports)]
 #[macro_use]
 extern crate amplify;
-#[macro_use]
-extern crate amplify_derive;
 
 mod big_size;
 mod bitcoin;
@@ -48,18 +46,25 @@ pub use big_size::BigSize;
 pub use error::Error;
 pub use strategies::Strategy;
 
+pub use strict_encoding::TlvError;
+
 // -----------------------------------------------------------------------------
 
 use std::io;
 
 /// Lightning-network specific encoding as defined in BOLT-1, 2, 3...
 pub trait LightningEncode {
-    fn lightning_encode<E: io::Write>(&self, e: E) -> Result<usize, io::Error>;
-    fn lightning_serialize(&self) -> Vec<u8> {
+    /// Encode with the given [`std::io::Write`] instance; must return result
+    /// with either amount of bytes encoded – or implementation-specific
+    /// error type.
+    fn lightning_encode<E: io::Write>(&self, e: E) -> Result<usize, Error>;
+
+    /// Serializes data as a byte array using
+    /// [`LightningEncode::lightning_encode`] function.
+    fn lightning_serialize(&self) -> Result<Vec<u8>, Error> {
         let mut encoder = vec![];
-        self.lightning_encode(&mut encoder)
-            .expect("Memory encoders can't fail");
-        encoder
+        self.lightning_encode(&mut encoder)?;
+        Ok(encoder)
     }
 }
 
@@ -68,9 +73,14 @@ pub trait LightningDecode
 where
     Self: Sized,
 {
+    /// Decode with the given [`std::io::Read`] instance; must either
+    /// construct an instance or return implementation-specific error type.
     fn lightning_decode<D: io::Read>(d: D) -> Result<Self, Error>;
-    fn lightning_deserialize(data: &impl AsRef<[u8]>) -> Result<Self, Error> {
-        let mut decoder = io::Cursor::new(data);
+
+    /// Tries to deserialize byte array into the current type using
+    /// [`LightningDecode::lightning_decode`] function.
+    fn lightning_deserialize(data: impl AsRef<[u8]>) -> Result<Self, Error> {
+        let mut decoder = io::Cursor::new(data.as_ref());
         let rv = Self::lightning_decode(&mut decoder)?;
         let consumed = decoder.position() as usize;
 
@@ -83,14 +93,18 @@ where
     }
 }
 
-pub fn lightning_serialize<T>(data: &T) -> Vec<u8>
+/// Convenience method for strict encoding of data structures implementing
+/// [`LightningEncode`] into a byte vector.
+pub fn lightning_serialize<T>(data: &T) -> Result<Vec<u8>, Error>
 where
     T: LightningEncode,
 {
     data.lightning_serialize()
 }
 
-pub fn lightning_deserialize<T>(data: &impl AsRef<[u8]>) -> Result<T, Error>
+/// Convenience method for strict decoding of data structures implementing
+/// [`LightningDecode`] from any byt data source.
+pub fn lightning_deserialize<T>(data: impl AsRef<[u8]>) -> Result<T, Error>
 where
     T: LightningDecode,
 {

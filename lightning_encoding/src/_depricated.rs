@@ -26,10 +26,7 @@ mod _lnpbp {
 
     // TODO: Remove after proper TLV implementation
     impl LightningEncode for Option<AssetId> {
-        fn lightning_encode<E: io::Write>(
-            &self,
-            e: E,
-        ) -> Result<usize, io::Error> {
+        fn lightning_encode<E: io::Write>(&self, e: E) -> Result<usize, Error> {
             match self {
                 Some(id) => id.lightning_encode(e),
                 None => Ok(0),

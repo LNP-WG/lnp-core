@@ -17,10 +17,7 @@ use std::ops::Deref;
 use super::{Error, LightningDecode, LightningEncode};
 
 impl LightningEncode for &[u8] {
-    fn lightning_encode<E: io::Write>(
-        &self,
-        mut e: E,
-    ) -> Result<usize, io::Error> {
+    fn lightning_encode<E: io::Write>(&self, mut e: E) -> Result<usize, Error> {
         let mut len = self.len();
         // We handle oversize problems at the level of `usize` value
         // serializaton
@@ -31,10 +28,7 @@ impl LightningEncode for &[u8] {
 }
 
 impl LightningEncode for [u8; 32] {
-    fn lightning_encode<E: io::Write>(
-        &self,
-        mut e: E,
-    ) -> Result<usize, io::Error> {
+    fn lightning_encode<E: io::Write>(&self, mut e: E) -> Result<usize, Error> {
         e.write_all(self)?;
         Ok(self.len())
     }
@@ -49,7 +43,7 @@ impl LightningDecode for [u8; 32] {
 }
 
 impl LightningEncode for Box<[u8]> {
-    fn lightning_encode<E: io::Write>(&self, e: E) -> Result<usize, io::Error> {
+    fn lightning_encode<E: io::Write>(&self, e: E) -> Result<usize, Error> {
         self.deref().lightning_encode(e)
     }
 }
@@ -64,13 +58,13 @@ impl LightningDecode for Box<[u8]> {
 }
 
 impl LightningEncode for &str {
-    fn lightning_encode<E: io::Write>(&self, e: E) -> Result<usize, io::Error> {
+    fn lightning_encode<E: io::Write>(&self, e: E) -> Result<usize, Error> {
         self.as_bytes().lightning_encode(e)
     }
 }
 
 impl LightningEncode for String {
-    fn lightning_encode<E: io::Write>(&self, e: E) -> Result<usize, io::Error> {
+    fn lightning_encode<E: io::Write>(&self, e: E) -> Result<usize, Error> {
         self.as_bytes().lightning_encode(e)
     }
 }

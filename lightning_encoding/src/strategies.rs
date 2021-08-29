@@ -35,7 +35,7 @@ where
     amplify::Holder<T, <T as Strategy>::Strategy>: LightningEncode,
 {
     #[inline]
-    fn lightning_encode<E: io::Write>(&self, e: E) -> Result<usize, io::Error> {
+    fn lightning_encode<E: io::Write>(&self, e: E) -> Result<usize, Error> {
         amplify::Holder::new(self.clone()).lightning_encode(e)
     }
 }
@@ -56,11 +56,8 @@ where
     T: StrictEncode,
 {
     #[inline]
-    fn lightning_encode<E: io::Write>(&self, e: E) -> Result<usize, io::Error> {
-        self.as_inner().strict_encode(e).map_err(|err| match err {
-            strict_encoding::Error::Io(io_err) => io_err.into(),
-            _ => io::Error::from(io::ErrorKind::InvalidData),
-        })
+    fn lightning_encode<E: io::Write>(&self, e: E) -> Result<usize, Error> {
+        self.as_inner().strict_encode(e).map_err(Error::from)
     }
 }
 
@@ -79,11 +76,8 @@ where
     T: bitcoin::hashes::Hash + strict_encoding::StrictEncode,
 {
     #[inline]
-    fn lightning_encode<E: io::Write>(&self, e: E) -> Result<usize, io::Error> {
-        self.as_inner().strict_encode(e).map_err(|err| match err {
-            strict_encoding::Error::Io(io_err) => io_err.into(),
-            _ => io::Error::from(io::ErrorKind::InvalidData),
-        })
+    fn lightning_encode<E: io::Write>(&self, e: E) -> Result<usize, Error> {
+        self.as_inner().strict_encode(e).map_err(Error::from)
     }
 }
 
@@ -105,7 +99,7 @@ where
     T::Inner: LightningEncode,
 {
     #[inline]
-    fn lightning_encode<E: io::Write>(&self, e: E) -> Result<usize, io::Error> {
+    fn lightning_encode<E: io::Write>(&self, e: E) -> Result<usize, Error> {
         self.as_inner().as_inner().lightning_encode(e)
     }
 }
@@ -137,7 +131,7 @@ where
     T: Copy,
 {
     #[inline]
-    fn lightning_encode<E: io::Write>(&self, e: E) -> Result<usize, io::Error> {
+    fn lightning_encode<E: io::Write>(&self, e: E) -> Result<usize, Error> {
         (*self.as_inner()).into().lightning_encode(e)
     }
 }
@@ -153,6 +147,10 @@ impl From<strict_encoding::Error> for Error {
             strict_encoding::Error::DataIntegrityError(msg) => {
                 Error::DataIntegrityError(msg)
             }
+            strict_encoding::Error::EnumValueNotKnown(s, v) => {
+                Error::EnumValueNotKnown(s, v)
+            }
+            // TODO: Add TLV once they will get into strict_encoding
             other => Error::DataIntegrityError(other.to_string()),
         }
     }

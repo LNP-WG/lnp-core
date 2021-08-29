@@ -75,18 +75,10 @@ impl Strategy for secp256k1::Signature {
     type Strategy = strategies::AsStrict;
 }
 
-impl Strategy for wallet::features::FlagVec {
+impl Strategy for wallet::hlc::HashLock {
     type Strategy = strategies::AsStrict;
 }
 
-impl Strategy for wallet::Slice32 {
-    type Strategy = strategies::AsStrict;
-}
-
-impl Strategy for wallet::HashLock {
-    type Strategy = strategies::AsStrict;
-}
-
-impl Strategy for wallet::HashPreimage {
+impl Strategy for wallet::hlc::HashPreimage {
     type Strategy = strategies::AsStrict;
 }

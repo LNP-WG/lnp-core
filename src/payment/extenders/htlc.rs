@@ -92,7 +92,7 @@ impl Extension for Htlc {
                         || message.amount_msat < self.htlc_minimum_msat
                     {
                         return Err(channel::Error::HTLC(
-                            "amount_msat has to be greaterthan 0".to_string(),
+                            "amount_msat has to be greater than 0".to_string(),
                         ));
                     } else if self.total_accepted_htlcs
                         == self.max_accepted_htlcs
@@ -245,7 +245,7 @@ impl ChannelExtension for Htlc {
             );
         }
 
-        // Process recieved HTLCs
+        // Process received HTLCs
         for (index, recieved) in self.received_htlcs.iter().enumerate() {
             let htlc_output = TxOut::ln_received_htlc(
                 recieved.amount,

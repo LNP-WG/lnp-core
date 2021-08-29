@@ -1078,7 +1078,7 @@ pub struct AssignFunds {
 }
 
 impl LightningEncode for Messages {
-    fn lightning_encode<E: io::Write>(&self, e: E) -> Result<usize, io::Error> {
+    fn lightning_encode<E: io::Write>(&self, e: E) -> Result<usize, Error> {
         Payload::from(self.clone()).lightning_encode(e)
     }
 }
