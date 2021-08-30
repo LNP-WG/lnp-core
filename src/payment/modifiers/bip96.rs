@@ -11,7 +11,7 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
-use wallet::LexOrder;
+use wallet::lex_order::LexOrder;
 
 use crate::payment::ExtensionId;
 use crate::{channel, ChannelExtension, Extension, Messages};

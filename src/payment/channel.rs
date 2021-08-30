@@ -17,9 +17,9 @@ use amplify::ToYamlString;
 use std::fmt::Debug;
 
 use bitcoin::secp256k1::PublicKey;
-use wallet::SECP256K1_PUBKEY_DUMB;
 
 use crate::message::{AcceptChannel, OpenChannel};
+use crate::SECP256K1_PUBKEY_DUMB;
 
 #[derive(
     Clone,

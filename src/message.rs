@@ -12,23 +12,22 @@
 // If not, see <https://opensource.org/licenses/MIT>.
 
 use amplify::DumbDefault;
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 use std::fmt::{self, Display, Formatter};
 use std::io;
 
 use bitcoin::hashes::{sha256, Hmac};
 use bitcoin::secp256k1::{PublicKey, Signature};
 use bitcoin::{Script, Txid};
-use internet2::{tlv, CreateUnmarshaller, Payload, Unmarshall, Unmarshaller};
+use internet2::{CreateUnmarshaller, Payload, Unmarshall, Unmarshaller};
 use lightning_encoding::{self, LightningDecode, LightningEncode};
 use lnpbp::chain::AssetId;
-use wallet::SECP256K1_PUBKEY_DUMB;
-use wallet::{HashLock, HashPreimage};
+use wallet::hlc::{HashLock, HashPreimage};
 
 use super::payment::{
     AddressList, Alias, ChannelId, NodeColor, ShortChannelId, TempChannelId,
 };
-use crate::InitFeatures;
+use crate::{InitFeatures, SECP256K1_PUBKEY_DUMB};
 
 #[cfg(feature = "rgb")]
 use rgb::Consignment;
@@ -38,9 +37,8 @@ lazy_static! {
         Messages::create_unmarshaller();
 }
 
-#[derive(Clone, Debug, Display, Api, StrictEncode, StrictDecode)]
+#[derive(Clone, Debug, Display, Api, NetworkEncode, NetworkDecode)]
 #[api(encoding = "lightning")]
-#[strict_encoding_crate(lnpbp::strict_encoding)]
 #[non_exhaustive]
 #[display(inner)]
 pub enum Messages {
@@ -176,18 +174,21 @@ pub enum Messages {
     Display,
     LightningEncode,
     LightningDecode,
-    StrictEncode,
-    StrictDecode,
+    NetworkEncode,
+    NetworkDecode,
 )]
-#[strict_encoding_crate(lnpbp::strict_encoding)]
+#[lightning_encoding(use_tlv)]
+#[network_encoding(use_tlv)]
 #[display("init({global_features}, {local_features}, {assets:#?})")]
 pub struct Init {
     pub global_features: InitFeatures,
     pub local_features: InitFeatures,
-    #[tlv(type = 1)]
-    pub assets: HashSet<AssetId>,
-    #[tlv(unknown)]
-    pub unknown_tlvs: tlv::Map,
+    #[lightning_encoding(tlv = 1)]
+    #[network_encoding(tlv = 1)]
+    pub assets: Option<HashSet<AssetId>>,
+    #[lightning_encoding(unknown_tlvs)]
+    #[network_encoding(unknown_tlvs)]
+    pub unknown_tlvs: BTreeMap<usize, Box<[u8]>>,
 }
 
 /// In order to allow for the existence of long-lived TCP connections, at
@@ -205,10 +206,9 @@ pub struct Init {
     Display,
     LightningEncode,
     LightningDecode,
-    StrictEncode,
-    StrictDecode,
+    NetworkEncode,
+    NetworkDecode,
 )]
-#[strict_encoding_crate(lnpbp::strict_encoding)]
 #[display(Debug)]
 pub struct Ping {
     pub ignored: Vec<u8>,
@@ -227,10 +227,9 @@ pub struct Ping {
     Error,
     LightningEncode,
     LightningDecode,
-    StrictEncode,
-    StrictDecode,
+    NetworkEncode,
+    NetworkDecode,
 )]
-#[strict_encoding_crate(lnpbp::strict_encoding)]
 pub struct Error {
     /// The channel is referred to by channel_id, unless channel_id is 0 (i.e.
     /// all bytes are 0), in which case it refers to all channels.
@@ -266,10 +265,11 @@ impl Display for Error {
     Display,
     LightningEncode,
     LightningDecode,
-    StrictEncode,
-    StrictDecode,
+    NetworkEncode,
+    NetworkDecode,
 )]
-#[strict_encoding_crate(lnpbp::strict_encoding)]
+#[lightning_encoding(use_tlv)]
+#[network_encoding(use_tlv)]
 #[display("open_channel({chain_hash}, {temporary_channel_id}, {funding_satoshis}, {channel_flags}, ...)")]
 pub struct OpenChannel {
     /// The genesis hash of the blockchain where the channel is to be opened
@@ -336,12 +336,14 @@ pub struct OpenChannel {
 
     /// Optionally, a request to pre-set the to-sender output's scriptPubkey
     /// for when we collaboratively close
-    #[tlv(type = 0)]
+    #[lightning_encoding(tlv = 1)]
+    #[network_encoding(tlv = 1)]
     pub shutdown_scriptpubkey: Option<Script>,
 
     /// The rest of TLVs with unknown odd type ids
-    #[tlv(unknown)]
-    pub unknown_tlvs: tlv::Map,
+    #[lightning_encoding(unknown_tlvs)]
+    #[network_encoding(unknown_tlvs)]
+    pub unknown_tlvs: BTreeMap<usize, Box<[u8]>>,
 }
 
 #[derive(
@@ -352,10 +354,9 @@ pub struct OpenChannel {
     Display,
     LightningEncode,
     LightningDecode,
-    StrictEncode,
-    StrictDecode,
+    NetworkEncode,
+    NetworkDecode,
 )]
-#[strict_encoding_crate(lnpbp::strict_encoding)]
 #[display("accept_channel({temporary_channel_id}, ...)")]
 pub struct AcceptChannel {
     /// A temporary channel ID, until the funding outpoint is announced
@@ -424,10 +425,9 @@ pub struct AcceptChannel {
     Display,
     LightningEncode,
     LightningDecode,
-    StrictEncode,
-    StrictDecode,
+    NetworkEncode,
+    NetworkDecode,
 )]
-#[strict_encoding_crate(lnpbp::strict_encoding)]
 #[display("funding_created({temporary_channel_id}, {funding_txid}:{funding_output_index}, ...signature)")]
 pub struct FundingCreated {
     /// A temporary channel ID, until the funding is established
@@ -452,10 +452,9 @@ pub struct FundingCreated {
     Display,
     LightningEncode,
     LightningDecode,
-    StrictEncode,
-    StrictDecode,
+    NetworkEncode,
+    NetworkDecode,
 )]
-#[strict_encoding_crate(lnpbp::strict_encoding)]
 #[display("funding_signed({channel_id}, ...signature)")]
 pub struct FundingSigned {
     /// The channel ID
@@ -473,10 +472,9 @@ pub struct FundingSigned {
     Display,
     LightningEncode,
     LightningDecode,
-    StrictEncode,
-    StrictDecode,
+    NetworkEncode,
+    NetworkDecode,
 )]
-#[strict_encoding_crate(lnpbp::strict_encoding)]
 #[display("funding_locked({channel_id}, {next_per_commitment_point})")]
 pub struct FundingLocked {
     /// The channel ID
@@ -494,10 +492,9 @@ pub struct FundingLocked {
     Display,
     LightningEncode,
     LightningDecode,
-    StrictEncode,
-    StrictDecode,
+    NetworkEncode,
+    NetworkDecode,
 )]
-#[strict_encoding_crate(lnpbp::strict_encoding)]
 #[display("shutdown({channel_id}, {scriptpubkey})")]
 pub struct Shutdown {
     /// The channel ID
@@ -516,10 +513,9 @@ pub struct Shutdown {
     Display,
     LightningEncode,
     LightningDecode,
-    StrictEncode,
-    StrictDecode,
+    NetworkEncode,
+    NetworkDecode,
 )]
-#[strict_encoding_crate(lnpbp::strict_encoding)]
 #[display("closing_signed({channel_id}, ...)")]
 pub struct ClosingSigned {
     /// The channel ID
@@ -540,10 +536,11 @@ pub struct ClosingSigned {
     Display,
     LightningEncode,
     LightningDecode,
-    StrictEncode,
-    StrictDecode,
+    NetworkEncode,
+    NetworkDecode,
 )]
-#[strict_encoding_crate(lnpbp::strict_encoding)]
+#[lightning_encoding(use_tlv)]
+#[network_encoding(use_tlv)]
 #[display("update_add_htlc({channel_id}, {htlc_id}, {amount_msat}, {payment_hash}, ...)")]
 pub struct UpdateAddHtlc {
     /// The channel ID
@@ -569,8 +566,14 @@ pub struct UpdateAddHtlc {
     pub onion_routing_packet: OnionPacket,
 
     /// RGB Extension: TLV
-    #[tlv(type = 1)]
+    #[lightning_encoding(tlv = 1)]
+    #[network_encoding(tlv = 1)]
     pub asset_id: Option<AssetId>,
+
+    /// The rest of TLVs with unknown odd type ids
+    #[lightning_encoding(unknown_tlvs)]
+    #[network_encoding(unknown_tlvs)]
+    pub unknown_tlvs: BTreeMap<usize, Box<[u8]>>,
 }
 
 #[derive(
@@ -581,10 +584,9 @@ pub struct UpdateAddHtlc {
     Display,
     LightningEncode,
     LightningDecode,
-    StrictEncode,
-    StrictDecode,
+    NetworkEncode,
+    NetworkDecode,
 )]
-#[strict_encoding_crate(lnpbp::strict_encoding)]
 #[display("update_fullfill_htlc({channel_id}, {htlc_id}, ...preimages)")]
 pub struct UpdateFulfillHtlc {
     /// The channel ID
@@ -605,10 +607,9 @@ pub struct UpdateFulfillHtlc {
     Display,
     LightningEncode,
     LightningDecode,
-    StrictEncode,
-    StrictDecode,
+    NetworkEncode,
+    NetworkDecode,
 )]
-#[strict_encoding_crate(lnpbp::strict_encoding)]
 #[display("update_fail_htlc({channel_id}, {htlc_id}, ...reason)")]
 pub struct UpdateFailHtlc {
     /// The channel ID
@@ -633,10 +634,9 @@ pub struct UpdateFailHtlc {
     Display,
     LightningEncode,
     LightningDecode,
-    StrictEncode,
-    StrictDecode,
+    NetworkEncode,
+    NetworkDecode,
 )]
-#[strict_encoding_crate(lnpbp::strict_encoding)]
 #[display("update_fail_malformed_htlc({channel_id}, {htlc_id}, ...onion)")]
 pub struct UpdateFailMalformedHtlc {
     /// The channel ID
@@ -660,10 +660,9 @@ pub struct UpdateFailMalformedHtlc {
     Display,
     LightningEncode,
     LightningDecode,
-    StrictEncode,
-    StrictDecode,
+    NetworkEncode,
+    NetworkDecode,
 )]
-#[strict_encoding_crate(lnpbp::strict_encoding)]
 #[display("commitment_signed({channel_id}, ...signatures)")]
 pub struct CommitmentSigned {
     /// The channel ID
@@ -684,10 +683,9 @@ pub struct CommitmentSigned {
     Display,
     LightningEncode,
     LightningDecode,
-    StrictEncode,
-    StrictDecode,
+    NetworkEncode,
+    NetworkDecode,
 )]
-#[strict_encoding_crate(lnpbp::strict_encoding)]
 #[display("revoke_and_ack({channel_id}, {next_per_commitment_point}, ...per_commitment_secret)")]
 pub struct RevokeAndAck {
     /// The channel ID
@@ -708,10 +706,9 @@ pub struct RevokeAndAck {
     Display,
     LightningEncode,
     LightningDecode,
-    StrictEncode,
-    StrictDecode,
+    NetworkEncode,
+    NetworkDecode,
 )]
-#[strict_encoding_crate(lnpbp::strict_encoding)]
 #[display("update_fee({channel_id}, {feerate_per_kw})")]
 pub struct UpdateFee {
     /// The channel ID
@@ -729,10 +726,9 @@ pub struct UpdateFee {
     Display,
     LightningEncode,
     LightningDecode,
-    StrictEncode,
-    StrictDecode,
+    NetworkEncode,
+    NetworkDecode,
 )]
-#[strict_encoding_crate(lnpbp::strict_encoding)]
 #[display("channel_reestablish({channel_id}, {next_commitment_number}, ...)")]
 pub struct ChannelReestablish {
     /// The channel ID
@@ -762,10 +758,9 @@ pub struct ChannelReestablish {
     Display,
     LightningEncode,
     LightningDecode,
-    StrictEncode,
-    StrictDecode,
+    NetworkEncode,
+    NetworkDecode,
 )]
-#[strict_encoding_crate(lnpbp::strict_encoding)]
 #[display(
     "announcement_signature({channel_id}, {short_channel_id}, ...signatures)"
 )]
@@ -791,10 +786,9 @@ pub struct AnnouncementSignatures {
     Display,
     LightningEncode,
     LightningDecode,
-    StrictEncode,
-    StrictDecode,
+    NetworkEncode,
+    NetworkDecode,
 )]
-#[strict_encoding_crate(lnpbp::strict_encoding)]
 #[display("channel_announcement({chain_hash}, {short_channel_id}, ...)")]
 pub struct ChannelAnnouncements {
     /// Node Signature 1
@@ -839,10 +833,9 @@ pub struct ChannelAnnouncements {
     Display,
     LightningEncode,
     LightningDecode,
-    StrictEncode,
-    StrictDecode,
+    NetworkEncode,
+    NetworkDecode,
 )]
-#[strict_encoding_crate(lnpbp::strict_encoding)]
 #[display("node_announcement({node_id}, {alias}, {addresses}, ...)")]
 pub struct NodeAnnouncements {
     /// Signature
@@ -875,10 +868,9 @@ pub struct NodeAnnouncements {
     Display,
     LightningEncode,
     LightningDecode,
-    StrictEncode,
-    StrictDecode,
+    NetworkEncode,
+    NetworkDecode,
 )]
-#[strict_encoding_crate(lnpbp::strict_encoding)]
 #[display("channel_id({chain_hash}, {short_channel_id}, {timestamp}, ...)")]
 pub struct ChannelUpdate {
     /// Signature
@@ -924,10 +916,9 @@ pub struct ChannelUpdate {
     Display,
     LightningEncode,
     LightningDecode,
-    StrictEncode,
-    StrictDecode,
+    NetworkEncode,
+    NetworkDecode,
 )]
-#[strict_encoding_crate(lnpbp::strict_encoding)]
 #[display("query_short_channel_ids({chain_hash}, {short_ids:#?}, ...tlvs)")]
 pub struct QueryShortChannelIds {
     /// chain hash
@@ -948,10 +939,9 @@ pub struct QueryShortChannelIds {
     Display,
     LightningEncode,
     LightningDecode,
-    StrictEncode,
-    StrictDecode,
+    NetworkEncode,
+    NetworkDecode,
 )]
-#[strict_encoding_crate(lnpbp::strict_encoding)]
 #[display("reply_short_channel_ids_end({chain_hash}, {full_information})")]
 pub struct ReplyShortChannelIdsEnd {
     /// chain hash
@@ -969,10 +959,9 @@ pub struct ReplyShortChannelIdsEnd {
     Display,
     LightningEncode,
     LightningDecode,
-    StrictEncode,
-    StrictDecode,
+    NetworkEncode,
+    NetworkDecode,
 )]
-#[strict_encoding_crate(lnpbp::strict_encoding)]
 #[display(
     "querry_channel_range({chain_hash}, {first_blocknum}, {number_of_blocks}, ...tlvs)"
 )]
@@ -998,10 +987,9 @@ pub struct QueryChannelRange {
     Display,
     LightningEncode,
     LightningDecode,
-    StrictEncode,
-    StrictDecode,
+    NetworkEncode,
+    NetworkDecode,
 )]
-#[strict_encoding_crate(lnpbp::strict_encoding)]
 #[display(
     "reply_channel_range({chain_hash}, {first_blocknum}, {number_of_blocks}, ...)"
 )]
@@ -1033,10 +1021,9 @@ pub struct ReplyChannelRange {
     Display,
     LightningEncode,
     LightningDecode,
-    StrictEncode,
-    StrictDecode,
+    NetworkEncode,
+    NetworkDecode,
 )]
-#[strict_encoding_crate(lnpbp::strict_encoding)]
 #[display("gossip_time_stamp_filter({chain_hash}, {first_timestamp}, {timestamp_range})")]
 pub struct GossipTimestampFilter {
     /// chain hash
@@ -1058,10 +1045,9 @@ pub struct GossipTimestampFilter {
     Display,
     LightningEncode,
     LightningDecode,
-    StrictEncode,
-    StrictDecode,
+    NetworkEncode,
+    NetworkDecode,
 )]
-#[strict_encoding_crate(lnpbp::strict_encoding)]
 #[display("assign_funds({channel_id}, {outpoint}, ...)")]
 pub struct AssignFunds {
     /// The channel ID
@@ -1078,7 +1064,10 @@ pub struct AssignFunds {
 }
 
 impl LightningEncode for Messages {
-    fn lightning_encode<E: io::Write>(&self, e: E) -> Result<usize, Error> {
+    fn lightning_encode<E: io::Write>(
+        &self,
+        e: E,
+    ) -> Result<usize, lightning_encoding::Error> {
         Payload::from(self.clone()).lightning_encode(e)
     }
 }
@@ -1133,10 +1122,9 @@ impl DumbDefault for OpenChannel {
     Display,
     LightningEncode,
     LightningDecode,
-    StrictEncode,
-    StrictDecode,
+    NetworkEncode,
+    NetworkDecode,
 )]
-#[strict_encoding_crate(lnpbp::strict_encoding)]
 #[display(Debug)]
 pub struct OnionPacket {
     pub version: u8,

@@ -15,14 +15,15 @@ use amplify::DumbDefault;
 use bitcoin::blockdata::{opcodes::all::*, script};
 use bitcoin::secp256k1::PublicKey;
 use bitcoin::{OutPoint, Transaction, TxIn, TxOut};
-use wallet::LexOrder;
-use wallet::{
-    IntoPk, LockScript, Psbt, PubkeyScript, WitnessScript,
-    SECP256K1_PUBKEY_DUMB,
-};
+use wallet::lex_order::LexOrder;
+use wallet::psbt::Psbt;
+use wallet::scripts::{LockScript, PubkeyScript, WitnessScript};
+use wallet::IntoPk;
 
 use crate::payment::ExtensionId;
-use crate::{channel, ChannelExtension, Extension, Messages};
+use crate::{
+    channel, ChannelExtension, Extension, Messages, SECP256K1_PUBKEY_DUMB,
+};
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, StrictEncode, StrictDecode)]
 struct Keyset {

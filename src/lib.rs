@@ -26,14 +26,11 @@
 #[macro_use]
 extern crate amplify;
 #[macro_use]
-extern crate amplify_derive;
-#[macro_use]
-extern crate lnpbp;
+extern crate strict_encoding;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
 extern crate internet2;
-extern crate lightning_encoding;
 
 #[cfg(feature = "serde")]
 #[macro_use]
@@ -61,3 +58,11 @@ pub use message::{Messages, OnionPacket, LNPWP_UNMARSHALLER};
 pub use payment::{ChannelId, TempChannelId};
 
 pub const LIGHTNING_P2P_DEFAULT_PORT: u16 = 9735;
+
+lazy_static! {
+    pub static ref SECP256K1_PUBKEY_DUMB: secp256k1::PublicKey =
+        secp256k1::PublicKey::from_secret_key(
+            secp256k1::SECP256K1,
+            &secp256k1::key::ONE_KEY,
+        );
+}

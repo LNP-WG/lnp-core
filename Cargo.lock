@@ -821,9 +821,9 @@ dependencies = [
 
 [[package]]
 name = "internet2"
-version = "0.5.0-alpha.1"
+version = "0.5.0-alpha.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "70ebc87c4e3208b67954e638e06f59d317c496d6ce3f343bd8bab5e6dd86765c"
+checksum = "cfcfeffd7926baa75c53530042bcfb9826f602d4685c00a800d0df6b0937e4aa"
 dependencies = [
  "amplify",
  "bitcoin",
@@ -831,7 +831,7 @@ dependencies = [
  "inet2_addr",
  "inet2_derive",
  "lazy_static",
- "lightning_encoding 0.5.0-beta.1",
+ "lightning_encoding 0.5.0-beta.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "strict_encoding",
  "url",
  "zmq",
@@ -872,19 +872,6 @@ checksum = "3cb00336871be5ed2c8ed44b60ae9959dc5b9f08539422ed43f09e34ecaeba21"
 
 [[package]]
 name = "lightning_encoding"
-version = "0.5.0-beta.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "afe928e73cc910ae2602e80d2a3cd1ffe352a44468e7cf03e0d765a3b2690eae"
-dependencies = [
- "amplify",
- "bitcoin",
- "descriptor-wallet",
- "lightning_encoding_derive 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "strict_encoding",
-]
-
-[[package]]
-name = "lightning_encoding"
 version = "0.5.0-beta.2"
 dependencies = [
  "amplify",
@@ -892,7 +879,22 @@ dependencies = [
  "descriptor-wallet",
  "lightning_encoding_derive 0.5.0",
  "lnpbp",
- "rgb-core",
+ "rgb-core 0.5.0-alpha.1",
+ "strict_encoding",
+]
+
+[[package]]
+name = "lightning_encoding"
+version = "0.5.0-beta.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f68e9919dd7619a1ab9fe627a5f9b00f20d3e5227b444b6db91e059a5c7d35f1"
+dependencies = [
+ "amplify",
+ "bitcoin",
+ "descriptor-wallet",
+ "lightning_encoding_derive 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lnpbp",
+ "rgb-core 0.5.0-alpha.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "strict_encoding",
 ]
 
@@ -930,16 +932,16 @@ checksum = "7fb9b38af92608140b86b693604b9ffcc5824240a484d1ecd4795bacb2fe88f3"
 
 [[package]]
 name = "lnp-core"
-version = "0.4.0-rc.1"
+version = "0.4.0-beta.1"
 dependencies = [
  "amplify",
  "bitcoin",
  "descriptor-wallet",
  "internet2",
  "lazy_static",
- "lightning_encoding 0.5.0-beta.2",
+ "lightning_encoding 0.5.0-beta.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "lnpbp",
- "rgb-core",
+ "rgb-core 0.5.0-alpha.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "secp256k1",
  "serde",
  "serde_with",
@@ -1430,6 +1432,39 @@ checksum = "f497285884f3fcff424ffc933e56d7cbca511def0c9831a7f9b5f6153e3cc89b"
 [[package]]
 name = "rgb-core"
 version = "0.5.0-alpha.1"
+dependencies = [
+ "aluvm",
+ "amplify",
+ "bech32",
+ "bitcoin",
+ "bitcoin_hashes 0.10.0",
+ "bp-core",
+ "chrono",
+ "clap",
+ "client_side_validation",
+ "commit_verify",
+ "deflate",
+ "descriptor-wallet",
+ "ed25519-dalek",
+ "grin_secp256k1zkp",
+ "inflate",
+ "lazy_static",
+ "lnpbp",
+ "miniscript",
+ "num-derive",
+ "num-traits",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "serde_yaml",
+ "strict_encoding",
+]
+
+[[package]]
+name = "rgb-core"
+version = "0.5.0-alpha.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fe22c72a771b0c8faa5dbf2315b7f96f9792d11d37f9b9ff0518a4d7d643b448"
 dependencies = [
  "aluvm",
  "amplify",

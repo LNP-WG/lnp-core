@@ -20,8 +20,8 @@ use std::hash::Hash;
 use std::io;
 use std::str::FromStr;
 
+use amplify::flags::FlagVec;
 use strict_encoding::{self, StrictDecode, StrictEncode};
-use wallet::features::FlagVec;
 
 use lightning_encoding::{self, LightningDecode, LightningEncode};
 
@@ -506,7 +506,7 @@ impl LightningEncode for InitFeatures {
     fn lightning_encode<E: io::Write>(
         &self,
         e: E,
-    ) -> Result<usize, std::io::Error> {
+    ) -> Result<usize, lightning_encoding::Error> {
         FlagVec::from(self.clone()).lightning_encode(e)
     }
 }

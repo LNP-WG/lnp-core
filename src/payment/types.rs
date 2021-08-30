@@ -19,8 +19,9 @@ use std::fmt::Debug;
 use std::io;
 use std::str::FromStr;
 
+use amplify::hex::{Error, FromHex};
+use amplify::Slice32;
 use amplify::{DumbDefault, Wrapper};
-use bitcoin::hashes::hex::{Error, FromHex};
 use bitcoin::hashes::Hash;
 use bitcoin::OutPoint;
 use lnpbp::chain::AssetId;
@@ -30,7 +31,6 @@ use strict_encoding::net::{
 use strict_encoding::{
     self, strict_deserialize, strict_serialize, StrictDecode, StrictEncode,
 };
-use wallet::Slice32;
 
 use crate::{channel, extension};
 
@@ -698,7 +698,7 @@ impl LightningEncode for AnnouncedNodeAddr {
     fn lightning_encode<E: io::Write>(
         &self,
         mut e: E,
-    ) -> Result<usize, std::io::Error> {
+    ) -> Result<usize, lightning_encoding::Error> {
         let mut len = 0;
 
         match self {
@@ -851,7 +851,7 @@ impl LightningEncode for AddressList {
     fn lightning_encode<E: io::Write>(
         &self,
         mut e: E,
-    ) -> Result<usize, std::io::Error> {
+    ) -> Result<usize, lightning_encoding::Error> {
         let mut written = 0;
         let len = self.0.len() as u16;
         written += e.write(&len.to_be_bytes()[..])?;
@@ -924,10 +924,10 @@ mod test {
         let onionv3_target = Vec::<u8>::from_hex("04fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0efeeedecebeae9e8e7e6e5e4e3e2e1e00020102607").unwrap();
 
         // Check strict encoding/decoding
-        let ipv4_encoded = ipv4.lightning_serialize();
-        let ipv6_encoded = ipv6.lightning_serialize();
-        let onionv2_encoded = onion_v2.lightning_serialize();
-        let onionv3_encoded = onion_v3.lightning_serialize();
+        let ipv4_encoded = ipv4.lightning_serialize().unwrap();
+        let ipv6_encoded = ipv6.lightning_serialize().unwrap();
+        let onionv2_encoded = onion_v2.lightning_serialize().unwrap();
+        let onionv3_encoded = onion_v3.lightning_serialize().unwrap();
 
         let ipv4_decoded =
             AnnouncedNodeAddr::lightning_deserialize(&ipv4_target).unwrap();
@@ -985,7 +985,7 @@ mod test {
         let address_list = AddressList(vec![ipv4, ipv6, onion_v2, onion_v3]);
         let address_list_target = Vec::<u8>::from_hex("000401fffefdfc260702fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0260703fffefdfcfbfaf9f8f7f6260704fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0efeeedecebeae9e8e7e6e5e4e3e2e1e00020102607").unwrap();
 
-        let address_list_encoded = address_list.lightning_serialize();
+        let address_list_encoded = address_list.lightning_serialize().unwrap();
 
         assert_eq!(address_list_encoded, address_list_target)
     }

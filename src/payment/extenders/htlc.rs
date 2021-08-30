@@ -16,9 +16,9 @@ use bitcoin::secp256k1::PublicKey;
 use bitcoin::util::psbt::PartiallySignedTransaction as Psbt;
 use bitcoin::{OutPoint, Transaction, TxIn, TxOut};
 use lnpbp::chain::AssetId;
-use wallet::{
-    HashLock, HashPreimage, IntoPk, LockScript, PubkeyScript, WitnessScript,
-};
+use wallet::hlc::{HashLock, HashPreimage};
+use wallet::scripts::{LockScript, PubkeyScript, WitnessScript};
+use wallet::IntoPk;
 
 use crate::payment::{ExtensionId, TxType};
 use crate::{channel, ChannelExtension, ChannelId, Extension, Messages};
