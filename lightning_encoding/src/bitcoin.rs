@@ -82,3 +82,7 @@ impl Strategy for wallet::hlc::HashLock {
 impl Strategy for wallet::hlc::HashPreimage {
     type Strategy = strategies::AsStrict;
 }
+
+impl Strategy for lnpbp::chain::AssetId {
+    type Strategy = strategies::AsStrict;
+}

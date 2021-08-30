@@ -19,13 +19,14 @@ crate-type = ["rlib", "staticlib"]
 
 [dependencies]
 amplify = "3.9.1"
-lnpbp = "0.4"
-rgb-core = { version = "0.5.0-alpha.1", optional = true, path = "../../rgb/rgb-core" }
-strict_encoding = "1.6.1"
-lightning_encoding = { version = "0.5.0-beta.1", path = "./lightning_encoding" }
+strict_encoding = "1.7.2"
+lightning_encoding = { version = "0.5.0-beta.2", path = "./lightning_encoding" }
 descriptor-wallet = { version = "0.5.0-alpha.3", features = ["keygen"] }
+lnpbp = "0.5.0-beta.3"
+rgb-core = { version = "0.5.0-alpha.1", optional = true, path = "../../rgb/rgb-core" }
 bitcoin = { version = "0.27", features = ["rand"] }
-internet2 = "0.3.10"
+secp256k1 = { version = "0.20.3", features = ["global-context-less-secure"] }
+internet2 = "0.5.0-alpha.1"
 serde_crate = { package = "serde", version = "1.0", features = ["derive"], optional = true }
 serde_with = { version = "1.8", features = ["hex"], optional = true }
 lazy_static = "1.4"
