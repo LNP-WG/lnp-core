@@ -186,3 +186,30 @@ where
         Ok(set)
     }
 }
+
+/// Two-component tuples are encoded as they were fields in the parent
+/// data structure
+impl<K, V> LightningEncode for (K, V)
+where
+    K: LightningEncode + Clone,
+    V: LightningEncode + Clone,
+{
+    fn lightning_encode<E: io::Write>(&self, mut e: E) -> Result<usize, Error> {
+        Ok(self.0.lightning_encode(&mut e)?
+            + self.1.lightning_encode(&mut e)?)
+    }
+}
+
+/// Two-component tuples are decoded as they were fields in the parent
+/// data structure
+impl<K, V> LightningDecode for (K, V)
+where
+    K: LightningDecode + Clone,
+    V: LightningDecode + Clone,
+{
+    fn lightning_decode<D: io::Read>(mut d: D) -> Result<Self, Error> {
+        let a = K::lightning_decode(&mut d)?;
+        let b = V::lightning_decode(&mut d)?;
+        Ok((a, b))
+    }
+}

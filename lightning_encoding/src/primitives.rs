@@ -29,6 +29,10 @@ impl Strategy for u64 {
     type Strategy = strategies::AsBigSize;
 }
 
+impl Strategy for u128 {
+    type Strategy = strategies::AsBigSize;
+}
+
 impl Strategy for usize {
     type Strategy = strategies::AsBigSize;
 }
@@ -39,4 +43,18 @@ impl Strategy for amplify::flags::FlagVec {
 
 impl Strategy for amplify::Slice32 {
     type Strategy = strategies::AsStrict;
+}
+
+mod _chrono {
+    use chrono::{DateTime, NaiveDateTime, Utc};
+
+    use super::*;
+
+    impl Strategy for NaiveDateTime {
+        type Strategy = strategies::AsStrict;
+    }
+
+    impl Strategy for DateTime<Utc> {
+        type Strategy = strategies::AsStrict;
+    }
 }

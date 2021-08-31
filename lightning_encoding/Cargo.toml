@@ -1,6 +1,6 @@
 [package]
 name = "lightning_encoding"
-version = "0.5.0-beta.2"
+version = "0.5.0-beta.3"
 license = "Apache-2.0"
 authors = ["Dr Maxim Orlovsky <orlovsky@pandoracore.com>"]
 description = "Network encoding for lightning network peer protocol data types"
@@ -24,6 +24,7 @@ descriptor-wallet = "0.5.0-alpha.3"
 lnpbp = "0.5.0-beta.3"
 bitcoin = "0.27.0"
 rgb-core = { version = "0.5.0-alpha.1", optional = true, path = "../../../rgb/rgb-core" }
+chrono = "0.4.19"
 
 [features]
 default = ["derive"]
