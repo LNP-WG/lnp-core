@@ -38,6 +38,15 @@ extern crate serde_with;
 #[cfg(feature = "serde")]
 extern crate serde_crate as serde;
 
+macro_rules! dumb_pubkey {
+    () => {
+        secp256k1::PublicKey::from_secret_key(
+            secp256k1::SECP256K1,
+            &secp256k1::key::ONE_KEY,
+        )
+    };
+}
+
 pub mod channel;
 pub mod extension;
 pub mod factories;
@@ -54,15 +63,7 @@ pub use features::{
     Bolt11Context, ChannelAnnouncementContext, Feature, FeatureContext,
     InitContext, InitFeatures, NoRequiredFeatureError, NodeAnnouncementContext,
 };
-pub use message::{Messages, OnionPacket, LNPWP_UNMARSHALLER};
+pub use message::{Messages, OnionPacket};
 pub use payment::{ChannelId, TempChannelId};
 
 pub const LIGHTNING_P2P_DEFAULT_PORT: u16 = 9735;
-
-lazy_static! {
-    pub static ref SECP256K1_PUBKEY_DUMB: secp256k1::PublicKey =
-        secp256k1::PublicKey::from_secret_key(
-            secp256k1::SECP256K1,
-            &secp256k1::key::ONE_KEY,
-        );
-}

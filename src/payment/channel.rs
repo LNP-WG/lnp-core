@@ -19,7 +19,6 @@ use std::fmt::Debug;
 use bitcoin::secp256k1::PublicKey;
 
 use crate::message::{AcceptChannel, OpenChannel};
-use crate::SECP256K1_PUBKEY_DUMB;
 
 #[derive(
     Clone,
@@ -208,12 +207,12 @@ impl From<&AcceptChannel> for Keyset {
 impl DumbDefault for Keyset {
     fn dumb_default() -> Self {
         Self {
-            funding_pubkey: *SECP256K1_PUBKEY_DUMB,
-            revocation_basepoint: *SECP256K1_PUBKEY_DUMB,
-            payment_basepoint: *SECP256K1_PUBKEY_DUMB,
-            delayed_payment_basepoint: *SECP256K1_PUBKEY_DUMB,
-            htlc_basepoint: *SECP256K1_PUBKEY_DUMB,
-            first_per_commitment_point: *SECP256K1_PUBKEY_DUMB,
+            funding_pubkey: dumb_pubkey!(),
+            revocation_basepoint: dumb_pubkey!(),
+            payment_basepoint: dumb_pubkey!(),
+            delayed_payment_basepoint: dumb_pubkey!(),
+            htlc_basepoint: dumb_pubkey!(),
+            first_per_commitment_point: dumb_pubkey!(),
             // shutdown_scriptpubkey: None,
         }
     }

@@ -27,7 +27,7 @@ use wallet::hlc::{HashLock, HashPreimage};
 use super::payment::{
     AddressList, Alias, ChannelId, NodeColor, ShortChannelId, TempChannelId,
 };
-use crate::{InitFeatures, SECP256K1_PUBKEY_DUMB};
+use crate::InitFeatures;
 
 #[cfg(feature = "rgb")]
 use rgb::Consignment;
@@ -185,7 +185,7 @@ pub struct Init {
     pub local_features: InitFeatures,
     #[lightning_encoding(tlv = 1)]
     #[network_encoding(tlv = 1)]
-    pub assets: Option<HashSet<AssetId>>,
+    pub assets: HashSet<AssetId>,
     #[lightning_encoding(unknown_tlvs)]
     #[network_encoding(unknown_tlvs)]
     pub unknown_tlvs: BTreeMap<usize, Box<[u8]>>,
@@ -357,6 +357,8 @@ pub struct OpenChannel {
     NetworkEncode,
     NetworkDecode,
 )]
+#[network_encoding(use_tlv)]
+#[lightning_encoding(use_tlv)]
 #[display("accept_channel({temporary_channel_id}, ...)")]
 pub struct AcceptChannel {
     /// A temporary channel ID, until the funding outpoint is announced
@@ -408,13 +410,16 @@ pub struct AcceptChannel {
 
     /// The first to-be-broadcast-by-sender transaction's per commitment point
     pub first_per_commitment_point: PublicKey,
-    /* TODO: Uncomment once TLVs derivation will be implemented
-     * /// Optionally, a request to pre-set the to-sender output's
-     * scriptPubkey /// for when we collaboratively close
-     * #[lnpwp(tlv=0)]
-     * pub shutdown_scriptpubkey: Option<Script>,
-     * #[lpwpw(unknown_tlvs)]
-     * pub unknown_tlvs: BTreeMap<u64, Vec<u8>>, */
+
+    /// Optionally, a request to pre-set the to-sender output's scriptPubkey
+    /// for when we collaboratively close
+    #[lightning_encoding(tlv = 0)]
+    #[network_encoding(tlv = 0)]
+    pub shutdown_scriptpubkey: Option<Script>,
+
+    #[lightning_encoding(unknown_tlvs)]
+    #[network_encoding(unknown_tlvs)]
+    pub unknown_tlvs: BTreeMap<usize, Box<[u8]>>,
 }
 
 #[derive(
@@ -975,7 +980,7 @@ pub struct QueryChannelRange {
     /// number of blocks
     pub number_of_blocks: u32,
     /*channel range queries
-    TODO: uncomment once tlv implementation is complete
+    TODO: Implement channel range data types
      * pub query_channel_range_tlvs: BTreeMap<u8, Vec<u8>>, */
 }
 
@@ -1009,8 +1014,8 @@ pub struct ReplyChannelRange {
     /// encoded short ids
     pub encoded_short_ids: Vec<ShortChannelId>,
     /* reply channel range tlvs
-     * TODO: uncomment once tlv implementation is complete
-     *pub reply_channel_range_tlvs: BTreeMap<u8, Vec<u8>>, */
+    TODO: Implement channel range data types
+    *pub reply_channel_range_tlvs: BTreeMap<u8, Vec<u8>>, */
 }
 
 #[derive(
@@ -1101,12 +1106,12 @@ impl DumbDefault for OpenChannel {
             feerate_per_kw: 0,
             to_self_delay: 0,
             max_accepted_htlcs: 0,
-            funding_pubkey: *SECP256K1_PUBKEY_DUMB,
-            revocation_basepoint: *SECP256K1_PUBKEY_DUMB,
-            payment_point: *SECP256K1_PUBKEY_DUMB,
-            delayed_payment_basepoint: *SECP256K1_PUBKEY_DUMB,
-            htlc_basepoint: *SECP256K1_PUBKEY_DUMB,
-            first_per_commitment_point: *SECP256K1_PUBKEY_DUMB,
+            funding_pubkey: dumb_pubkey!(),
+            revocation_basepoint: dumb_pubkey!(),
+            payment_point: dumb_pubkey!(),
+            delayed_payment_basepoint: dumb_pubkey!(),
+            htlc_basepoint: dumb_pubkey!(),
+            first_per_commitment_point: dumb_pubkey!(),
             channel_flags: 0,
             shutdown_scriptpubkey: None,
             unknown_tlvs: none!(),
@@ -1137,7 +1142,7 @@ impl DumbDefault for OnionPacket {
     fn dumb_default() -> Self {
         OnionPacket {
             version: 0,
-            public_key: *SECP256K1_PUBKEY_DUMB,
+            public_key: dumb_pubkey!(),
             hop_data: empty!(),
             hmac: zero!(),
         }
@@ -1160,7 +1165,7 @@ mod test {
         });
         assert_eq!(
             init_msg.serialize(),
-            Vec::<u8>::from_hex("001000000000").unwrap()
+            Vec::<u8>::from_hex("00100000000000").unwrap()
         );
     }
 }

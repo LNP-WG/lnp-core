@@ -21,9 +21,7 @@ use wallet::scripts::{LockScript, PubkeyScript, WitnessScript};
 use wallet::IntoPk;
 
 use crate::payment::ExtensionId;
-use crate::{
-    channel, ChannelExtension, Extension, Messages, SECP256K1_PUBKEY_DUMB,
-};
+use crate::{channel, ChannelExtension, Extension, Messages};
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, StrictEncode, StrictDecode)]
 struct Keyset {
@@ -35,9 +33,9 @@ struct Keyset {
 impl DumbDefault for Keyset {
     fn dumb_default() -> Self {
         Self {
-            revocation_basepoint: *SECP256K1_PUBKEY_DUMB,
-            payment_basepoint: *SECP256K1_PUBKEY_DUMB,
-            delayed_payment_basepoint: *SECP256K1_PUBKEY_DUMB,
+            revocation_basepoint: dumb_pubkey!(),
+            payment_basepoint: dumb_pubkey!(),
+            delayed_payment_basepoint: dumb_pubkey!(),
         }
     }
 }

@@ -13,6 +13,9 @@
 
 #![allow(dead_code)]
 
+// TODO: Implement lightning encoding derive test harness like in
+//       strict_encoding_derive
+
 #[macro_use]
 extern crate lightning_encoding_derive;
 
