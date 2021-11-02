@@ -120,8 +120,8 @@ brew cargo pkg-config zmq
 
 ### Clone and compile library
 
-Minimum supported rust compiler version (MSRV): 1.45 (if determined by tokio
-feature is used) and 1.41.1 (if used without tokio)
+Minimum supported rust compiler version (MSRV): 1.56.1, due to edition 2021
+requirements
 
 ```shell script
 git clone https://github.com/lnp-bp/rust-lnpbp
