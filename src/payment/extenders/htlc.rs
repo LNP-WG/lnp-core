@@ -119,7 +119,7 @@ impl Extension for Htlc {
                         ));
                     } else if message.htlc_id <= self.last_recieved_htlc_id {
                         return Err(channel::Error::HTLC(
-                            "HTLC id violation occured".to_string(),
+                            "HTLC id violation occurred".to_string(),
                         )); // TODO handle reconnection
                     } else {
                         let htlc = HtlcSecret {
