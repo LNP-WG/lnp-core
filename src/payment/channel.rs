@@ -17,8 +17,7 @@ use amplify::ToYamlString;
 use std::fmt::Debug;
 
 use bitcoin::secp256k1::PublicKey;
-
-use crate::message::{AcceptChannel, OpenChannel};
+use lnp2p::legacy::{AcceptChannel, OpenChannel};
 
 #[derive(
     Clone,

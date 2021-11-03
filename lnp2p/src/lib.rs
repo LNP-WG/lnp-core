@@ -13,5 +13,45 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
+#![recursion_limit = "256"]
+// Coding conventions
+#![deny(
+    non_upper_case_globals,
+    non_camel_case_types,
+    non_snake_case,
+    unused_mut,
+    unused_imports,
+    dead_code,
+    //missing_docs
+)]
+
+#[macro_use]
+extern crate amplify;
+#[macro_use]
+extern crate lazy_static;
+#[macro_use]
+extern crate internet2;
+#[cfg(feature = "lightning_encoding")]
+#[macro_use]
+extern crate lightning_encoding;
+#[cfg(feature = "serde")]
+extern crate serde_crate as serde;
+#[cfg(feature = "strict_encoding")]
+extern crate strict_encoding;
+#[cfg(feature = "serde")]
+#[macro_use]
+extern crate serde_with;
+
+macro_rules! dumb_pubkey {
+    () => {
+        bitcoin::secp256k1::PublicKey::from_secret_key(
+            bitcoin::secp256k1::SECP256K1,
+            &bitcoin::secp256k1::key::ONE_KEY,
+        )
+    };
+}
+
+#[cfg(feature = "bifrost")]
 pub mod bifrost;
+#[cfg(feature = "legacy")]
 pub mod legacy;
