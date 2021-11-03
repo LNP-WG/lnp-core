@@ -21,14 +21,15 @@ crate-type = ["rlib", "staticlib"]
 [dependencies]
 amplify = "3.9.1"
 strict_encoding = "1.7.4"
-lightning_encoding = "0.5.0-beta.2"
+lightning_encoding = "0.5.0-beta.3"
 descriptor-wallet = { version = "0.5.0-alpha.3", features = ["keygen"] }
+lnp2p = { version = "0.5.0-beta.1", path = "lnp2p" }
 lnpbp = "0.5.0-beta.3"
 rgb-core = { version = "0.5.0-alpha.1", optional = true }
-bitcoin = { version = "0.27", features = ["rand"] }
+bitcoin = { version = "0.27.1", features = ["rand"] }
 secp256k1 = { version = "0.20.3", features = ["global-context-less-secure"] }
 internet2 = "0.5.0-alpha.2"
-serde_crate = { package = "serde", version = "1.0", features = ["derive"], optional = true }
+serde_crate = { package = "serde", version = "1", features = ["derive"], optional = true }
 serde_with = { version = "1.8", features = ["hex"], optional = true }
 lazy_static = "1.4"
 
@@ -39,6 +40,6 @@ rgb = ["rgb-core", "lightning_encoding/rgb"]
 serde = ["serde_crate", "serde_with", "amplify/serde", "bitcoin/use-serde"]
 
 [workspace]
-members = [".", "lightning_encoding", "lightning_encoding/derive"] #, "lnp2p", ]
-default-members = [".", "lightning_encoding", "lightning_encoding/derive"] #, "lnp2p", ]
+members = [".", "lnp2p", "lightning_encoding", "lightning_encoding/derive"]
+default-members = [".", "lnp2p", "lightning_encoding", "lightning_encoding/derive"]
 exclude = ["dep_test"]

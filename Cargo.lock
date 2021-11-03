@@ -944,9 +944,24 @@ dependencies = [
  "internet2",
  "lazy_static",
  "lightning_encoding 0.5.0-beta.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lnp2p",
  "lnpbp",
  "rgb-core 0.5.0-alpha.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "secp256k1",
+ "serde",
+ "serde_with",
+ "strict_encoding",
+]
+
+[[package]]
+name = "lnp2p"
+version = "0.5.0-beta.1"
+dependencies = [
+ "amplify",
+ "bitcoin",
+ "descriptor-wallet",
+ "lightning_encoding 0.5.0-beta.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rgb-core 0.5.0-alpha.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde",
  "serde_with",
  "strict_encoding",
