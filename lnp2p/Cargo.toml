@@ -30,6 +30,7 @@ internet2 = { version = "0.5.0", default-features = false, features = ["derive"]
 serde_crate = { package = "serde", version = "1", features = ["derive"], optional = true }
 serde_with = { version = "1.5", features = ["hex"], optional = true }
 lazy_static = "1.4"
+chrono = "0.4"
 
 [features]
 default = ["legacy"]
