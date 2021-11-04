@@ -13,94 +13,183 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
-#[cfg(feature = "serde")]
-use serde_with::{As, DisplayFromStr};
+use std::borrow::Borrow;
 use std::fmt::{self, Display, Formatter};
 use std::io::{Read, Write};
 use std::str::FromStr;
 
-use amplify::hex::{self, FromHex};
-use amplify::{Slice32, Wrapper};
-use bitcoin::OutPoint;
+use crate::bifrost::ChannelParams;
+use amplify::Wrapper;
+use bitcoin::bech32::{self, FromBase32, ToBase32};
+use bitcoin::hashes::{sha256, sha256t, Hash, HashEngine};
+use bitcoin::secp256k1::schnorrsig::PublicKey;
 use strict_encoding::net::{
     AddrFormat, DecodeError, RawAddr, Transport, Uniform, UniformAddr, ADDR_LEN,
 };
 use strict_encoding::{self, StrictDecode, StrictEncode};
 
-/// Bifrost lightning network channel id: 256-bit number representing funding
-/// txid plus 32-bit funding output number
-#[cfg_attr(
-    feature = "serde",
-    serde_as,
-    derive(Serialize, Deserialize),
-    serde(crate = "serde_crate", transparent)
-)]
-#[derive(
-    Wrapper,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Debug,
-    Display,
-    Default,
-    From,
-    StrictEncode,
-    StrictDecode,
-)]
-#[display(inner)]
-#[wrapper(FromStr)]
-pub struct ChannelId(OutPoint);
+/// TODO: Replace
+const CHANNEL_ID_MIDSTATE: [u8; 32] = [
+    156, 224, 228, 230, 124, 17, 108, 57, 56, 179, 202, 242, 195, 15, 80, 137,
+    211, 243, 147, 108, 71, 99, 110, 96, 125, 179, 62, 234, 221, 198, 240, 201,
+];
 
-impl ChannelId {
-    /// Constructs channel if from a funding outpoint value
+/// Bech32m prefix for channel id encoding
+pub const CHANNEL_BECH32_HRP: &str = "lnch";
+
+/// Tag used for [`ChannelId`] hash type
+pub struct ChannelIdTag;
+
+impl sha256t::Tag for ChannelIdTag {
     #[inline]
-    pub fn with(funding_outpoint: OutPoint) -> Self {
-        ChannelId(funding_outpoint)
+    fn engine() -> sha256::HashEngine {
+        let midstate = sha256::Midstate::from_inner(CHANNEL_ID_MIDSTATE);
+        sha256::HashEngine::from_midstate(midstate, 64)
     }
 }
 
-/// Lightning network Bifrost temporary channel id, representing ID of the
-/// initial channel smart contract proposal (CSCP)
-#[cfg_attr(
-    feature = "serde",
-    serde_as,
-    derive(Serialize, Deserialize),
-    serde(crate = "serde_crate", transparent)
-)]
+/// A channel identifier
+///
+/// Represents commitment to the channel parameters and channel coordinator
+/// node; any two distinct channels are guaranteed (with SHA256 collision
+/// resistance level) to have a distinct channel ids.
 #[derive(
-    Wrapper,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Debug,
-    Display,
-    From,
-    StrictEncode,
-    StrictDecode,
+    Wrapper, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default, From,
 )]
-#[display(LowerHex)]
-#[wrapper(FromStr, LowerHex, UpperHex)]
-pub struct TempChannelId(
-    #[cfg_attr(feature = "serde", serde(with = "As::<DisplayFromStr>"))]
-    Slice32,
-);
+#[wrapper(Debug, LowerHex, Index, IndexRange, IndexFrom, IndexTo, IndexFull)]
+pub struct ChannelId(sha256t::Hash<ChannelIdTag>);
 
-impl FromHex for TempChannelId {
-    fn from_byte_iter<I>(iter: I) -> Result<Self, hex::Error>
-    where
-        I: Iterator<Item = Result<u8, hex::Error>>
-            + ExactSizeIterator
-            + DoubleEndedIterator,
-    {
-        Ok(Self(Slice32::from_byte_iter(iter)?))
+impl ChannelId {
+    /// Computes ChannelId from the provided data
+    pub fn with(params: ChannelParams, node_pubkey: PublicKey) -> ChannelId {
+        let mut engine = ChannelId::engine();
+        params
+            .strict_encode(&mut engine)
+            .expect("memory encoding of channel parameters");
+        engine.input(&node_pubkey.serialize());
+        ChannelId::from_engine(engine)
+    }
+
+    /// Constructs library id from a binary representation of the hash data
+    #[inline]
+    pub fn from_bytes(array: [u8; ChannelId::LEN]) -> ChannelId {
+        ChannelId(sha256t::Hash::<ChannelIdTag>::from_inner(array))
+    }
+
+    /// Returns fixed-size array of inner representation of the library id
+    #[inline]
+    pub fn as_bytes(&self) -> &[u8; 32] {
+        self.0.as_inner()
+    }
+}
+
+impl Borrow<[u8]> for ChannelId {
+    #[inline]
+    fn borrow(&self) -> &[u8] {
+        self.0.as_inner()
+    }
+}
+
+impl Hash for ChannelId {
+    type Engine = <sha256t::Hash<ChannelIdTag> as Hash>::Engine;
+    type Inner = <sha256t::Hash<ChannelIdTag> as Hash>::Inner;
+
+    const LEN: usize = 32;
+    const DISPLAY_BACKWARD: bool = false;
+
+    #[inline]
+    fn engine() -> Self::Engine {
+        sha256t::Hash::<ChannelIdTag>::engine()
+    }
+
+    #[inline]
+    fn from_engine(e: Self::Engine) -> Self {
+        Self(sha256t::Hash::from_engine(e))
+    }
+
+    #[inline]
+    fn from_slice(sl: &[u8]) -> Result<Self, bitcoin::hashes::Error> {
+        Ok(Self(sha256t::Hash::from_slice(sl)?))
+    }
+
+    #[inline]
+    fn into_inner(self) -> Self::Inner {
+        self.0.into_inner()
+    }
+
+    #[inline]
+    fn as_inner(&self) -> &Self::Inner {
+        self.0.as_inner()
+    }
+
+    #[inline]
+    fn from_inner(inner: Self::Inner) -> Self {
+        Self(sha256t::Hash::from_inner(inner))
+    }
+}
+
+impl strict_encoding::Strategy for ChannelId {
+    type Strategy = strict_encoding::strategies::HashFixedBytes;
+}
+
+/// Error parsing [`ChannelId`] bech32m representation
+#[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display, From)]
+#[display(doc_comments)]
+pub enum ChannelIdError {
+    /// Error reported by bech32 library
+    #[display(inner)]
+    #[from]
+    Bech32(bech32::Error),
+
+    /// ChannelId must start with `lnch1` and not `{0}`
+    InvalidHrp(String),
+
+    /// ChannelId must be encoded with Bech32m variant and not Bech32
+    InvalidVariant,
+
+    /// ChannelId data must have length of 32 bytes
+    #[from]
+    InvalidLength(bitcoin::hashes::Error),
+}
+
+impl ::std::error::Error for ChannelIdError {
+    fn source(&self) -> Option<&(dyn ::std::error::Error + 'static)> {
+        match self {
+            ChannelIdError::Bech32(err) => Some(err),
+            ChannelIdError::InvalidLength(err) => Some(err),
+            ChannelIdError::InvalidHrp(_) | ChannelIdError::InvalidVariant => {
+                None
+            }
+        }
+    }
+}
+
+impl Display for ChannelId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let bytes: &[u8] = self.borrow();
+        let s = bech32::encode(
+            CHANNEL_BECH32_HRP,
+            bytes.to_base32(),
+            bech32::Variant::Bech32m,
+        )
+        .map_err(|_| fmt::Error)?;
+        f.write_str(&s)
+    }
+}
+
+impl FromStr for ChannelId {
+    type Err = ChannelIdError;
+
+    fn from_str(s: &str) -> Result<Self, ChannelIdError> {
+        let (hrp, b32, variant) = bech32::decode(s)?;
+        if hrp != CHANNEL_BECH32_HRP {
+            return Err(ChannelIdError::InvalidHrp(hrp));
+        }
+        if variant != bech32::Variant::Bech32m {
+            return Err(ChannelIdError::InvalidVariant);
+        }
+        let data = Vec::<u8>::from_base32(&b32)?;
+        ChannelId::from_slice(&data).map_err(ChannelIdError::from)
     }
 }
 
@@ -157,10 +246,11 @@ impl ProtocolList {
 impl Display for ProtocolList {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let iter = self.iter();
-        for protocol in iter {
+        let mut len = self.0.len();
+        for protocol in self {
             Display::fmt(protocol, f)?;
-            if iter.take(1).count() == 0 {
+            len -= 1;
+            if len > 0 {
                 f.write_str(" ")?;
             }
         }
@@ -387,6 +477,7 @@ pub struct AddressList(Vec<AnnouncedNodeAddr>);
 #[cfg(test)]
 mod test {
     use super::*;
+    use bitcoin::hashes::hex::FromHex;
 
     #[test]
     fn test_address_encodings() {
@@ -412,14 +503,14 @@ mod test {
             ],
             checksum: Some(32),
             version: Some(16),
-            port: 9735,
+            port: 9999,
         };
 
-        let ipv4_target = Vec::<u8>::from_hex("01fffefdfc2607").unwrap();
+        let ipv4_target = Vec::<u8>::from_hex("000000000000000000000000000000000000000000000000000000000000fffefdfc260701").unwrap();
         let ipv6_target =
-            Vec::<u8>::from_hex("02fffefdfcfbfaf9f8f7f6f5f4f3f2f1f02607")
+            Vec::<u8>::from_hex("010000000000000000000000000000000000fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0260701")
                 .unwrap();
-        let onionv3_target = Vec::<u8>::from_hex("04fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0efeeedecebeae9e8e7e6e5e4e3e2e1e00020102607").unwrap();
+        let onionv3_target = Vec::<u8>::from_hex("0300fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0efeeedecebeae9e8e7e6e5e4e3e2e1e0260701").unwrap();
 
         // Check strict encoding/decoding
         let ipv4_encoded = ipv4.strict_serialize().unwrap();

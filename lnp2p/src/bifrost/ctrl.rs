@@ -92,7 +92,7 @@ mod test {
         });
         assert_eq!(
             init_msg.serialize(),
-            Vec::<u8>::from_hex("00100000000000").unwrap()
+            Vec::<u8>::from_hex("1000000000000000").unwrap()
         );
     }
 }
