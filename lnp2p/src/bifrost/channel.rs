@@ -18,8 +18,18 @@ use std::collections::BTreeMap;
 use bitcoin::secp256k1::schnorrsig::{PublicKey, Signature};
 use wallet::psbt::Psbt;
 
-use crate::bifrost::{ChannelId, ProtocolName};
+use crate::bifrost::{ChannelId, ChannelProposal, ProtocolName};
 use crate::legacy;
+
+/// Algorithm for fee computing. Defines who pais the fees for common parts of
+/// the transactions (outputs/inputs used by all peers in a channel).
+pub enum CommonFeeAlgo {
+    /// Common fees are paid by the channel coordinator
+    ByCoordinator,
+
+    /// Common fees are paid in proportional amounts by all participats
+    SharedFee,
+}
 
 /// Channel parameters originating from the channel coordinator.
 ///
@@ -44,13 +54,29 @@ pub struct ChannelParams {
     /// Type of the channel is a 64-bit number, which is not enumerated.
     ///
     /// Independent Bifrost application developers may create new channel types
-    /// by taking first 64 bits of their channel standard name, like
-    /// "LNPBP-50". Numbers below 1000 are reserved for LNPBP-standartized
+    /// by taking first 64 bits of their channel unique standard name, like
+    /// "ISO-1950". Numbers below 1000 are reserved for LNPBP-standardized
     /// channels.
     pub channel_type: u64,
 
+    /// Chain on which the channel will operate
+    pub chain: bp::Chain,
+
+    /// Parent channel, if any.
+    ///
+    /// If the channel does not exit, or based on a different chain than
+    /// [`ChannelParams::chain`], the remote peer must response with
+    /// [`Error`] containing errno code `BIFROST_ERR_CHAIN_MISMATCH`.
+    pub parent_channel: Option<ChannelId>,
+
+    /// Algorithm for detecting fee. See [`CommonFeeAlgo`]
+    pub fee_algo: CommonFeeAlgo,
+
     /// Timestamp when the channel coordinator has proposed channel for the
     /// first time to the first peer. Used in calculating timeouts.
+    ///
+    /// If the timestamp in the future, the remote node must response with
+    /// [`Error`] message containing errno code `BIFROST_ERR_FUTURE_TIMESTAMP`.
     pub timestamp: chrono::DateTime<chrono::Utc>,
 
     /// Timeout in seconds from [`Self::timestamp`] to abandon channel if there
@@ -63,8 +89,6 @@ pub struct ChannelParams {
     /// into [`ChannelState::Finalized`] state.
     pub funding_timeout: Option<u32>,
 }
-
-pub struct ChannelProposal {}
 
 pub enum ChannelState {
     Proposed,
@@ -111,7 +135,7 @@ pub struct ProposeChannel {
     ///
     /// *Channel coordinator* constructs first proposal; each peer has the
     /// right to update the channel proposal.
-    pub proposal: ChannelProposal,
+    pub proposal: ChannelProposal<'_>,
 
     pub pending: Vec<PublicKey>,
     pub accepted: BTreeMap<PublicKey, Signature>,
@@ -120,13 +144,13 @@ pub struct ProposeChannel {
 /// Response from a peer to a channel coordinator
 pub struct AcceptChannel {
     pub channel_id: ChannelId,
-    pub updated_proposal: ChannelProposal,
+    pub updated_proposal: ChannelProposal<'_>,
     pub signatures: BTreeMap<PublicKey, Signature>,
 }
 
 pub struct FinalizeChannel {
     pub channel_id: ChannelId,
-    pub proposal: ChannelProposal,
+    pub proposal: ChannelProposal<'_>,
 }
 
 pub struct MoveChannel {
