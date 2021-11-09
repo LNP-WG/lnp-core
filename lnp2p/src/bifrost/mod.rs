@@ -170,10 +170,12 @@
 
 mod channel;
 mod ctrl;
+mod proposals;
 mod types;
 
 pub use channel::*;
 pub use ctrl::*;
+pub use proposals::*;
 pub use types::{
     AddressList, AnnouncedNodeAddr, ChannelId, ProtocolList, ProtocolName,
     ProtocolNameError,
@@ -224,6 +226,20 @@ pub enum Messages {
     #[api(type = 19)]
     #[display("pong(...)")]
     Pong(Vec<u8>),
+
+    ProposeChannel(ProposeChannel),
+    AcceptChannel(AcceptChannel),
+    FinalizeChannel(FinalizeChannel),
+
+    MoveChannel(MoveChannel),
+    RemoveChannel(RemoveChannel),
+
+    UpdateChannelStatus(UpdateChannelStatus),
+
+    UpgradeChannel(UpgradeChannel),
+    DowngradeChannel(DowngradeChannel),
+
+    CloseChannel(CloseChannel),
 }
 
 impl StrictEncode for Messages {
