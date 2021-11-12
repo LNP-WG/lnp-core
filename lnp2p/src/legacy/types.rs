@@ -19,10 +19,12 @@ use std::io;
 use std::str::FromStr;
 
 use amplify::hex::{self, FromHex};
-use amplify::{DumbDefault, Slice32, Wrapper};
+use amplify::{Display, DumbDefault, Slice32, Wrapper};
 use bitcoin::hashes::Hash;
 use bitcoin::OutPoint;
+use chrono::{DateTime, Local, TimeZone, Utc};
 use lightning_encoding::{LightningDecode, LightningEncode};
+use std::ops::{Add, Sub};
 
 #[cfg(feature = "strict_encoding")]
 use strict_encoding::net::{
@@ -741,6 +743,55 @@ impl LightningDecode for AddressList {
             data.push(AnnouncedNodeAddr::lightning_decode(&mut d)?);
         }
         Ok(AddressList(data))
+    }
+}
+
+#[derive(
+    Display, Copy, Clone, Debug, PartialEq, Hash, Eq, PartialOrd, Ord, Wrapper,
+)]
+#[display("{0} sec")]
+pub struct Timestamp(u32);
+
+impl<T> From<DateTime<T>> for Timestamp
+where
+    T: TimeZone,
+{
+    fn from(dt: DateTime<T>) -> Timestamp {
+        Timestamp(dt.timestamp() as u32)
+    }
+}
+
+impl From<u32> for Timestamp {
+    fn from(seconds: u32) -> Timestamp {
+        Timestamp(seconds)
+    }
+}
+
+impl Default for Timestamp {
+    fn default() -> Self {
+        Timestamp(Utc::now().timestamp() as u32)
+    }
+}
+
+impl From<Timestamp> for DateTime<Utc> {
+    fn from(ts: Timestamp) -> DateTime<Utc> {
+        Utc.timestamp(ts.0 as i64, 0)
+    }
+}
+
+impl From<Timestamp> for DateTime<Local> {
+    fn from(ts: Timestamp) -> DateTime<Local> {
+        Local.timestamp(ts.0 as i64, 0)
+    }
+}
+
+impl Timestamp {
+    pub fn checked_add(self, rhs: Timestamp) -> Option<Timestamp> {
+        self.0.checked_add(rhs.0).map(Timestamp)
+    }
+
+    pub fn checked_sub(self, rhs: Timestamp) -> Option<Timestamp> {
+        self.0.checked_sub(rhs.0).map(Timestamp)
     }
 }
 
