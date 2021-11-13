@@ -170,11 +170,13 @@
 
 mod channel;
 mod ctrl;
+mod msg;
 mod proposals;
 mod types;
 
 pub use channel::*;
 pub use ctrl::*;
+pub use msg::*;
 pub use proposals::*;
 pub use types::{
     AddressList, AnnouncedNodeAddr, ChannelId, ProtocolList, ProtocolName,
