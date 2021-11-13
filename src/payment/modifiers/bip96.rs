@@ -11,10 +11,11 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
+use lnp2p::legacy::Messages;
 use wallet::lex_order::LexOrder;
 
 use crate::payment::ExtensionId;
-use crate::{channel, ChannelExtension, Extension, Messages};
+use crate::{channel, ChannelExtension, Extension};
 
 pub struct Bip96;
 

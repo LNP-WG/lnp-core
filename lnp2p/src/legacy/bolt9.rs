@@ -1,5 +1,7 @@
-// LNP/BP Core Library implementing LNPBP specifications & standards
-// Written in 2020 by
+// LNP P2P library, plmeneting both legacy (BOLT) and Bifrost P2P messaging
+// system for Lightning network protocol (LNP)
+//
+// Written in 2020-2021 by
 //     Dr. Maxim Orlovsky <orlovsky@pandoracore.com>
 //
 // To the extent possible under law, the author(s) have dedicated all
@@ -21,8 +23,6 @@ use std::io;
 use std::str::FromStr;
 
 use amplify::flags::FlagVec;
-use strict_encoding::{self, StrictDecode, StrictEncode};
-
 use lightning_encoding::{self, LightningDecode, LightningEncode};
 
 /// Feature-flags-related errors
@@ -479,26 +479,6 @@ impl From<InitFeatures> for FlagVec {
                 flags
             },
         )
-    }
-}
-
-impl StrictEncode for InitFeatures {
-    fn strict_encode<E: io::Write>(
-        &self,
-        e: E,
-    ) -> Result<usize, strict_encoding::Error> {
-        FlagVec::from(self.clone()).strict_encode(e)
-    }
-}
-
-impl StrictDecode for InitFeatures {
-    fn strict_decode<D: io::Read>(
-        d: D,
-    ) -> Result<Self, strict_encoding::Error> {
-        let vec = FlagVec::strict_decode(d)?;
-        Ok(InitFeatures::try_from(vec).map_err(|e| {
-            strict_encoding::Error::DataIntegrityError(e.to_string())
-        })?)
     }
 }
 

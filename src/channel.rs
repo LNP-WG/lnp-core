@@ -17,9 +17,9 @@ use std::hash::Hash;
 
 use bitcoin::util::psbt::PartiallySignedTransaction as Psbt;
 use bitcoin::{OutPoint, Transaction, TxIn, TxOut};
+use lnp2p::legacy::Messages;
 
 use super::extension::{self, ChannelExtension, Extension};
-use super::Messages;
 
 #[derive(
     Clone,

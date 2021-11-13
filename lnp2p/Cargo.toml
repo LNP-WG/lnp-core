@@ -1,12 +1,12 @@
 [package]
 name = "lnp2p"
-version = "0.3.0"
+version = "0.5.0-beta.1"
 license = "MIT"
 authors = ["Dr Maxim Orlovsky <orlovsky@pandoracore.com>"]
-description = "LN P2P Library: rust implementation of lightning network peer protocol (BOLT-1, 2, 7, 9)"
+description = "LN P2P Library: rust implementation of lightning network peer protocols (BOLT-1, 2, 7, 9, Bifrost)"
 repository = "https://github.com/LNP-BP/lnp-core"
 homepage = "https://lnp-bp.org"
-keywords = ["bitcoin", "lightning", "rgb", "smart-contracts", "lnp-bp"]
+keywords = ["bitcoin", "lightning", "rgb", "lnp-bp", "bifrost"]
 categories = ["cryptography::cryptocurrencies", "network-programming"]
 readme = "README.md"
 edition = "2021"
@@ -18,19 +18,22 @@ path = "src/lib.rs"
 crate-type = ["rlib", "staticlib"]
 
 [dependencies]
-amplify = "3.9.1"
-lnpbp = { version = "0.5.0-beta.1", path = ".." }
-rgb-core = { version = "0.3", optional = true }
-strict_encoding = "1"
-descriptor-wallet = { version = "0.3.3", features = ["keygen"] }
-bitcoin = { version = "0.26", features = ["rand"] }
-internet2 = { version = "0.3.6", features = ["bitcoin-ext", "lnpbp"] }
-serde_crate = { package = "serde", version = "1.0", features = ["derive"], optional = true }
+amplify = { version = "3.9.1", features = ["hex"] }
+lnpbp = "0.5.0-beta.3"
+rgb-core = { version = "0.5.0-alpha.1", optional = true }
+strict_encoding = { version = "1.7.4", optional = true }
+lightning_encoding = { version = "0.5.0-beta.3", optional = true }
+descriptor-wallet = "0.5.0-alpha.5"
+bitcoin = "0.27.1"
+internet2 = { version = "0.5.0-alpha.2", default-features = false, features = ["derive"] }
+serde_crate = { package = "serde", version = "1", features = ["derive"], optional = true }
 serde_with = { version = "1.5", features = ["hex"], optional = true }
 lazy_static = "1.4"
 
 [features]
-default = []
-all = ["rgb", "serde"]
-rgb = ["rgb-core", "internet2/rgb"]
+default = ["legacy"]
+all = ["rgb", 'bifrost', "serde"]
+legacy = ["lightning_encoding"]
+bifrost = ["strict_encoding"]
+rgb = ["rgb-core"]
 serde = ["serde_crate", "serde_with", "amplify/serde", "bitcoin/use-serde"]

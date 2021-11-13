@@ -22,7 +22,7 @@ use super::{Error, LightningDecode, LightningEncode};
 /// in big-endian instead of little-endian.
 ///
 /// BigSize specification is given at
-/// https://github.com/lightningnetwork/lightning-rfc/blob/master/01-messaging.md#type-length-value-format
+/// <https://github.com/lightningnetwork/lightning-rfc/blob/master/01-messaging.md#type-length-value-format>
 ///
 /// Like Bitcoin's variable-length integer, it exhibits ambiguity in that
 /// certain values can be encoded in several different ways, which we must check

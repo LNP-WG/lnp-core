@@ -31,7 +31,7 @@ pub enum Error {
     BigSizeEof,
 
     /// Returned by the convenience method
-    /// [`LightningDecode::lightning_decode()`] if not all provided data
+    /// [`crate::LightningDecode::lightning_decode`] if not all provided data
     /// were consumed during decoding process
     DataNotEntirelyConsumed,
 

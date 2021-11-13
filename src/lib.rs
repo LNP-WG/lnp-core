@@ -27,10 +27,6 @@
 extern crate amplify;
 #[macro_use]
 extern crate strict_encoding;
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate internet2;
 
 #[cfg(feature = "serde")]
 #[macro_use]
@@ -46,12 +42,9 @@ macro_rules! dumb_pubkey {
         )
     };
 }
-
 pub mod channel;
 pub mod extension;
 pub mod factories;
-pub mod features;
-pub mod message;
 pub mod payment;
 pub mod prometheus;
 pub mod storm;
@@ -59,11 +52,3 @@ pub mod storm;
 pub use extension::{
     ChannelExtension, Extension, GossipExtension, RoutingExtension,
 };
-pub use features::{
-    Bolt11Context, ChannelAnnouncementContext, Feature, FeatureContext,
-    InitContext, InitFeatures, NoRequiredFeatureError, NodeAnnouncementContext,
-};
-pub use message::{Messages, OnionPacket};
-pub use payment::{ChannelId, TempChannelId};
-
-pub const LIGHTNING_P2P_DEFAULT_PORT: u16 = 9735;

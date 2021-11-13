@@ -15,13 +15,15 @@ use bitcoin::blockdata::{opcodes::all::*, script};
 use bitcoin::secp256k1::PublicKey;
 use bitcoin::util::psbt::PartiallySignedTransaction as Psbt;
 use bitcoin::{OutPoint, Transaction, TxIn, TxOut};
+use lnp2p::legacy::ChannelId;
+use lnp2p::legacy::Messages;
 use lnpbp::chain::AssetId;
 use wallet::hlc::{HashLock, HashPreimage};
 use wallet::scripts::{LockScript, PubkeyScript, WitnessScript};
 use wallet::IntoPk;
 
 use crate::payment::{ExtensionId, TxType};
-use crate::{channel, ChannelExtension, ChannelId, Extension, Messages};
+use crate::{channel, ChannelExtension, Extension};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct HtlcKnown {
