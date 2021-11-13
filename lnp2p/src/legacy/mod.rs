@@ -175,7 +175,7 @@ impl LightningDecode for Messages {
             .unmarshall(&Vec::<u8>::lightning_decode(d)?)
             .map_err(|_| {
                 lightning_encoding::Error::DataIntegrityError(s!(
-                    "can't unmarshall LMP message"
+                    "can't unmarshall legacy LNP2P message"
                 ))
             })?;
         Ok(message.clone())

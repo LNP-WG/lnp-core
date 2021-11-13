@@ -31,7 +31,8 @@ use strict_encoding::net::{
 #[cfg(feature = "strict_encoding")]
 use strict_encoding::{self, StrictDecode, StrictEncode};
 
-/// Lightning network channel Id
+/// Legacy lightning network channel id: 256-bit number representing funding
+/// txid XOR'ed with 32-bit funding output number
 #[cfg_attr(
     feature = "serde",
     serde_as,

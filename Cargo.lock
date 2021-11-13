@@ -813,6 +813,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "inet2_derive"
+version = "0.5.0-alpha.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "affbe6f9f5efd90c4350e44e8a4a565f82880dddb263ff31141b099bbbc443dc"
+dependencies = [
+ "amplify",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "inflate"
 version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -882,7 +894,7 @@ dependencies = [
  "descriptor-wallet",
  "lightning_encoding_derive 0.5.0",
  "lnpbp",
- "rgb-core 0.5.0-alpha.1",
+ "rgb-core",
  "strict_encoding",
 ]
 
@@ -898,7 +910,7 @@ dependencies = [
  "descriptor-wallet",
  "lightning_encoding_derive 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "lnpbp",
- "rgb-core 0.5.0-alpha.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rgb-core",
  "strict_encoding",
 ]
 
@@ -945,7 +957,7 @@ dependencies = [
  "lightning_encoding 0.5.0-beta.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "lnp2p",
  "lnpbp",
- "rgb-core 0.5.0-alpha.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rgb-core",
  "secp256k1",
  "serde",
  "serde_with",
@@ -958,12 +970,13 @@ version = "0.5.0-beta.1"
 dependencies = [
  "amplify",
  "bitcoin",
+ "chrono",
  "descriptor-wallet",
  "internet2",
  "lazy_static",
  "lightning_encoding 0.5.0-beta.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "lnpbp",
- "rgb-core 0.5.0-alpha.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rgb-core",
  "serde",
  "serde_with",
  "strict_encoding",
@@ -1452,37 +1465,6 @@ name = "regex-syntax"
 version = "0.6.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f497285884f3fcff424ffc933e56d7cbca511def0c9831a7f9b5f6153e3cc89b"
-
-[[package]]
-name = "rgb-core"
-version = "0.5.0-alpha.1"
-dependencies = [
- "aluvm",
- "amplify",
- "bech32",
- "bitcoin",
- "bitcoin_hashes 0.10.0",
- "bp-core",
- "chrono",
- "clap",
- "client_side_validation",
- "commit_verify",
- "deflate",
- "descriptor-wallet",
- "ed25519-dalek",
- "grin_secp256k1zkp",
- "inflate",
- "lazy_static",
- "lnpbp",
- "miniscript",
- "num-derive",
- "num-traits",
- "serde",
- "serde_json",
- "serde_with",
- "serde_yaml",
- "strict_encoding",
-]
 
 [[package]]
 name = "rgb-core"

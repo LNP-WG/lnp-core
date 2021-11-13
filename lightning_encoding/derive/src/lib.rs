@@ -189,6 +189,8 @@
 //! assert_eq!(de.ephemeral, None);
 //! assert_eq!(obj.data, de.data);
 //! ```
+//!
+//! [`lightning_encoding`]: https://docs.rs/lightning_encoding
 
 extern crate proc_macro;
 #[macro_use]
