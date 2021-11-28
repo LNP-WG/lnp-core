@@ -60,7 +60,7 @@ pub struct ChannelParams {
     pub channel_type: u64,
 
     /// Chain on which the channel will operate
-    pub chain: bp::Chain,
+    pub chain: lnpbp::Chain,
 
     /// Parent channel, if any.
     ///
@@ -110,7 +110,7 @@ pub struct PreChannel {
     pub channel_id: ChannelId,
     pub coordinator_node: PublicKey,
     pub channel_params: ChannelParams,
-    pub proposal: ChannelProposal,
+    pub proposal: ChannelProposal<'_>,
     pub finalized_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 

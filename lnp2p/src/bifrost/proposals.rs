@@ -86,7 +86,7 @@ pub struct ChannelOutput {
     /// This mechanism allows to add RGB to a newly created channel without the
     /// need to exchange all large consignment data – and without a need of a
     /// separate on-chain transaction later.
-    pub p2c_tweaks: Vec<ProtocolId, sha256::Hash>,
+    pub p2c_tweaks: BTreeMap<ProtocolId, sha256::Hash>,
 
     /// Signature over all fields with node key to prove the originator
     pub signature: NodeSignature,
@@ -147,7 +147,7 @@ pub struct ChannelLink {
     /// P2C tweaks are used to construct DBC anchor.
     ///
     /// For details, pls refer to [`ChannelOutput::p2c_tweaks`]
-    pub p2c_tweaks: Vec<ProtocolId, sha256::Hash>,
+    pub p2c_tweaks: BTreeMap<ProtocolId, sha256::Hash>,
 }
 
 /// Information for constructing channel funding transaction

@@ -229,18 +229,27 @@ pub enum Messages {
     #[display("pong(...)")]
     Pong(Vec<u8>),
 
+    #[api(type = 0x0020)]
     ProposeChannel(ProposeChannel),
+    #[api(type = 0x0021)]
     AcceptChannel(AcceptChannel),
+    #[api(type = 0x0022)]
     FinalizeChannel(FinalizeChannel),
 
+    #[api(type = 0x0023)]
     MoveChannel(MoveChannel),
+    #[api(type = 0x0024)]
     RemoveChannel(RemoveChannel),
 
+    #[api(type = 0x0025)]
     UpdateChannelStatus(UpdateChannelStatus),
 
+    #[api(type = 0x0026)]
     UpgradeChannel(UpgradeChannel),
+    #[api(type = 0x0027)]
     DowngradeChannel(DowngradeChannel),
 
+    #[api(type = 0x0028)]
     CloseChannel(CloseChannel),
 }
 
