@@ -1,6 +1,10 @@
 Change Log
 ==========
 
+v0.5.0
+------
+- Rebased on v0.5.0 LNP/BP stack
+
 v0.4.0-alpha.1
 --------------
 - Lightning encodings crate
