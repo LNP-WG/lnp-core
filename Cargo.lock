@@ -745,8 +745,10 @@ version = "0.6.0"
 dependencies = [
  "amplify",
  "bitcoin",
+ "chrono",
  "descriptor-wallet",
  "internet2",
+ "lazy_static",
  "lightning_encoding 0.6.0",
  "lnp2p",
  "lnpbp",
