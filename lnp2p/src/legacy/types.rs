@@ -24,7 +24,6 @@ use bitcoin::hashes::Hash;
 use bitcoin::OutPoint;
 use chrono::{DateTime, Local, TimeZone, Utc};
 use lightning_encoding::{LightningDecode, LightningEncode};
-use std::ops::{Add, Sub};
 
 #[cfg(feature = "strict_encoding")]
 use strict_encoding::net::{
