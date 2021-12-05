@@ -139,10 +139,10 @@
 //!     Bit64 = 8,
 //! }
 //!
-//! assert_eq!(CustomValues::Bit8.lightning_serialize(), Ok(vec![0x01]));
-//! assert_eq!(CustomValues::Bit16.lightning_serialize(), Ok(vec![0x10]));
-//! assert_eq!(CustomValues::Bit32.lightning_serialize(), Ok(vec![0xFD, 0x10, 0x00]));
-//! assert_eq!(CustomValues::Bit64.lightning_serialize(), Ok(vec![0xFE, 0x00, 0x10, 0x00, 0x00]));
+//! assert_eq!(CustomValues::Bit8.lightning_serialize(), Ok(vec![0x00, 0x00, 0x00, 0x01]));
+//! assert_eq!(CustomValues::Bit16.lightning_serialize(), Ok(vec![0x00, 0x00, 0x00, 0x10]));
+//! assert_eq!(CustomValues::Bit32.lightning_serialize(), Ok(vec![0x00, 0x00, 0x10, 0x00]));
+//! assert_eq!(CustomValues::Bit64.lightning_serialize(), Ok(vec![0x00, 0x10, 0x00, 0x00]));
 //! ```
 //!
 //! ```
@@ -184,7 +184,7 @@
 //! };
 //! let ser = obj.lightning_serialize().unwrap();
 //!
-//! assert_eq!(ser, vec![0x03, b'a', b'b', b'c']);
+//! assert_eq!(ser, vec![0x00, 0x03, b'a', b'b', b'c']);
 //! let de = Skipping::lightning_deserialize(&ser).unwrap();
 //! assert_eq!(de.ephemeral, None);
 //! assert_eq!(obj.data, de.data);

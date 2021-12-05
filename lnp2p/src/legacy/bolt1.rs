@@ -55,15 +55,11 @@ pub struct Init {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
-#[cfg_attr(
-    feature = "strict_encoding",
-    derive(NetworkEncode, NetworkDecode),
-    network_encoding(use_tlv)
-)]
+#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("ping({pong_size})")]
 pub struct Ping {
-    pub ignored: Vec<u8>,
     pub pong_size: u16,
+    pub ignored: Vec<u8>,
 }
 
 /// For simplicity of diagnosis, it's often useful to tell a peer that something

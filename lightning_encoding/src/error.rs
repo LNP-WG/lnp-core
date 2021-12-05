@@ -30,12 +30,10 @@ pub enum Error {
     /// unexpected EOF while decoding BigSize value
     BigSizeEof,
 
-    /// Returned by the convenience method
-    /// [`crate::LightningDecode::lightning_decode`] if not all provided data
-    /// were consumed during decoding process
+    /// not all provided data were consumed during decoding process
     DataNotEntirelyConsumed,
 
-    /// Convenience type never for data structures using StrictDecode
+    /// Custom type-specific error
     #[display(inner)]
     DataIntegrityError(String),
 
@@ -44,7 +42,10 @@ pub enum Error {
     #[display(inner)]
     Tlv(TlvError),
 
-    /// An unsupported value `{0}` for enum `{0}` encountered during decode
+    /// unsupported value `{0}` for enum `{0}` encountered during decode
     /// operation
     EnumValueNotKnown(&'static str, usize),
+
+    /// data size {0} exceeds maximum allowed for the lightning message
+    TooLargeData(usize),
 }

@@ -12,29 +12,92 @@
 // If not, see <https://opensource.org/licenses/MIT>.
 
 use super::{strategies, Strategy};
+use crate::{Error, LightningDecode, LightningEncode};
+use std::io::{Read, Write};
 
-impl Strategy for u8 {
-    type Strategy = strategies::AsBigSize;
+impl LightningEncode for u8 {
+    fn lightning_encode<E: Write>(&self, mut e: E) -> Result<usize, Error> {
+        e.write_all(&[*self])?;
+        Ok(1)
+    }
 }
 
-impl Strategy for u16 {
-    type Strategy = strategies::AsBigSize;
+impl LightningDecode for u8 {
+    fn lightning_decode<D: Read>(mut d: D) -> Result<Self, Error> {
+        let mut buf = [0u8; 1];
+        d.read_exact(&mut buf)?;
+        Ok(buf[0])
+    }
 }
 
-impl Strategy for u32 {
-    type Strategy = strategies::AsBigSize;
+impl LightningEncode for u16 {
+    fn lightning_encode<E: Write>(&self, mut e: E) -> Result<usize, Error> {
+        let bytes = self.to_be_bytes();
+        e.write_all(&bytes)?;
+        Ok(bytes.len())
+    }
 }
 
-impl Strategy for u64 {
-    type Strategy = strategies::AsBigSize;
+impl LightningDecode for u16 {
+    fn lightning_decode<D: Read>(mut d: D) -> Result<Self, Error> {
+        let mut buf = [0u8; 2];
+        d.read_exact(&mut buf)?;
+        Ok(u16::from_be_bytes(buf))
+    }
 }
 
-impl Strategy for u128 {
-    type Strategy = strategies::AsBigSize;
+impl LightningEncode for u32 {
+    fn lightning_encode<E: Write>(&self, mut e: E) -> Result<usize, Error> {
+        let bytes = self.to_be_bytes();
+        e.write_all(&bytes)?;
+        Ok(bytes.len())
+    }
 }
 
-impl Strategy for usize {
-    type Strategy = strategies::AsBigSize;
+impl LightningDecode for u32 {
+    fn lightning_decode<D: Read>(mut d: D) -> Result<Self, Error> {
+        let mut buf = [0u8; 4];
+        d.read_exact(&mut buf)?;
+        Ok(u32::from_be_bytes(buf))
+    }
+}
+
+impl LightningEncode for u64 {
+    fn lightning_encode<E: Write>(&self, mut e: E) -> Result<usize, Error> {
+        let bytes = self.to_be_bytes();
+        e.write_all(&bytes)?;
+        Ok(bytes.len())
+    }
+}
+
+impl LightningDecode for u64 {
+    fn lightning_decode<D: Read>(mut d: D) -> Result<Self, Error> {
+        let mut buf = [0u8; 8];
+        d.read_exact(&mut buf)?;
+        Ok(u64::from_be_bytes(buf))
+    }
+}
+
+impl LightningEncode for usize {
+    fn lightning_encode<E: Write>(&self, mut e: E) -> Result<usize, Error> {
+        let count = match *self {
+            count if count > u16::MAX as usize => {
+                return Err(Error::TooLargeData(count))
+            }
+            count => count as u16,
+        };
+        let bytes = count.to_be_bytes();
+        e.write_all(&bytes)?;
+        Ok(bytes.len())
+    }
+}
+
+impl LightningDecode for usize {
+    fn lightning_decode<D: Read>(mut d: D) -> Result<Self, Error> {
+        let mut buf = [0u8; 2];
+        d.read_exact(&mut buf)?;
+        Ok(u16::from_be_bytes(buf) as usize)
+    }
 }
 
 impl Strategy for amplify::flags::FlagVec {
