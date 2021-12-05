@@ -39,8 +39,10 @@ pub struct Init {
     pub global_features: InitFeatures,
     pub local_features: InitFeatures,
     #[lightning_encoding(tlv = 1)]
+    #[network_encoding(tlv = 1)]
     pub assets: HashSet<AssetId>,
     #[lightning_encoding(unknown_tlvs)]
+    #[network_encoding(unknown_tlvs)]
     pub unknown_tlvs: BTreeMap<usize, Box<[u8]>>,
 }
 

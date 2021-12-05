@@ -100,10 +100,12 @@ pub struct OpenChannel {
     /// Optionally, a request to pre-set the to-sender output's scriptPubkey
     /// for when we collaboratively close
     #[lightning_encoding(tlv = 1)]
+    #[network_encoding(tlv = 1)]
     pub shutdown_scriptpubkey: Option<Script>,
 
     /// The rest of TLVs with unknown odd type ids
     #[lightning_encoding(unknown_tlvs)]
+    #[network_encoding(unknown_tlvs)]
     pub unknown_tlvs: BTreeMap<usize, Box<[u8]>>,
 }
 
@@ -171,9 +173,11 @@ pub struct AcceptChannel {
     /// Optionally, a request to pre-set the to-sender output's scriptPubkey
     /// for when we collaboratively close
     #[lightning_encoding(tlv = 0)]
+    #[network_encoding(tlv = 0)]
     pub shutdown_scriptpubkey: Option<Script>,
 
     #[lightning_encoding(unknown_tlvs)]
+    #[network_encoding(unknown_tlvs)]
     pub unknown_tlvs: BTreeMap<usize, Box<[u8]>>,
 }
 
@@ -288,10 +292,12 @@ pub struct UpdateAddHtlc {
 
     /// RGB Extension: TLV
     #[lightning_encoding(tlv = 1)]
+    #[network_encoding(tlv = 1)]
     pub asset_id: Option<AssetId>,
 
     /// The rest of TLVs with unknown odd type ids
     #[lightning_encoding(unknown_tlvs)]
+    #[network_encoding(unknown_tlvs)]
     pub unknown_tlvs: BTreeMap<usize, Box<[u8]>>,
 }
 
