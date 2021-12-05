@@ -483,9 +483,9 @@ dependencies = [
 
 [[package]]
 name = "encoding_derive_helpers"
-version = "1.7.4"
+version = "1.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8af9b20816ac9126945a6ecc1e248c4a1edfeada329839cdca9c96581174bebb"
+checksum = "df85c511a2f01954d1fad7d7d20eeae1af35157fbaec35261c91fab53d76bb58"
 dependencies = [
  "amplify",
  "proc-macro2",
@@ -639,17 +639,18 @@ dependencies = [
 
 [[package]]
 name = "internet2"
-version = "0.5.0"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f18bcfe6603b718d1f81deb4a5a6256abbb57a8c2d1048a3aaa68f623b01da5"
+checksum = "282e1a0d44ccc509a1e4faf183e177c9de5c325ccf2639bdee25c253a404116f"
 dependencies = [
  "amplify",
- "bitcoin",
+ "bitcoin_hashes",
  "chacha20poly1305",
  "inet2_addr",
  "inet2_derive",
  "lazy_static",
  "lightning_encoding 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "secp256k1",
  "strict_encoding",
  "url",
  "zmq",
@@ -927,9 +928,9 @@ checksum = "ed0cfbc8191465bed66e1718596ee0b0b35d5ee1f41c5df2189d0fe8bde535ba"
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.32"
+version = "1.0.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba508cc11742c0dc5c1659771673afbab7a0efab23aa17e854cbab0837ed0b43"
+checksum = "fb37d2df5df740e582f28f8560cf425f52bb267d872fe58358eadb554909f07a"
 dependencies = [
  "unicode-xid",
 ]
@@ -1328,9 +1329,9 @@ dependencies = [
 
 [[package]]
 name = "strict_encoding"
-version = "1.7.4"
+version = "1.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "441080358b7382cf0b4766e4253a77e1ee7ad17139a4f0b950993074acfb63dc"
+checksum = "dbaf948106af4d241175fc5b4e64d63bea622430894c21fc72e4254be2e277ec"
 dependencies = [
  "amplify",
  "bitcoin",
@@ -1342,9 +1343,9 @@ dependencies = [
 
 [[package]]
 name = "strict_encoding_derive"
-version = "1.7.4"
+version = "1.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4cf87ccd517175354f494683b69b7703664cf49e6b82e78ff53e42bea0c17401"
+checksum = "77af01d535c6668a1386dcf8e8b090a1456574cfd564dad059c2e497e4930764"
 dependencies = [
  "amplify_syn",
  "encoding_derive_helpers",
