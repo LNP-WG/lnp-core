@@ -71,6 +71,7 @@ pub struct Ping {
 /// # Specification
 /// <https://github.com/lightningnetwork/lightning-rfc/blob/master/01-messaging.md#the-error-message>
 #[derive(Clone, PartialEq, Debug, Error, LightningEncode, LightningDecode)]
+#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 pub struct Error {
     /// The channel is referred to by channel_id, unless channel_id is 0 (i.e.
     /// all bytes are 0), in which case it refers to all channels.
