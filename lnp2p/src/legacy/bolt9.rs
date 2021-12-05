@@ -501,3 +501,25 @@ impl LightningDecode for InitFeatures {
         })?)
     }
 }
+
+#[cfg(feature = "strict_encoding")]
+impl strict_encoding::StrictEncode for InitFeatures {
+    fn strict_encode<E: io::Write>(
+        &self,
+        e: E,
+    ) -> Result<usize, strict_encoding::Error> {
+        FlagVec::from(self.clone()).strict_encode(e)
+    }
+}
+
+#[cfg(feature = "strict_encoding")]
+impl strict_encoding::StrictDecode for InitFeatures {
+    fn strict_decode<D: io::Read>(
+        d: D,
+    ) -> Result<Self, strict_encoding::Error> {
+        let vec = FlagVec::strict_decode(d)?;
+        Ok(InitFeatures::try_from(vec).map_err(|e| {
+            strict_encoding::Error::DataIntegrityError(e.to_string())
+        })?)
+    }
+}

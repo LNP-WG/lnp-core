@@ -24,6 +24,7 @@ use super::{
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
+#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display(
     "announcement_signature({channel_id}, {short_channel_id}, ...signatures)"
 )]
@@ -44,6 +45,7 @@ pub struct AnnouncementSignatures {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
+#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("channel_announcement({chain_hash}, {short_channel_id}, ...)")]
 pub struct ChannelAnnouncements {
     /// Node Signature 1
@@ -83,6 +85,7 @@ pub struct ChannelAnnouncements {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
+#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("node_announcement({node_id}, {alias}, {addresses}, ...)")]
 pub struct NodeAnnouncements {
     /// Signature
@@ -110,6 +113,7 @@ pub struct NodeAnnouncements {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
+#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("channel_id({chain_hash}, {short_channel_id}, {timestamp}, ...)")]
 pub struct ChannelUpdate {
     /// Signature
@@ -150,6 +154,7 @@ pub struct ChannelUpdate {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
+#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("query_short_channel_ids({chain_hash}, {short_ids:#?}, ...tlvs)")]
 pub struct QueryShortChannelIds {
     /// chain hash
@@ -165,6 +170,7 @@ pub struct QueryShortChannelIds {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
+#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("reply_short_channel_ids_end({chain_hash}, {full_information})")]
 pub struct ReplyShortChannelIdsEnd {
     /// chain hash
@@ -177,6 +183,7 @@ pub struct ReplyShortChannelIdsEnd {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
+#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display(
 "querry_channel_range({chain_hash}, {first_blocknum}, {number_of_blocks}, ...tlvs)"
 )]
@@ -197,6 +204,7 @@ pub struct QueryChannelRange {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
+#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display(
 "reply_channel_range({chain_hash}, {first_blocknum}, {number_of_blocks}, ...)"
 )]
@@ -223,6 +231,7 @@ pub struct ReplyChannelRange {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
+#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("gossip_time_stamp_filter({chain_hash}, {first_timestamp}, {timestamp_range})")]
 pub struct GossipTimestampFilter {
     /// chain hash

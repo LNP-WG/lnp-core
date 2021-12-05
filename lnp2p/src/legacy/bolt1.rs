@@ -28,6 +28,11 @@ use super::{ChannelId, InitFeatures};
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
+#[cfg_attr(
+    feature = "strict_encoding",
+    derive(NetworkEncode, NetworkDecode),
+    network_encoding(use_tlv)
+)]
 #[lightning_encoding(use_tlv)]
 #[display("init({global_features}, {local_features}, {assets:#?})")]
 pub struct Init {
@@ -49,7 +54,12 @@ pub struct Init {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
-#[display(Debug)]
+#[cfg_attr(
+    feature = "strict_encoding",
+    derive(NetworkEncode, NetworkDecode),
+    network_encoding(use_tlv)
+)]
+#[display("ping({pong_size})")]
 pub struct Ping {
     pub ignored: Vec<u8>,
     pub pong_size: u16,

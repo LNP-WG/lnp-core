@@ -37,6 +37,7 @@ extern crate lightning_encoding;
 #[cfg(feature = "serde")]
 extern crate serde_crate as serde;
 #[cfg(feature = "strict_encoding")]
+#[macro_use]
 extern crate strict_encoding;
 #[cfg(feature = "serde")]
 #[macro_use]

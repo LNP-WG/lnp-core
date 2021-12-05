@@ -19,7 +19,8 @@ use bitcoin::hashes::{sha256, Hmac};
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
-#[display(Debug)]
+#[cfg_attr(feature = "strict_encoding", derive(StrictEncode, StrictDecode))]
+#[display("onion_packet(v{version}, to: {public_key}, ...)")]
 pub struct OnionPacket {
     pub version: u8,
     pub public_key: bitcoin::secp256k1::PublicKey,

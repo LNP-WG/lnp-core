@@ -27,6 +27,11 @@ use super::{ChannelId, OnionPacket, TempChannelId};
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
+#[cfg_attr(
+    feature = "strict_encoding",
+    derive(NetworkEncode, NetworkDecode),
+    network_encoding(use_tlv)
+)]
 #[lightning_encoding(use_tlv)]
 #[display("open_channel({chain_hash}, {temporary_channel_id}, {funding_satoshis}, {channel_flags}, ...)")]
 pub struct OpenChannel {
@@ -105,6 +110,11 @@ pub struct OpenChannel {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
+#[cfg_attr(
+    feature = "strict_encoding",
+    derive(NetworkEncode, NetworkDecode),
+    network_encoding(use_tlv)
+)]
 #[lightning_encoding(use_tlv)]
 #[display("accept_channel({temporary_channel_id}, ...)")]
 pub struct AcceptChannel {
@@ -170,6 +180,7 @@ pub struct AcceptChannel {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
+#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("funding_created({temporary_channel_id}, {funding_txid}:{funding_output_index}, ...signature)")]
 pub struct FundingCreated {
     /// A temporary channel ID, until the funding is established
@@ -189,6 +200,7 @@ pub struct FundingCreated {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
+#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("funding_signed({channel_id}, ...signature)")]
 pub struct FundingSigned {
     /// The channel ID
@@ -201,6 +213,7 @@ pub struct FundingSigned {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
+#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("funding_locked({channel_id}, {next_per_commitment_point})")]
 pub struct FundingLocked {
     /// The channel ID
@@ -213,6 +226,7 @@ pub struct FundingLocked {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
+#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("shutdown({channel_id}, {scriptpubkey})")]
 pub struct Shutdown {
     /// The channel ID
@@ -226,6 +240,7 @@ pub struct Shutdown {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
+#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("closing_signed({channel_id}, ...)")]
 pub struct ClosingSigned {
     /// The channel ID
@@ -240,6 +255,11 @@ pub struct ClosingSigned {
 
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
+)]
+#[cfg_attr(
+    feature = "strict_encoding",
+    derive(NetworkEncode, NetworkDecode),
+    network_encoding(use_tlv)
 )]
 #[lightning_encoding(use_tlv)]
 #[display("update_add_htlc({channel_id}, {htlc_id}, {amount_msat}, {payment_hash}, ...)")]
@@ -278,6 +298,7 @@ pub struct UpdateAddHtlc {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
+#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("update_fullfill_htlc({channel_id}, {htlc_id}, ...preimages)")]
 pub struct UpdateFulfillHtlc {
     /// The channel ID
@@ -293,6 +314,7 @@ pub struct UpdateFulfillHtlc {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
+#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("update_fail_htlc({channel_id}, {htlc_id}, ...reason)")]
 pub struct UpdateFailHtlc {
     /// The channel ID
@@ -312,6 +334,7 @@ pub struct UpdateFailHtlc {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
+#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("update_fail_malformed_htlc({channel_id}, {htlc_id}, ...onion)")]
 pub struct UpdateFailMalformedHtlc {
     /// The channel ID
@@ -330,6 +353,7 @@ pub struct UpdateFailMalformedHtlc {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
+#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("commitment_signed({channel_id}, ...signatures)")]
 pub struct CommitmentSigned {
     /// The channel ID
@@ -345,6 +369,7 @@ pub struct CommitmentSigned {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
+#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("revoke_and_ack({channel_id}, {next_per_commitment_point}, ...per_commitment_secret)")]
 pub struct RevokeAndAck {
     /// The channel ID
@@ -360,6 +385,7 @@ pub struct RevokeAndAck {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
+#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("update_fee({channel_id}, {feerate_per_kw})")]
 pub struct UpdateFee {
     /// The channel ID
@@ -372,6 +398,7 @@ pub struct UpdateFee {
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
+#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("channel_reestablish({channel_id}, {next_commitment_number}, ...)")]
 pub struct ChannelReestablish {
     /// The channel ID

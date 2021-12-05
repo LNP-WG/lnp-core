@@ -34,6 +34,8 @@ extern crate serde_with;
 #[cfg(feature = "serde")]
 extern crate serde_crate as serde;
 
+pub extern crate lnp2p as p2p;
+
 macro_rules! dumb_pubkey {
     () => {
         secp256k1::PublicKey::from_secret_key(

@@ -181,3 +181,29 @@ impl LightningDecode for Messages {
         Ok(message.clone())
     }
 }
+
+#[cfg(feature = "strict_encoding")]
+impl strict_encoding::StrictEncode for Messages {
+    fn strict_encode<E: io::Write>(
+        &self,
+        e: E,
+    ) -> Result<usize, strict_encoding::Error> {
+        Payload::from(self.clone()).strict_encode(e)
+    }
+}
+
+#[cfg(feature = "strict_encoding")]
+impl strict_encoding::StrictDecode for Messages {
+    fn strict_decode<D: io::Read>(
+        d: D,
+    ) -> Result<Self, strict_encoding::Error> {
+        let message = &*LNP2P_LEGACY_UNMARSHALLER
+            .unmarshall(&Vec::<u8>::strict_decode(d)?)
+            .map_err(|_| {
+                strict_encoding::Error::DataIntegrityError(s!(
+                    "can't unmarshall legacy LNP2P message"
+                ))
+            })?;
+        Ok(message.clone())
+    }
+}
