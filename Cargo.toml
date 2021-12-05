@@ -21,7 +21,7 @@ crate-type = ["rlib", "staticlib"]
 [dependencies]
 amplify = "3.9.1"
 strict_encoding = "1.7.4"
-lightning_encoding = { version = "0.6.0", path = "lightning_encoding" }
+lightning_encoding = { version = "0.5.0", path = "lightning_encoding" }
 descriptor-wallet = { version = "0.5.0", features = ["keygen"] }
 lnp2p = { version = "0.5.1", path = "lnp2p", features = ["strict_encoding"] }
 lnpbp = "0.5.0"
