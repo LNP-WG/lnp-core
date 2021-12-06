@@ -639,9 +639,9 @@ dependencies = [
 
 [[package]]
 name = "internet2"
-version = "0.5.3"
+version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d5dc4cdea63a3ead37c3999a90cb9c6fd1ff3799ce55a2be8d9a7f9cb3918651"
+checksum = "11bcbc18bc8d6d3dae3a9596553f5957d6c30d708b1ea827a49a24c0af0f2585"
 dependencies = [
  "amplify",
  "bitcoin_hashes",
@@ -649,7 +649,7 @@ dependencies = [
  "inet2_addr",
  "inet2_derive",
  "lazy_static",
- "lightning_encoding 0.5.2",
+ "lightning_encoding 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "secp256k1",
  "strict_encoding",
  "url",
@@ -682,21 +682,6 @@ checksum = "f98a04dce437184842841303488f70d0188c5f51437d2a834dc097eafa909a01"
 
 [[package]]
 name = "lightning_encoding"
-version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc2ac8dea200c1b50332883b4c1c0695754f285fe51ec767122869487cdab3d1"
-dependencies = [
- "amplify",
- "bitcoin",
- "chrono",
- "descriptor-wallet",
- "lightning_encoding_derive 0.5.0",
- "lnpbp",
- "strict_encoding",
-]
-
-[[package]]
-name = "lightning_encoding"
 version = "0.5.3"
 dependencies = [
  "amplify",
@@ -709,16 +694,18 @@ dependencies = [
 ]
 
 [[package]]
-name = "lightning_encoding_derive"
-version = "0.5.0"
+name = "lightning_encoding"
+version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3cc5449b552f69a6cf6f1c580c0444018f9b592edf0119cf66cc3fc3caf62744"
+checksum = "958827d3484c6986b2abbead07ca44b9d209c696355aa3ea3759afb808f50722"
 dependencies = [
- "amplify_syn",
- "encoding_derive_helpers",
- "proc-macro2",
- "quote",
- "syn",
+ "amplify",
+ "bitcoin",
+ "chrono",
+ "descriptor-wallet",
+ "lightning_encoding_derive 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lnpbp",
+ "strict_encoding",
 ]
 
 [[package]]
@@ -728,7 +715,21 @@ dependencies = [
  "amplify_derive",
  "amplify_syn",
  "encoding_derive_helpers",
- "lightning_encoding 0.5.3",
+ "internet2",
+ "lightning_encoding 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "lightning_encoding_derive"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da2093982a69f3230186cc918f377804bc59a47560a1763cba0ecd16e9d0d6a0"
+dependencies = [
+ "amplify_syn",
+ "encoding_derive_helpers",
  "proc-macro2",
  "quote",
  "syn",
@@ -742,14 +743,14 @@ checksum = "7fb9b38af92608140b86b693604b9ffcc5824240a484d1ecd4795bacb2fe88f3"
 
 [[package]]
 name = "lnp-core"
-version = "0.5.2"
+version = "0.5.3"
 dependencies = [
  "amplify",
  "bitcoin",
  "descriptor-wallet",
  "internet2",
  "lazy_static",
- "lightning_encoding 0.5.2",
+ "lightning_encoding 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "lnp2p",
  "lnpbp",
  "secp256k1",
@@ -760,7 +761,7 @@ dependencies = [
 
 [[package]]
 name = "lnp2p"
-version = "0.5.2"
+version = "0.5.3"
 dependencies = [
  "amplify",
  "bitcoin",
@@ -769,7 +770,7 @@ dependencies = [
  "descriptor-wallet",
  "internet2",
  "lazy_static",
- "lightning_encoding 0.5.2",
+ "lightning_encoding 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "lnpbp",
  "serde",
  "serde_with",

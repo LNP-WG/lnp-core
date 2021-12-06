@@ -22,5 +22,6 @@ amplify_syn = "1.1.6"
 encoding_derive_helpers = "1.7.6"
 
 [dev-dependencies]
-lightning_encoding = { path = ".." }
+lightning_encoding = "0.5.3"
 amplify_derive = "2.7.2"
+internet2 = "0.5.4"

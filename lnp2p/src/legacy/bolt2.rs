@@ -13,12 +13,11 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
-use std::collections::BTreeMap;
-
 use amplify::DumbDefault;
 use bitcoin::hashes::sha256;
 use bitcoin::secp256k1::{PublicKey, Signature};
 use bitcoin::{Script, Txid};
+use internet2::tlv;
 use lnpbp::chain::AssetId;
 use wallet::hlc::{HashLock, HashPreimage};
 
@@ -106,7 +105,7 @@ pub struct OpenChannel {
     /// The rest of TLVs with unknown odd type ids
     #[lightning_encoding(unknown_tlvs)]
     #[network_encoding(unknown_tlvs)]
-    pub unknown_tlvs: BTreeMap<usize, Box<[u8]>>,
+    pub unknown_tlvs: tlv::Stream,
 }
 
 #[derive(
@@ -178,7 +177,7 @@ pub struct AcceptChannel {
 
     #[lightning_encoding(unknown_tlvs)]
     #[network_encoding(unknown_tlvs)]
-    pub unknown_tlvs: BTreeMap<usize, Box<[u8]>>,
+    pub unknown_tlvs: tlv::Stream,
 }
 
 #[derive(
@@ -298,7 +297,7 @@ pub struct UpdateAddHtlc {
     /// The rest of TLVs with unknown odd type ids
     #[lightning_encoding(unknown_tlvs)]
     #[network_encoding(unknown_tlvs)]
-    pub unknown_tlvs: BTreeMap<usize, Box<[u8]>>,
+    pub unknown_tlvs: tlv::Stream,
 }
 
 #[derive(

@@ -40,9 +40,11 @@ use super::{ChannelId, InitFeatures};
 pub struct Init {
     pub global_features: InitFeatures,
     pub local_features: InitFeatures,
+
     #[lightning_encoding(tlv = 1)]
     #[network_encoding(tlv = 1)]
     pub assets: HashSet<AssetId>,
+
     #[lightning_encoding(unknown_tlvs)]
     #[network_encoding(unknown_tlvs)]
     pub unknown_tlvs: tlv::Stream,
@@ -111,10 +113,8 @@ mod test {
         let init_msg = Messages::Init(Init {
             global_features: none!(),
             local_features: none!(),
-            /*
             assets: none!(),
             unknown_tlvs: none!(),
-             */
         });
         assert_eq!(
             init_msg.serialize(),

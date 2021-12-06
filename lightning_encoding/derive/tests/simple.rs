@@ -19,7 +19,7 @@
 #[macro_use]
 extern crate lightning_encoding_derive;
 
-use std::collections::BTreeMap;
+use internet2::tlv;
 
 #[derive(LightningEncode, LightningDecode)]
 struct Me(u8);
@@ -36,7 +36,7 @@ struct One {
     tlv_int2: Option<u16>,
 
     #[lightning_encoding(unknown_tlvs)]
-    rest_of_tlvs: BTreeMap<usize, Box<[u8]>>,
+    rest_of_tlvs: tlv::Stream,
 }
 
 #[derive(LightningEncode, LightningDecode)]
