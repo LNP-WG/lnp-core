@@ -198,7 +198,7 @@ extern crate syn;
 #[macro_use]
 extern crate amplify_syn;
 
-use encoding_derive_helpers::{decode_derive, encode_derive, TlvEncoding};
+use encoding_derive_helpers::{decode_derive, encode_derive};
 use proc_macro::TokenStream;
 use syn::DeriveInput;
 
@@ -213,7 +213,7 @@ pub fn derive_lightning_encode(input: TokenStream) -> TokenStream {
         ident!(lightning_encode),
         ident!(lightning_serialize),
         derive_input,
-        TlvEncoding::Length,
+        true,
     )
     .unwrap_or_else(|e| e.to_compile_error())
     .into()
@@ -230,7 +230,7 @@ pub fn derive_lightning_decode(input: TokenStream) -> TokenStream {
         ident!(lightning_decode),
         ident!(lightning_deserialize),
         derive_input,
-        TlvEncoding::Length,
+        true,
     )
     .unwrap_or_else(|e| e.to_compile_error())
     .into()

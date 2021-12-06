@@ -13,10 +13,11 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
-//use std::collections::{BTreeMap, HashSet};
+use internet2::tlv;
+use std::collections::HashSet;
 use std::fmt::{self, Display, Formatter};
 
-//use lnpbp::chain::AssetId;
+use lnpbp::chain::AssetId;
 
 use super::{ChannelId, InitFeatures};
 
@@ -28,21 +29,23 @@ use super::{ChannelId, InitFeatures};
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
-#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
-//#[lightning_encoding(use_tlv)]
+#[cfg_attr(
+    feature = "strict_encoding",
+    derive(NetworkEncode, NetworkDecode),
+    network_encoding(use_tlv)
+)]
+#[lightning_encoding(use_tlv)]
 #[display("init({global_features}, {local_features})")]
-//#[display("init({global_features}, {local_features}, {assets:#?})")]
+#[display("init({global_features}, {local_features}, {assets:#?})")]
 pub struct Init {
     pub global_features: InitFeatures,
     pub local_features: InitFeatures,
-    /*
     #[lightning_encoding(tlv = 1)]
     #[network_encoding(tlv = 1)]
     pub assets: HashSet<AssetId>,
     #[lightning_encoding(unknown_tlvs)]
     #[network_encoding(unknown_tlvs)]
-    pub unknown_tlvs: BTreeMap<usize, Box<[u8]>>,
-     */
+    pub unknown_tlvs: tlv::Stream,
 }
 
 /// In order to allow for the existence of long-lived TCP connections, at

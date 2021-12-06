@@ -483,9 +483,9 @@ dependencies = [
 
 [[package]]
 name = "encoding_derive_helpers"
-version = "1.7.5"
+version = "1.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df85c511a2f01954d1fad7d7d20eeae1af35157fbaec35261c91fab53d76bb58"
+checksum = "dc4ba8a88067b85c8714922db6e5f2af47b894d63b771dbb0c4d31d6607e9057"
 dependencies = [
  "amplify",
  "proc-macro2",
@@ -639,9 +639,9 @@ dependencies = [
 
 [[package]]
 name = "internet2"
-version = "0.5.2"
+version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "282e1a0d44ccc509a1e4faf183e177c9de5c325ccf2639bdee25c253a404116f"
+checksum = "d5dc4cdea63a3ead37c3999a90cb9c6fd1ff3799ce55a2be8d9a7f9cb3918651"
 dependencies = [
  "amplify",
  "bitcoin_hashes",
@@ -649,7 +649,7 @@ dependencies = [
  "inet2_addr",
  "inet2_derive",
  "lazy_static",
- "lightning_encoding 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lightning_encoding 0.5.2",
  "secp256k1",
  "strict_encoding",
  "url",
@@ -683,19 +683,6 @@ checksum = "f98a04dce437184842841303488f70d0188c5f51437d2a834dc097eafa909a01"
 [[package]]
 name = "lightning_encoding"
 version = "0.5.2"
-dependencies = [
- "amplify",
- "bitcoin",
- "chrono",
- "descriptor-wallet",
- "lightning_encoding_derive 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "lnpbp",
- "strict_encoding",
-]
-
-[[package]]
-name = "lightning_encoding"
-version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cc2ac8dea200c1b50332883b4c1c0695754f285fe51ec767122869487cdab3d1"
 dependencies = [
@@ -703,22 +690,22 @@ dependencies = [
  "bitcoin",
  "chrono",
  "descriptor-wallet",
- "lightning_encoding_derive 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lightning_encoding_derive 0.5.0",
  "lnpbp",
  "strict_encoding",
 ]
 
 [[package]]
-name = "lightning_encoding_derive"
-version = "0.5.0"
+name = "lightning_encoding"
+version = "0.5.3"
 dependencies = [
- "amplify_derive",
- "amplify_syn",
- "encoding_derive_helpers",
- "lightning_encoding 0.5.2",
- "proc-macro2",
- "quote",
- "syn",
+ "amplify",
+ "bitcoin",
+ "chrono",
+ "descriptor-wallet",
+ "lightning_encoding_derive 0.5.3",
+ "lnpbp",
+ "strict_encoding",
 ]
 
 [[package]]
@@ -729,6 +716,19 @@ checksum = "3cc5449b552f69a6cf6f1c580c0444018f9b592edf0119cf66cc3fc3caf62744"
 dependencies = [
  "amplify_syn",
  "encoding_derive_helpers",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "lightning_encoding_derive"
+version = "0.5.3"
+dependencies = [
+ "amplify_derive",
+ "amplify_syn",
+ "encoding_derive_helpers",
+ "lightning_encoding 0.5.3",
  "proc-macro2",
  "quote",
  "syn",
@@ -749,7 +749,7 @@ dependencies = [
  "descriptor-wallet",
  "internet2",
  "lazy_static",
- "lightning_encoding 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lightning_encoding 0.5.2",
  "lnp2p",
  "lnpbp",
  "secp256k1",
@@ -769,7 +769,7 @@ dependencies = [
  "descriptor-wallet",
  "internet2",
  "lazy_static",
- "lightning_encoding 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lightning_encoding 0.5.2",
  "lnpbp",
  "serde",
  "serde_with",
@@ -1163,9 +1163,9 @@ dependencies = [
 
 [[package]]
 name = "rustversion"
-version = "1.0.5"
+version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61b3909d758bb75c79f23d4736fac9433868679d3ad2ea7a61e3c25cfda9a088"
+checksum = "f2cc38e8fa666e2de3c4aba7edeb5ffc5246c1c2ed0e3d17e560aeeba736b23f"
 
 [[package]]
 name = "ryu"
@@ -1329,9 +1329,9 @@ dependencies = [
 
 [[package]]
 name = "strict_encoding"
-version = "1.7.5"
+version = "1.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dbaf948106af4d241175fc5b4e64d63bea622430894c21fc72e4254be2e277ec"
+checksum = "b902832c1b2e32263327690284517021aa80ac999d4eef88ca549e9ccf47870c"
 dependencies = [
  "amplify",
  "bitcoin",
@@ -1343,9 +1343,9 @@ dependencies = [
 
 [[package]]
 name = "strict_encoding_derive"
-version = "1.7.5"
+version = "1.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "77af01d535c6668a1386dcf8e8b090a1456574cfd564dad059c2e497e4930764"
+checksum = "3bc7b868cb00c8861784b7f463c984c4b2ad20d1f23cec5997ad9cb41e559239"
 dependencies = [
  "amplify_syn",
  "encoding_derive_helpers",
