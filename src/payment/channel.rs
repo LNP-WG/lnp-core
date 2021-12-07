@@ -18,6 +18,7 @@ use std::fmt::Debug;
 
 use bitcoin::secp256k1::PublicKey;
 use lnp2p::legacy::{AcceptChannel, OpenChannel};
+use wallet::scripts::PubkeyScript;
 
 #[derive(
     Clone,
@@ -168,8 +169,7 @@ pub struct Keyset {
     pub delayed_payment_basepoint: PublicKey,
     pub htlc_basepoint: PublicKey,
     pub first_per_commitment_point: PublicKey,
-    /* TODO: Return shutdown scriptpubkey once TLV support will be added
-     * pub shutdown_scriptpubkey: Option<Script>, */
+    pub shutdown_scriptpubkey: Option<PubkeyScript>,
 }
 
 #[cfg(feature = "serde")]
@@ -184,7 +184,7 @@ impl From<&OpenChannel> for Keyset {
             delayed_payment_basepoint: msg.delayed_payment_basepoint,
             htlc_basepoint: msg.htlc_basepoint,
             first_per_commitment_point: msg.first_per_commitment_point,
-            // shutdown_scriptpubkey: msg.shutdown_scriptpubkey.clone(),
+            shutdown_scriptpubkey: msg.shutdown_scriptpubkey.clone(),
         }
     }
 }
@@ -198,7 +198,7 @@ impl From<&AcceptChannel> for Keyset {
             delayed_payment_basepoint: msg.delayed_payment_basepoint,
             htlc_basepoint: msg.htlc_basepoint,
             first_per_commitment_point: msg.first_per_commitment_point,
-            // shutdown_scriptpubkey: msg.shutdown_scriptpubkey.clone(),
+            shutdown_scriptpubkey: msg.shutdown_scriptpubkey.clone(),
         }
     }
 }
@@ -212,7 +212,7 @@ impl DumbDefault for Keyset {
             delayed_payment_basepoint: dumb_pubkey!(),
             htlc_basepoint: dumb_pubkey!(),
             first_per_commitment_point: dumb_pubkey!(),
-            // shutdown_scriptpubkey: None,
+            shutdown_scriptpubkey: None,
         }
     }
 }

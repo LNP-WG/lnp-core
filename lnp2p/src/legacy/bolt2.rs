@@ -16,10 +16,11 @@
 use amplify::DumbDefault;
 use bitcoin::hashes::sha256;
 use bitcoin::secp256k1::{PublicKey, Signature};
-use bitcoin::{Script, Txid};
+use bitcoin::Txid;
 use internet2::tlv;
 use lnpbp::chain::AssetId;
 use wallet::hlc::{HashLock, HashPreimage};
+use wallet::scripts::PubkeyScript;
 
 use super::{ChannelId, OnionPacket, TempChannelId};
 
@@ -100,7 +101,7 @@ pub struct OpenChannel {
     /// for when we collaboratively close
     #[lightning_encoding(tlv = 1)]
     #[network_encoding(tlv = 1)]
-    pub shutdown_scriptpubkey: Option<Script>,
+    pub shutdown_scriptpubkey: Option<PubkeyScript>,
 
     /// The rest of TLVs with unknown odd type ids
     #[lightning_encoding(unknown_tlvs)]
@@ -173,7 +174,7 @@ pub struct AcceptChannel {
     /// for when we collaboratively close
     #[lightning_encoding(tlv = 0)]
     #[network_encoding(tlv = 0)]
-    pub shutdown_scriptpubkey: Option<Script>,
+    pub shutdown_scriptpubkey: Option<PubkeyScript>,
 
     #[lightning_encoding(unknown_tlvs)]
     #[network_encoding(unknown_tlvs)]
@@ -237,7 +238,7 @@ pub struct Shutdown {
 
     /// The destination of this peer's funds on closing.
     /// Must be in one of these forms: p2pkh, p2sh, p2wpkh, p2wsh.
-    pub scriptpubkey: Script,
+    pub scriptpubkey: PubkeyScript,
 }
 
 #[derive(
