@@ -11,7 +11,11 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
-use bitcoin::{hashes, secp256k1};
+use crate::{Error, LightningDecode, LightningEncode};
+use bitcoin::consensus::deserialize;
+use bitcoin::{hashes, secp256k1, Script};
+use std::io::{Read, Write};
+use wallet::scripts::PubkeyScript;
 
 use super::{strategies, Strategy};
 
@@ -55,14 +59,6 @@ impl Strategy for bitcoin::OutPoint {
     type Strategy = strategies::AsStrict;
 }
 
-impl Strategy for bitcoin::Script {
-    // NB: Existing BOLTs define script length as u16, not BigSize, so we
-    // can use this trick for now
-    // TODO: Actually we can't. We need big endian encoding, while strict is
-    //       little endian
-    type Strategy = strategies::AsStrict;
-}
-
 impl Strategy for bitcoin::PublicKey {
     type Strategy = strategies::AsStrict;
 }
@@ -85,4 +81,22 @@ impl Strategy for wallet::hlc::HashPreimage {
 
 impl Strategy for lnpbp::chain::AssetId {
     type Strategy = strategies::AsStrict;
+}
+
+impl LightningEncode for Script {
+    #[inline]
+    fn lightning_encode<E: Write>(&self, e: E) -> Result<usize, Error> {
+        self.as_bytes().lightning_encode(e)
+    }
+}
+
+impl LightningDecode for Script {
+    fn lightning_decode<D: Read>(d: D) -> Result<Self, Error> {
+        Ok(deserialize(&Vec::<u8>::lightning_decode(d)?)
+            .map_err(|err| Error::DataIntegrityError(err.to_string()))?)
+    }
+}
+
+impl Strategy for PubkeyScript {
+    type Strategy = strategies::AsWrapped;
 }

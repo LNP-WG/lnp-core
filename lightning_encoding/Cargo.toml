@@ -1,6 +1,6 @@
 [package]
 name = "lightning_encoding"
-version = "0.5.3"
+version = "0.5.4"
 license = "Apache-2.0"
 authors = ["Dr Maxim Orlovsky <orlovsky@pandoracore.com>"]
 description = "Network encoding for lightning network peer protocol data types"
