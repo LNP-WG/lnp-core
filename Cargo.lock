@@ -755,7 +755,6 @@ dependencies = [
  "bitcoin",
  "descriptor-wallet",
  "internet2",
- "lazy_static",
  "lightning_encoding 0.5.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "lnp2p",
  "lnpbp",
