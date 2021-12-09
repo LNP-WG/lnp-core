@@ -17,7 +17,10 @@ use amplify::ToYamlString;
 use std::fmt::Debug;
 
 use bitcoin::secp256k1::PublicKey;
+use bitcoin::util::bip32::{ChildNumber, ExtendedPrivKey};
 use lnp2p::legacy::{AcceptChannel, OpenChannel};
+use secp256k1::{Secp256k1, Signing};
+use wallet::hd::HardenedIndex;
 use wallet::scripts::PubkeyScript;
 
 #[derive(
@@ -212,6 +215,40 @@ impl DumbDefault for Keyset {
             delayed_payment_basepoint: dumb_pubkey!(),
             htlc_basepoint: dumb_pubkey!(),
             first_per_commitment_point: dumb_pubkey!(),
+            shutdown_scriptpubkey: None,
+        }
+    }
+}
+
+impl Keyset {
+    /// Derives keyset from a *channel extended key* using LNPBP-46 standard
+    pub fn with<C: Signing>(
+        secp: &Secp256k1<C>,
+        funding_pubkey: PublicKey,
+        channel_xpriv: ExtendedPrivKey,
+    ) -> Self {
+        let keys = [1u16, 2, 3, 4, 5]
+            .into_iter()
+            .map(HardenedIndex::from)
+            .map(ChildNumber::from)
+            .map(|index| [index])
+            .map(|path| {
+                channel_xpriv
+                    .derive_priv(&secp, &path)
+                    .expect("negligible probability")
+                    .private_key
+                    .key
+            })
+            .map(|seckey| PublicKey::from_secret_key(&secp, &seckey))
+            .collect::<Vec<_>>();
+
+        Self {
+            funding_pubkey,
+            revocation_basepoint: keys[2],
+            payment_basepoint: keys[0],
+            delayed_payment_basepoint: keys[1],
+            htlc_basepoint: keys[5],
+            first_per_commitment_point: keys[4],
             shutdown_scriptpubkey: None,
         }
     }
