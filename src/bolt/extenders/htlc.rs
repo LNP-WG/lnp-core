@@ -25,7 +25,18 @@ use wallet::IntoPk;
 use crate::bolt::{ExtensionId, TxType};
 use crate::{channel, ChannelExtension, Extension};
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+#[derive(
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Debug,
+    StrictEncode,
+    StrictDecode,
+)]
 pub struct HtlcKnown {
     pub amount: u64,
     pub preimage: HashPreimage,
@@ -34,7 +45,18 @@ pub struct HtlcKnown {
     pub asset_id: Option<AssetId>,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+#[derive(
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Debug,
+    StrictEncode,
+    StrictDecode,
+)]
 pub struct HtlcSecret {
     pub amount: u64,
     pub hashlock: HashLock,
@@ -43,8 +65,20 @@ pub struct HtlcSecret {
     pub asset_id: Option<AssetId>,
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+#[derive(
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Debug,
+    StrictEncode,
+    StrictDecode,
+)]
 pub struct Htlc {
+    initialized: bool,
+
     // Sets of HTLC informations
     offered_htlcs: Vec<HtlcSecret>,
     received_htlcs: Vec<HtlcSecret>,
