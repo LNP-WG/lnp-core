@@ -13,16 +13,122 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
+use amplify::flags::FlagVec;
 use amplify::DumbDefault;
 use bitcoin::hashes::sha256;
 use bitcoin::secp256k1::{PublicKey, Signature};
 use bitcoin::Txid;
 use internet2::tlv;
 use lnpbp::chain::AssetId;
+use std::io;
 use wallet::hlc::{HashLock, HashPreimage};
 use wallet::scripts::PubkeyScript;
 
 use super::{ChannelId, OnionPacket, TempChannelId};
+
+/// Channel types are an explicit enumeration: for convenience of future
+/// definitions they reuse even feature bits, but they are not an arbitrary
+/// combination (they represent the persistent features which affect the channel
+/// operation).
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display)]
+#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
+#[display(Debug)] // BOLT does not define human readable names for channel types
+pub enum ChannelType {
+    /// no features (no bits set)
+    Basic,
+
+    /// option_static_remotekey (bit 12)
+    StaticRemotekey,
+
+    /// option_anchor_outputs and option_static_remotekey (bits 20 and 12)
+    AnchorOutputsStaticRemotekey,
+
+    /// option_anchors_zero_fee_htlc_tx and option_static_remotekey (bits 22
+    /// and 12)
+    AnchorsZeroFeeHtlcTxStaticRemotekey,
+}
+
+impl ChannelType {
+    /// Detects whether channel has `option_static_remotekey` set
+    #[inline]
+    pub fn has_static_remotekey(self) -> bool {
+        self != ChannelType::Basic
+    }
+
+    /// Detects whether channel has `option_anchor_outputs` set
+    #[inline]
+    pub fn has_anchor_outputs(self) -> bool {
+        self == ChannelType::AnchorOutputsStaticRemotekey
+    }
+
+    /// Detects whether channel has `option_anchors_zero_fee_htlc_tx` set
+    #[inline]
+    pub fn has_anchors_zero_fee_htlc_tx(self) -> bool {
+        self == ChannelType::AnchorsZeroFeeHtlcTxStaticRemotekey
+    }
+}
+
+impl Default for ChannelType {
+    #[inline]
+    fn default() -> Self {
+        ChannelType::Basic
+    }
+}
+
+impl lightning_encoding::LightningEncode for ChannelType {
+    fn lightning_encode<E: io::Write>(
+        &self,
+        e: E,
+    ) -> Result<usize, lightning_encoding::Error> {
+        let mut flags = FlagVec::new();
+        match self {
+            ChannelType::Basic => {
+                // no flags are used
+            }
+            ChannelType::StaticRemotekey => {
+                flags.set(12);
+            }
+            ChannelType::AnchorOutputsStaticRemotekey => {
+                flags.set(12);
+                flags.set(20);
+            }
+            ChannelType::AnchorsZeroFeeHtlcTxStaticRemotekey => {
+                flags.set(12);
+                flags.set(22);
+            }
+        }
+        flags.lightning_encode(e)
+    }
+}
+
+impl lightning_encoding::LightningDecode for ChannelType {
+    fn lightning_decode<D: io::Read>(
+        d: D,
+    ) -> Result<Self, lightning_encoding::Error> {
+        let mut flags = FlagVec::lightning_decode(d)?;
+        if flags.shrink() {
+            return Err(lightning_encoding::Error::DataIntegrityError(s!(
+                "non-minimal channel type encoding"
+            )));
+        } else if flags.as_inner() == &[] as &[u8] {
+            return Ok(ChannelType::Basic);
+        }
+
+        let mut iter = flags.iter();
+        match (iter.next(), iter.next(), iter.next()) {
+            (Some(12), None, None) => Ok(ChannelType::StaticRemotekey),
+            (Some(12), Some(20), None) => {
+                Ok(ChannelType::AnchorOutputsStaticRemotekey)
+            }
+            (Some(12), Some(22), None) => {
+                Ok(ChannelType::AnchorsZeroFeeHtlcTxStaticRemotekey)
+            }
+            _ => Err(lightning_encoding::Error::DataIntegrityError(s!(
+                "invalid combination of channel type flags"
+            ))),
+        }
+    }
+}
 
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
@@ -99,14 +205,46 @@ pub struct OpenChannel {
 
     /// Optionally, a request to pre-set the to-sender output's scriptPubkey
     /// for when we collaboratively close
+    #[lightning_encoding(tlv = 0)]
+    #[network_encoding(tlv = 0)]
+    pub shutdown_scriptpubkey: Option<PubkeyScript>,
+
     #[lightning_encoding(tlv = 1)]
     #[network_encoding(tlv = 1)]
-    pub shutdown_scriptpubkey: Option<PubkeyScript>,
+    pub channel_type: Option<ChannelType>,
 
     /// The rest of TLVs with unknown odd type ids
     #[lightning_encoding(unknown_tlvs)]
     #[network_encoding(unknown_tlvs)]
     pub unknown_tlvs: tlv::Stream,
+}
+
+impl OpenChannel {
+    /// Detects whether channel has `option_static_remotekey` set
+    #[inline]
+    pub fn has_static_remotekey(&self) -> bool {
+        self.channel_type.unwrap_or_default().has_static_remotekey()
+    }
+
+    /// Detects whether channel has `option_anchor_outputs` set
+    #[inline]
+    pub fn has_anchor_outputs(&self) -> bool {
+        self.channel_type.unwrap_or_default().has_anchor_outputs()
+    }
+
+    /// Detects whether channel has `option_anchors_zero_fee_htlc_tx` set
+    #[inline]
+    pub fn has_anchors_zero_fee_htlc_tx(&self) -> bool {
+        self.channel_type
+            .unwrap_or_default()
+            .has_anchors_zero_fee_htlc_tx()
+    }
+
+    /// Detects whether channel should be announced
+    #[inline]
+    pub fn should_announce_channel(&self) -> bool {
+        self.channel_flags & 0x01 == 0x01
+    }
 }
 
 #[derive(
@@ -176,9 +314,35 @@ pub struct AcceptChannel {
     #[network_encoding(tlv = 0)]
     pub shutdown_scriptpubkey: Option<PubkeyScript>,
 
+    #[lightning_encoding(tlv = 1)]
+    #[network_encoding(tlv = 1)]
+    pub channel_type: Option<ChannelType>,
+
     #[lightning_encoding(unknown_tlvs)]
     #[network_encoding(unknown_tlvs)]
     pub unknown_tlvs: tlv::Stream,
+}
+
+impl AcceptChannel {
+    /// Detects whether channel has `option_static_remotekey` set
+    #[inline]
+    pub fn has_static_remotekey(&self) -> bool {
+        self.channel_type.unwrap_or_default().has_static_remotekey()
+    }
+
+    /// Detects whether channel has `option_anchor_outputs` set
+    #[inline]
+    pub fn has_anchor_outputs(&self) -> bool {
+        self.channel_type.unwrap_or_default().has_anchor_outputs()
+    }
+
+    /// Detects whether channel has `option_anchors_zero_fee_htlc_tx` set
+    #[inline]
+    pub fn has_anchors_zero_fee_htlc_tx(&self) -> bool {
+        self.channel_type
+            .unwrap_or_default()
+            .has_anchors_zero_fee_htlc_tx()
+    }
 }
 
 #[derive(
@@ -447,6 +611,7 @@ impl DumbDefault for OpenChannel {
             first_per_commitment_point: dumb_pubkey!(),
             channel_flags: 0,
             shutdown_scriptpubkey: None,
+            channel_type: None,
             unknown_tlvs: none!(),
         }
     }
