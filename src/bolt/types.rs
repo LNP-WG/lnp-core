@@ -43,19 +43,18 @@ pub enum ExtensionId {
     /// The channel itself
     Channel,
 
+    /// Main channel constructor
     Bolt3,
-    Eltoo,
-    Taproot,
-
+    /// HTLC payments
     Htlc,
-    Ptlc,
-    ShutdownScript,
-    AnchorOut,
-    Dlc,
-    Lightspeed,
 
+    /// BOLT-9 feature: shutdown script
+    ShutdownScript,
+    /// BOLT-9 feature: anchor
+    AnchorOutputs,
+
+    /// Deterministic transaction ordering
     Bip96,
-    Rgb,
 }
 
 impl Default for ExtensionId {

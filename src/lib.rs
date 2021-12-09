@@ -44,10 +44,10 @@ macro_rules! dumb_pubkey {
         )
     };
 }
+
+pub mod bolt;
 pub mod channel;
 pub mod extension;
-pub mod factories;
-pub mod payment;
 pub mod prometheus;
 pub mod storm;
 

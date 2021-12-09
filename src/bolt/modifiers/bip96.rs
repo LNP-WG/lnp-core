@@ -14,7 +14,7 @@
 use lnp2p::legacy::Messages;
 use wallet::lex_order::LexOrder;
 
-use crate::payment::ExtensionId;
+use crate::bolt::ExtensionId;
 use crate::{channel, ChannelExtension, Extension};
 
 pub struct Bip96;

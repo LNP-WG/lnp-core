@@ -21,7 +21,8 @@ use wallet::psbt::Psbt;
 use wallet::scripts::{LockScript, PubkeyScript, WitnessScript};
 use wallet::IntoPk;
 
-use crate::payment::ExtensionId;
+use crate::bolt::channel::Params;
+use crate::bolt::ExtensionId;
 use crate::{channel, ChannelExtension, Extension};
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, StrictEncode, StrictDecode)]
@@ -46,9 +47,9 @@ pub struct Bolt3 {
     local_amount: u64,
     remote_amount: u64,
     commitment_number: u64,
-    to_self_delay: u16,
     obscuring_factor: u64,
 
+    params: Params,
     local_keys: Keyset,
     remote_keys: Keyset,
 
@@ -56,12 +57,7 @@ pub struct Bolt3 {
 }
 
 impl Bolt3 {
-    pub fn new(
-        is_originator: bool,
-        local_amount: u64,
-        remote_amount: u64,
-        to_self_delay: u16,
-    ) -> Self {
+    pub fn new(is_originator: bool, params: Params, amount: u64) -> Self {
         let dumb_keys = Keyset::dumb_default();
         let obscuring_factor = compute_obscuring_factor(
             is_originator,
@@ -69,11 +65,11 @@ impl Bolt3 {
             dumb_keys.payment_basepoint,
         );
         Bolt3 {
-            local_amount,
-            remote_amount,
+            local_amount: if is_originator { amount } else { 0 },
+            remote_amount: if is_originator { 0 } else { amount },
             commitment_number: 0,
-            to_self_delay,
             obscuring_factor,
+            params,
             local_keys: dumb_keys,
             remote_keys: dumb_keys,
             is_originator,
@@ -158,7 +154,7 @@ impl ChannelExtension for Bolt3 {
                 self.remote_amount,
                 self.local_keys.revocation_basepoint,
                 self.remote_keys.delayed_payment_basepoint,
-                self.to_self_delay,
+                self.params.to_self_delay,
             ),
             TxOut::ln_to_remote_v1(
                 self.local_amount,

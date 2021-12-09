@@ -22,7 +22,7 @@ use wallet::hlc::{HashLock, HashPreimage};
 use wallet::scripts::{LockScript, PubkeyScript, WitnessScript};
 use wallet::IntoPk;
 
-use crate::payment::{ExtensionId, TxType};
+use crate::bolt::{ExtensionId, TxType};
 use crate::{channel, ChannelExtension, Extension};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]

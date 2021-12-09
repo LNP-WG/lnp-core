@@ -10,3 +10,7 @@
 // You should have received a copy of the MIT License
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
+
+pub mod bolt3;
+
+pub use bolt3::Bolt3;

@@ -11,17 +11,4 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
-pub mod channel;
-mod types;
-
-mod constructors;
-mod extenders;
-mod modifiers;
-
-pub use types::{AssetsBalance, ExtensionId, Lifecycle, TxType};
-
-pub use constructors::{bolt3, eltoo, taproot, Bolt3};
-pub use extenders::{
-    anchor_out, dlc, htlc, lightspeed, ptlc, shutdown_script, Htlc,
-};
-pub use modifiers::{bip96, rgb};
+pub mod bip96; // Lexicographic ordering

@@ -11,5 +11,11 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
-pub mod bip96; // Lexicographic ordering
-pub mod rgb; // RGB itself!
+pub mod channel;
+mod types;
+
+mod constructors;
+mod extenders;
+mod modifiers;
+
+pub use types::{AssetsBalance, ExtensionId, Lifecycle, TxType};
