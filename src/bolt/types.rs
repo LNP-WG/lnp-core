@@ -20,7 +20,12 @@ use strict_encoding::{
     self, strict_deserialize, strict_serialize, StrictDecode, StrictEncode,
 };
 
-use crate::{channel, extension};
+use crate::bolt::constructors::Bolt3;
+use crate::bolt::extenders::{AnchorOutputs, ShutdownScript};
+use crate::bolt::modifiers::bip96::Bip96;
+use crate::channel::{Channel, Error};
+use crate::p2p::legacy::Messages;
+use crate::{channel, extension, ChannelExtension, Extension};
 
 /// Shorthand for representing asset - amount pairs
 pub type AssetsBalance = BTreeMap<AssetId, u64>;
@@ -82,7 +87,38 @@ impl TryFrom<u16> for ExtensionId {
     }
 }
 
-impl extension::Nomenclature for ExtensionId {}
+impl extension::Nomenclature for ExtensionId {
+    #[inline]
+    fn default_constructor() -> Box<dyn ChannelExtension<Identity = Self>> {
+        Bolt3::new()
+    }
+
+    #[inline]
+    fn default_modifiers() -> Vec<Box<dyn ChannelExtension<Identity = Self>>> {
+        vec![Bip96::new()]
+    }
+
+    fn update_from_peer(
+        channel: &mut Channel<Self>,
+        message: &Messages,
+    ) -> Result<(), Error> {
+        match message {
+            Messages::OpenChannel(open_channel) => {
+                if open_channel.shutdown_scriptpubkey.is_some() {
+                    channel.add_extension(ShutdownScript::new());
+                    // We will populate extension with parameters via
+                    // `update_from_peer` call which will happen after the
+                    // return from this function
+                }
+                if open_channel.has_anchor_outputs() {
+                    channel.add_extension(AnchorOutputs::new())
+                }
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+}
 
 #[derive(
     Clone,

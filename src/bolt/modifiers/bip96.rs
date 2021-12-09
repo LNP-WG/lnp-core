@@ -17,10 +17,19 @@ use wallet::lex_order::LexOrder;
 use crate::bolt::ExtensionId;
 use crate::{channel, ChannelExtension, Extension};
 
+#[derive(Debug, Default)]
 pub struct Bip96;
 
 impl Extension for Bip96 {
     type Identity = ExtensionId;
+
+    #[inline]
+    fn new() -> Box<dyn ChannelExtension<Identity = Self::Identity>>
+    where
+        Self: Sized,
+    {
+        Box::new(Bip96::default())
+    }
 
     #[inline]
     fn identity(&self) -> Self::Identity {

@@ -11,6 +11,7 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
+use crate::channel::Channel;
 use lnp2p::legacy::Messages;
 use std::convert::TryFrom;
 use std::fmt::{Debug, Display};
@@ -38,10 +39,35 @@ where
         + TryFrom<u16, Error = strict_encoding::Error>
         + Into<u16>,
 {
+    /// Returns default constructor
+    fn default_constructor() -> Box<dyn ChannelExtension<Identity = Self>>;
+
+    /// Returns set of default channel extenders
+    fn default_extenders() -> Vec<Box<dyn ChannelExtension<Identity = Self>>> {
+        Vec::default()
+    }
+
+    /// Returns set of default channel modifiers
+    fn default_modifiers() -> Vec<Box<dyn ChannelExtension<Identity = Self>>> {
+        Vec::default()
+    }
+
+    /// Updates core channel structure from peer message. Processed before each
+    /// of the registered extensions gets [`Extension::update_from_peer`]
+    fn update_from_peer(
+        channel: &mut Channel<Self>,
+        message: &Messages,
+    ) -> Result<(), channel::Error>;
 }
 
 pub trait Extension {
     type Identity: Nomenclature;
+
+    /// Constructs boxed extension objects which can be insterted into channel
+    /// extension pipeline
+    fn new() -> Box<dyn ChannelExtension<Identity = Self::Identity>>
+    where
+        Self: Sized;
 
     fn identity(&self) -> Self::Identity;
 
@@ -49,7 +75,7 @@ pub trait Extension {
     /// from the remote peer
     fn update_from_peer(
         &mut self,
-        data: &Messages,
+        message: &Messages,
     ) -> Result<(), channel::Error>;
 
     /// Returns extension state for persistence & backups

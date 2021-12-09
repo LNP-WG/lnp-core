@@ -56,8 +56,9 @@ pub struct Bolt3 {
     is_originator: bool,
 }
 
-impl Bolt3 {
-    pub fn new(is_originator: bool, params: Params, amount: u64) -> Self {
+impl Default for Bolt3 {
+    fn default() -> Self {
+        let is_originator = true;
         let dumb_keys = Keyset::dumb_default();
         let obscuring_factor = compute_obscuring_factor(
             is_originator,
@@ -65,11 +66,11 @@ impl Bolt3 {
             dumb_keys.payment_basepoint,
         );
         Bolt3 {
-            local_amount: if is_originator { amount } else { 0 },
-            remote_amount: if is_originator { 0 } else { amount },
+            local_amount: 0,
+            remote_amount: 0,
             commitment_number: 0,
             obscuring_factor,
-            params,
+            params: Default::default(),
             local_keys: dumb_keys,
             remote_keys: dumb_keys,
             is_originator,
@@ -82,6 +83,11 @@ impl channel::State for Bolt3 {}
 impl Extension for Bolt3 {
     type Identity = ExtensionId;
 
+    #[inline]
+    fn new() -> Box<dyn ChannelExtension<Identity = Self::Identity>> {
+        Box::new(Bolt3::default())
+    }
+
     fn identity(&self) -> Self::Identity {
         ExtensionId::Bolt3
     }
@@ -92,6 +98,9 @@ impl Extension for Bolt3 {
     ) -> Result<(), channel::Error> {
         match message {
             Messages::OpenChannel(open_channel) => {
+                self.is_originator = false;
+                self.local_amount = open_channel.funding_satoshis * 1000;
+                self.remote_amount = open_channel.push_msat;
                 self.remote_keys.payment_basepoint = open_channel.payment_point;
                 self.remote_keys.revocation_basepoint =
                     open_channel.revocation_basepoint;

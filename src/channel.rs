@@ -18,6 +18,7 @@ use std::hash::Hash;
 use bitcoin::util::psbt::PartiallySignedTransaction as Psbt;
 use bitcoin::{OutPoint, Transaction, TxIn, TxOut};
 use lnp2p::legacy::Messages;
+use strict_encoding::{StrictDecode, StrictEncode};
 
 use super::extension::{self, ChannelExtension, Extension};
 
@@ -46,6 +47,7 @@ pub enum Error {
 
 /// Marker trait for any data that can be used as a part of the channel state
 pub trait State {}
+
 // Allow empty state
 impl State for () {}
 
@@ -85,31 +87,56 @@ where
     N: extension::Nomenclature,
 {
     pub fn with(
-        constructor: impl ChannelExtension<Identity = N> + 'static,
-        extenders: impl IntoIterator<
-            Item = impl ChannelExtension<Identity = N> + 'static,
-        >,
-        modifiers: impl IntoIterator<
-            Item = impl ChannelExtension<Identity = N> + 'static,
-        >,
+        constructor: Box<dyn ChannelExtension<Identity = N>>,
+        extenders: impl IntoIterator<Item = Box<dyn ChannelExtension<Identity = N>>>,
+        modifiers: impl IntoIterator<Item = Box<dyn ChannelExtension<Identity = N>>>,
     ) -> Self {
         Self {
-            constructor: Box::new(constructor),
+            constructor,
             extenders: extenders.into_iter().fold(
                 ExtensionQueue::<N>::new(),
                 |mut queue, e| {
-                    queue.insert(e.identity(), Box::new(e));
+                    queue.insert(e.identity(), e);
                     queue
                 },
             ),
             modifiers: modifiers.into_iter().fold(
                 ExtensionQueue::<N>::new(),
                 |mut queue, e| {
-                    queue.insert(e.identity(), Box::new(e));
+                    queue.insert(e.identity(), e);
                     queue
                 },
             ),
         }
+    }
+
+    #[inline]
+    pub fn add_extension(
+        &mut self,
+        extension: Box<dyn ChannelExtension<Identity = N>>,
+    ) {
+        self.extenders.insert(extension.identity(), extension);
+    }
+
+    #[inline]
+    pub fn add_modifier(
+        &mut self,
+        modifier: Box<dyn ChannelExtension<Identity = N>>,
+    ) {
+        self.modifiers.insert(modifier.identity(), modifier);
+    }
+}
+
+impl<N> Default for Channel<N>
+where
+    N: extension::Nomenclature,
+{
+    fn default() -> Self {
+        Channel::with(
+            N::default_constructor(),
+            N::default_extenders(),
+            N::default_modifiers(),
+        )
     }
 }
 
@@ -121,18 +148,24 @@ where
 {
     type Identity = N;
 
+    #[inline]
+    fn new() -> Box<dyn ChannelExtension<Identity = Self::Identity>> {
+        Box::new(Channel::default())
+    }
+
     fn identity(&self) -> Self::Identity {
         N::default()
     }
 
-    fn update_from_peer(&mut self, data: &Messages) -> Result<(), Error> {
-        self.constructor.update_from_peer(data)?;
+    fn update_from_peer(&mut self, message: &Messages) -> Result<(), Error> {
+        N::update_from_peer(self, message)?;
+        self.constructor.update_from_peer(message)?;
         self.extenders
             .iter_mut()
-            .try_for_each(|(_, e)| e.update_from_peer(data))?;
+            .try_for_each(|(_, e)| e.update_from_peer(message))?;
         self.modifiers
             .iter_mut()
-            .try_for_each(|(_, e)| e.update_from_peer(data))?;
+            .try_for_each(|(_, e)| e.update_from_peer(message))?;
         Ok(())
     }
 

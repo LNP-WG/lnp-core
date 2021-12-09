@@ -15,11 +15,19 @@ use crate::bolt::ExtensionId;
 use crate::{channel, ChannelExtension, Extension};
 use p2p::legacy::Messages;
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub struct AnchorOutputs {}
+#[derive(Debug, Default)]
+pub struct AnchorOutputs;
 
 impl Extension for AnchorOutputs {
     type Identity = ExtensionId;
+
+    #[inline]
+    fn new() -> Box<dyn ChannelExtension<Identity = Self::Identity>>
+    where
+        Self: Sized,
+    {
+        Box::new(AnchorOutputs::default())
+    }
 
     #[inline]
     fn identity(&self) -> Self::Identity {

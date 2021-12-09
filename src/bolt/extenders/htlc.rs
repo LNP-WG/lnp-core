@@ -103,10 +103,43 @@ pub struct Htlc {
     last_offered_htlc_id: u64,
 }
 
+impl Default for Htlc {
+    fn default() -> Self {
+        Htlc {
+            initialized: false,
+            offered_htlcs: vec![],
+            received_htlcs: vec![],
+            resolved_htlcs: vec![],
+            to_self_delay: 0,
+            revocation_pubkey: dumb_pubkey!(),
+            local_htlc_pubkey: dumb_pubkey!(),
+            remote_htlc_pubkey: dumb_pubkey!(),
+            local_delayed_pubkey: dumb_pubkey!(),
+            channel_id: Default::default(),
+            commitment_outpoint: Default::default(),
+            htlc_minimum_msat: 0,
+            max_htlc_value_in_flight_msat: 0,
+            total_htlc_value_in_flight_msat: 0,
+            max_accepted_htlcs: 0,
+            total_accepted_htlcs: 0,
+            last_recieved_htlc_id: 0,
+            last_offered_htlc_id: 0,
+        }
+    }
+}
+
 impl channel::State for Htlc {}
 
 impl Extension for Htlc {
     type Identity = ExtensionId;
+
+    #[inline]
+    fn new() -> Box<dyn ChannelExtension<Identity = Self::Identity>>
+    where
+        Self: Sized,
+    {
+        Box::new(Htlc::default())
+    }
 
     fn identity(&self) -> Self::Identity {
         ExtensionId::Htlc
