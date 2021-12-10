@@ -77,6 +77,7 @@ where
     // TODO: Use associated type here
     /// Constructor extensions constructs base transaction graph. There could
     /// be only a single extension of this type
+    #[getter(as_mut)]
     constructor: Box<dyn ChannelExtension<Identity = N>>,
 
     /// Extender extensions adds additional outputs to the transaction graph
@@ -94,7 +95,7 @@ impl<N> Channel<N>
 where
     N: extension::Nomenclature,
 {
-    pub fn with(
+    pub fn new(
         constructor: Box<dyn ChannelExtension<Identity = N>>,
         extenders: impl IntoIterator<Item = Box<dyn ChannelExtension<Identity = N>>>,
         modifiers: impl IntoIterator<Item = Box<dyn ChannelExtension<Identity = N>>>,
@@ -140,7 +141,7 @@ where
     N: extension::Nomenclature,
 {
     fn default() -> Self {
-        Channel::with(
+        Channel::new(
             N::default_constructor(),
             N::default_extenders(),
             N::default_modifiers(),

@@ -44,6 +44,12 @@ impl DumbDefault for Keyset {
     }
 }
 
+/// The core of the lightning channel operating according to the Bolt3 standard.
+/// This is "channel constructor" used by `Channel` structure and managing part
+/// of the state which is not HTLC-related.
+///
+/// The type should nt be constructed directly or used from outside of the
+/// library, but it's made public for documentation purposes.
 #[derive(Getters, Clone, PartialEq, Eq, Debug, StrictEncode, StrictDecode)]
 #[getter(as_copy)]
 pub struct Bolt3 {
@@ -86,8 +92,10 @@ pub struct Bolt3 {
     /// Channel parameters to be used towards the remote node
     remote_params: PeerParams,
 
+    /// Set of locally-derived keys for creating channel transactions
     local_keys: Keyset,
 
+    /// Set of remote-derived keys for creating channel transactions
     remote_keys: Keyset,
 
     /// Keeps information whether this node is the originator of the channel
@@ -133,6 +141,24 @@ impl Bolt3 {
     #[inline]
     pub fn temp_channel_id(&self) -> Option<TempChannelId> {
         self.active_channel_id.temp_channel_id()
+    }
+
+    /// Sets channel policy
+    #[inline]
+    pub fn set_policy(&mut self, policy: Policy) {
+        self.policy = policy
+    }
+
+    /// Sets common parameters for the chanel
+    #[inline]
+    pub fn set_common_params(&mut self, params: CommonParams) {
+        self.common_params = params
+    }
+
+    /// Sets local parameters fro the channel
+    #[inline]
+    pub fn set_local_params(&mut self, params: PeerParams) {
+        self.local_params = params
     }
 }
 

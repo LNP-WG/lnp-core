@@ -93,7 +93,7 @@ pub enum PolicyError {
     /// HTLC-in-flight maximum requirement of {proposed} is too small and
     /// does not match the node policy; the smallest requirement is
     /// {required_minimum}; rejecting the channel according to BOLT-2
-    HtclInFlightMaximumTooSmall {
+    HtlcInFlightMaximumTooSmall {
         proposed: u64,
         required_minimum: u64,
     },
@@ -138,11 +138,65 @@ pub enum PolicyError {
 }
 
 impl Channel<ExtensionId> {
-    /// Returns BOLT-3 channel representation
+    /// Constructs the new channel which will check the negotiation
+    /// process against the provided policy and will use given parameters
+    /// for constructing `open_channel` (for outbound channels) and
+    /// `accept_channel` (for inbound channels) request sent to the remote node.
+    pub fn with(
+        policy: Policy,
+        common_params: CommonParams,
+        local_params: PeerParams,
+    ) -> Self {
+        let mut channel = Self::default();
+        let core = channel.as_bolt3_mut();
+        core.set_policy(policy);
+        core.set_common_params(common_params);
+        core.set_local_params(local_params);
+        channel
+    }
+
+    /// Sets channel policy.
+    ///
+    /// Can be used for changing the policy on the fly to enable accepting new
+    /// `open_channel` - or follow-up `accept_channel` requests.
+    #[inline]
+    pub fn set_policy(&mut self, policy: Policy) {
+        self.as_bolt3_mut().set_policy(policy)
+    }
+
+    /// Sets common parameters for the chanel.
+    ///
+    /// Can be used for changing prospective channel parameters on the fly to
+    /// enable accepting new `open_channel` - or follow-up `accept_channel`
+    /// requests.
+    #[inline]
+    pub fn set_common_params(&mut self, params: CommonParams) {
+        self.as_bolt3_mut().set_common_params(params)
+    }
+
+    /// Sets local parameters fro the channel.
+    ///
+    /// Can be used for changing prospective channel parameters on the fly to
+    /// enable accepting new `open_channel` - or follow-up `accept_channel`
+    /// requests.
+    #[inline]
+    pub fn set_local_params(&mut self, params: PeerParams) {
+        self.as_bolt3_mut().set_local_params(params)
+    }
+
+    /// Returns reference to the channel core object
     #[inline]
     fn as_bolt3(&self) -> &Bolt3 {
-        let any = &*self.constructor() as &dyn Any;
+        let any = self.constructor() as &dyn Any;
         any.downcast_ref()
+            .expect("BOLT channel uses non-BOLT-3 constructor")
+    }
+
+    /// Returns a mutable BOLT-3 channel core
+    #[inline]
+    fn as_bolt3_mut(&mut self) -> &mut Bolt3 {
+        let any = self.constructor_mut() as &mut dyn Any;
+        any.downcast_mut()
             .expect("BOLT channel uses non-BOLT-3 constructor")
     }
 
@@ -320,7 +374,7 @@ impl Policy {
         // if we consider `max_htlc_value_in_flight_msat` too small
         if let Some(limit) = self.max_htlc_value_in_flight_msat_min {
             if params.max_htlc_value_in_flight_msat < limit {
-                return Err(PolicyError::HtclInFlightMaximumTooSmall {
+                return Err(PolicyError::HtlcInFlightMaximumTooSmall {
                     proposed: params.max_htlc_value_in_flight_msat,
                     required_minimum: limit,
                 });
