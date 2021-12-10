@@ -21,7 +21,7 @@ use std::str::FromStr;
 use amplify::hex::{self, FromHex};
 use amplify::{Display, DumbDefault, Slice32, Wrapper};
 use bitcoin::hashes::Hash;
-use bitcoin::OutPoint;
+use bitcoin::Txid;
 use chrono::{DateTime, Local, TimeZone, Utc};
 use lightning_encoding::{LightningDecode, LightningEncode};
 
@@ -31,6 +31,82 @@ use strict_encoding::net::{
 };
 #[cfg(feature = "strict_encoding")]
 use strict_encoding::{self, StrictDecode, StrictEncode};
+
+/// Enumeration of possible channel ids
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
+#[derive(
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Debug,
+    Display,
+    From,
+    LightningEncode,
+    LightningDecode,
+)]
+#[cfg_attr(feature = "strict_encoding", derive(StrictEncode, StrictDecode))]
+#[display(inner)]
+pub enum ActiveChannelId {
+    /// Channel does not have a permanent id and uses temporary one
+    #[from]
+    Temporary(TempChannelId),
+
+    /// Channel has a permanent channel id; the temporary id is discarded
+    #[from]
+    Static(ChannelId),
+}
+
+impl ActiveChannelId {
+    /// Creates new random [`TempChannelId`]
+    #[inline]
+    pub fn random() -> ActiveChannelId {
+        ActiveChannelId::Temporary(TempChannelId::random())
+    }
+
+    /// Constructs [`ActiveChannelId`] with static id made of funding
+    /// transaction data
+    #[inline]
+    pub fn with(funding_txid: Txid, funding_vout: u16) -> ActiveChannelId {
+        ActiveChannelId::Static(ChannelId::with(funding_txid, funding_vout))
+    }
+
+    /// Converts any channel id into a universal 32-byte representation
+    /// independent from whether channel has a temporary or a final id.
+    #[inline]
+    pub fn as_slice32(self) -> Slice32 {
+        match self {
+            ActiveChannelId::Temporary(id) => id.into_inner(),
+            ActiveChannelId::Static(id) => id.into_inner(),
+        }
+    }
+
+    /// Returns [`ChannelId`], if the channel already assigned it
+    #[inline]
+    pub fn channel_id(self) -> Option<ChannelId> {
+        match self {
+            ActiveChannelId::Temporary(_) => None,
+            ActiveChannelId::Static(id) => Some(id),
+        }
+    }
+
+    /// Before the channel is assigned a final [`ChannelId`] returns
+    /// [`TempChannelId`], and `None` after
+    #[inline]
+    pub fn temp_channel_id(self) -> Option<TempChannelId> {
+        match self {
+            ActiveChannelId::Static(_) => None,
+            ActiveChannelId::Temporary(id) => Some(id),
+        }
+    }
+}
 
 /// Legacy lightning network channel id: 256-bit number representing funding
 /// txid XOR'ed with 32-bit funding output number
@@ -76,9 +152,9 @@ impl FromHex for ChannelId {
 }
 
 impl ChannelId {
-    pub fn with(funding_outpoint: OutPoint) -> Self {
-        let mut slice = funding_outpoint.txid.into_inner();
-        let vout = funding_outpoint.vout.to_be_bytes();
+    pub fn with(funding_txid: Txid, funding_vout: u16) -> Self {
+        let mut slice = funding_txid.into_inner();
+        let vout = funding_vout.to_be_bytes();
         slice[30] ^= vout[0];
         slice[31] ^= vout[1];
         ChannelId::from_inner(Slice32::from_inner(slice))

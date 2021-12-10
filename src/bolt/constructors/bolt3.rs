@@ -16,7 +16,7 @@ use bitcoin::blockdata::{opcodes::all::*, script};
 use bitcoin::secp256k1::PublicKey;
 use bitcoin::{OutPoint, Transaction, TxIn, TxOut};
 use lnp2p::legacy::Messages;
-use p2p::legacy::{ChannelId, TempChannelId};
+use p2p::legacy::{ActiveChannelId, ChannelId, TempChannelId};
 use wallet::lex_order::LexOrder;
 use wallet::psbt::Psbt;
 use wallet::scripts::{LockScript, PubkeyScript, WitnessScript};
@@ -48,10 +48,9 @@ impl DumbDefault for Keyset {
 )]
 #[getter(as_copy)]
 pub struct Bolt3 {
-    channel_id: ChannelId,
-
-    /// A temporary channel ID, until the funding outpoint is announced
-    temp_channel_id: TempChannelId,
+    /// Channel id used by the channel; first temporary and later final
+    #[getter(as_copy)]
+    active_channel_id: ActiveChannelId,
 
     /// The threshold below which outputs on transactions broadcast by sender
     /// will be omitted
@@ -108,8 +107,7 @@ impl Default for Bolt3 {
             dumb_keys.payment_basepoint,
         );
         Bolt3 {
-            channel_id: none!(),
-            temp_channel_id: TempChannelId::dumb_default(),
+            active_channel_id: ActiveChannelId::random(),
             dust_limit_satoshis: 0,
             minimum_depth: 0,
             to_self_delay: 0,
@@ -125,6 +123,21 @@ impl Default for Bolt3 {
             remote_keys: dumb_keys,
             is_originator,
         }
+    }
+}
+
+impl Bolt3 {
+    /// Returns [`ChannelId`], if the channel already assigned it
+    #[inline]
+    pub fn channel_id(&self) -> Option<ChannelId> {
+        self.active_channel_id.channel_id()
+    }
+
+    /// Before the channel is assigned a final [`ChannelId`] returns
+    /// [`TempChannelId`], and `None` after
+    #[inline]
+    pub fn temp_channel_id(&self) -> Option<TempChannelId> {
+        self.active_channel_id.temp_channel_id()
     }
 }
 
@@ -149,7 +162,8 @@ impl Extension for Bolt3 {
         match message {
             Messages::OpenChannel(open_channel) => {
                 self.is_originator = false;
-                self.temp_channel_id = open_channel.temporary_channel_id;
+                self.active_channel_id =
+                    ActiveChannelId::from(open_channel.temporary_channel_id);
                 self.local_amount = open_channel.funding_satoshis * 1000;
                 self.remote_amount = open_channel.push_msat;
 
@@ -183,9 +197,15 @@ impl Extension for Bolt3 {
                 self.remote_keys.delayed_payment_basepoint =
                     accept_channel.delayed_payment_basepoint;
             }
-            Messages::FundingCreated(_) => {}
+            Messages::FundingCreated(funding_created) => {
+                self.active_channel_id = ActiveChannelId::with(
+                    funding_created.funding_txid,
+                    funding_created.funding_output_index,
+                );
+            }
             Messages::FundingSigned(funding_signed) => {
-                self.channel_id = funding_signed.channel_id;
+                self.active_channel_id =
+                    ActiveChannelId::from(funding_signed.channel_id);
             }
             Messages::FundingLocked(_) => {}
             Messages::Shutdown(_) => {}

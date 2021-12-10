@@ -14,14 +14,18 @@
 use amplify::DumbDefault;
 #[cfg(feature = "serde")]
 use amplify::ToYamlString;
-use std::fmt::Debug;
-
 use bitcoin::secp256k1::PublicKey;
 use bitcoin::util::bip32::{ChildNumber, ExtendedPrivKey};
 use lnp2p::legacy::{AcceptChannel, OpenChannel};
+use p2p::legacy::{ActiveChannelId, ChannelId, TempChannelId};
 use secp256k1::{Secp256k1, Signing};
+use std::any::Any;
+use std::fmt::Debug;
 use wallet::hd::HardenedIndex;
 use wallet::scripts::PubkeyScript;
+
+use crate::bolt::{Bolt3, ExtensionId};
+use crate::channel::Channel;
 
 #[derive(
     Clone,
@@ -53,6 +57,35 @@ pub enum NegotiationError {
     /// than dust_limit_satoshis ({1}; rejecting the channel according to
     /// BOLT-2
     RemoteDustExceedsLocalReserve(u64, u64),
+}
+
+impl Channel<ExtensionId> {
+    /// Returns BOLT-3 channel representation
+    #[inline]
+    fn as_bolt3(&self) -> &Bolt3 {
+        let any = &*self.constructor() as &dyn Any;
+        any.downcast_ref()
+            .expect("BOLT channel uses non-BOLT-3 constructor")
+    }
+
+    /// Returns active channel id, covering both temporary and final channel ids
+    #[inline]
+    pub fn active_channel_id(&self) -> ActiveChannelId {
+        self.as_bolt3().active_channel_id()
+    }
+
+    /// Returns [`ChannelId`], if the channel already assigned it
+    #[inline]
+    pub fn channel_id(&self) -> Option<ChannelId> {
+        self.active_channel_id().channel_id()
+    }
+
+    /// Before the channel is assigned a final [`ChannelId`] returns
+    /// [`TempChannelId`], and `None` after
+    #[inline]
+    pub fn temp_channel_id(&self) -> Option<TempChannelId> {
+        self.active_channel_id().temp_channel_id()
+    }
 }
 
 #[derive(

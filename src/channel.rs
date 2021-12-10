@@ -41,7 +41,9 @@ pub enum Error {
     /// Extension-specific error: {0}
     Extension(String),
 
-    // HTLC Extension Errors
+    /// HTLC extension error
+    // TODO: Expand into specific error types
+    #[display(inner)]
     Htlc(String),
 }
 
@@ -63,6 +65,7 @@ pub type ExtensionQueue<N> =
 /// other. The order of the extensions within each set is defined by the
 /// concrete type implementing `extension::Nomenclature` marker trait, provided
 /// as a type parameter `N`
+#[derive(Getters)]
 pub struct Channel<N>
 where
     N: extension::Nomenclature,
