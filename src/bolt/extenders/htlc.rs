@@ -94,7 +94,10 @@ pub struct Htlc {
     // Channel specific information
     channel_id: ChannelId,
     commitment_outpoint: OutPoint,
+
+    /// indicates the smallest value HTLC this node will accept.
     htlc_minimum_msat: u64,
+
     max_accepted_htlcs: u16,
     total_accepted_htlcs: u16,
     last_recieved_htlc_id: u64,

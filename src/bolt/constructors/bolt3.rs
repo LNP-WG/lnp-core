@@ -16,6 +16,7 @@ use bitcoin::blockdata::{opcodes::all::*, script};
 use bitcoin::secp256k1::PublicKey;
 use bitcoin::{OutPoint, Transaction, TxIn, TxOut};
 use lnp2p::legacy::Messages;
+use lnpbp::chain::AssetId;
 use p2p::legacy::{ActiveChannelId, ChannelId, TempChannelId};
 use wallet::lex_order::LexOrder;
 use wallet::psbt::Psbt;
@@ -48,32 +49,21 @@ impl DumbDefault for Keyset {
 )]
 #[getter(as_copy)]
 pub struct Bolt3 {
-    /// Channel id used by the channel; first temporary and later final
-    #[getter(as_copy)]
+    /// The chain_hash value denotes the exact blockchain that the opened
+    /// channel will reside within. This is usually the genesis hash of the
+    /// respective blockchain. The existence of the chain_hash allows nodes to
+    /// open channels across many distinct blockchains as well as have channels
+    /// within multiple blockchains opened to the same peer (if it supports the
+    /// target chains).
+    chain_hash: AssetId,
+
+    /// Channel id used by the channel; first temporary and later final.
+    ///
+    /// The temporary_channel_id is used to identify this channel on a per-peer
+    /// basis until the funding transaction is established, at which point it
+    /// is replaced by the channel_id, which is derived from the funding
+    /// transaction.
     active_channel_id: ActiveChannelId,
-
-    /// The threshold below which outputs on transactions broadcast by sender
-    /// will be omitted
-    dust_limit_satoshis: u64,
-
-    /// Minimum depth of the funding transaction before the channel is
-    /// considered open
-    minimum_depth: u32,
-
-    /// The number of blocks which the counterparty will have to wait to claim
-    /// on-chain funds if they broadcast a commitment transaction
-    to_self_delay: u16,
-
-    /// The maximum inbound HTLC value in flight towards sender, in
-    /// milli-satoshi
-    max_htlc_value_in_flight_msat: u64,
-
-    /// The minimum value unencumbered by HTLCs for the counterparty to keep in
-    /// the channel
-    channel_reserve_satoshis: u64,
-
-    /// The maximum number of inbound HTLCs towards sender
-    max_accepted_htlcs: u16,
 
     /// Amount in millisatoshis
     local_amount: u64,
@@ -85,15 +75,21 @@ pub struct Bolt3 {
 
     obscuring_factor: u64,
 
-    #[getter(as_ref)]
-    params: Params,
+    /// The policy for accepting remote node params
+    policy: Params,
 
-    #[getter(as_ref)]
+    /// Channel parameters required to be met by the remote node when operating
+    /// towards the local one
+    local_params: Params,
+
+    /// Channel parameters to be used towards the remote node
+    remote_params: Params,
+
     local_keys: Keyset,
 
-    #[getter(as_ref)]
     remote_keys: Keyset,
 
+    /// Keeps information whether this node is the originator of the channel
     is_originator: bool,
 }
 
