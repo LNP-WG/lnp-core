@@ -170,6 +170,7 @@ impl From<u16> for TxType {
 
 impl channel::TxRole for TxType {}
 
+/// Channel lifecycle: states of the channel state machine
 #[cfg_attr(
     feature = "serde",
     derive(Serialize, Deserialize),
@@ -188,23 +189,65 @@ impl channel::TxRole for TxType {}
     StrictEncode,
     StrictDecode,
 )]
-#[display(Debug)]
 #[non_exhaustive]
 #[repr(u8)]
 pub enum Lifecycle {
+    /// Channel is initialized, communications with the remote peer has not
+    /// started yet
+    #[display("INIT")]
     Initial,
-    Proposed,                 // Sent or got `open_channel`
-    Accepted,                 // Sent or got `accept_channel`
-    Funding,                  // One party signed funding tx
-    Signed,                   // Other peer signed funding tx
-    Funded,                   // Funding tx is published but not mined
-    Locked,                   // Funding tx mining confirmed by one peer
-    Active,                   // Both peers confirmed lock, channel active
-    Reestablishing,           // Reestablishing connectivity
-    Shutdown,                 // Shutdown proposed but not yet accepted
-    Closing { round: usize }, // Shutdown agreed, exchanging `closing_signed`
-    Closed,                   // Cooperative closing
-    Aborted,                  // Non-cooperative unilateral closing
+
+    /// Sent `open_channel`
+    #[display("PROPOSED")]
+    Proposed,
+
+    /// Received `accept_channel`
+    #[display("ACCEPTED")]
+    Accepted,
+
+    /// Local party signed funding tx
+    #[display("FUNDING")]
+    Funding,
+
+    /// Other peer signed funding tx
+    #[display("SIGNED")]
+    Signed,
+
+    /// Funding tx is published but not mined
+    #[display("FUNDED")]
+    Funded,
+
+    /// Funding tx mining confirmed by one peer
+    #[display("LOCKED")]
+    Locked,
+
+    /// Both peers confirmed lock, channel active
+    #[display("ACTIVE")]
+    Active,
+
+    /// Reestablishing connectivity
+    #[display("REESTABLISHING")]
+    Reestablishing,
+
+    /// Shutdown proposed but not yet accepted
+    #[display("SHUTDOWN")]
+    Shutdown,
+
+    /// Shutdown agreed, exchanging `closing_signed`
+    #[display("CLOSING-{round}")]
+    Closing { round: usize },
+
+    /// Non-cooperative unilateral closing initialized from the self
+    #[display("ABORTING")]
+    Aborting,
+
+    /// Reacting to an uncooperative channel close from remote
+    #[display("PENALIZE")]
+    Penalize,
+
+    /// Channel non-operational and closed
+    #[display("CLOSED")]
+    Closed,
 }
 
 impl Default for Lifecycle {
