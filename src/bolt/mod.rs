@@ -18,4 +18,6 @@ mod constructors;
 mod extenders;
 mod modifiers;
 
+pub use constructors::{bolt3, Bolt3};
+pub use extenders::htlc;
 pub use types::{AssetsBalance, ExtensionId, Lifecycle, TxType};

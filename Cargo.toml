@@ -19,7 +19,7 @@ path = "src/lib.rs"
 crate-type = ["rlib", "staticlib"]
 
 [dependencies]
-amplify = "3.9.1"
+amplify = "3.10.0"
 strict_encoding = "1.7.4"
 lightning_encoding = ">=0.5.4"
 descriptor-wallet = { version = "0.5.0", features = ["keygen"] }

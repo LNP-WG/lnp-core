@@ -22,7 +22,7 @@ use strict_encoding::{
 
 use crate::bolt::constructors::Bolt3;
 use crate::bolt::extenders::{AnchorOutputs, ShutdownScript};
-use crate::bolt::modifiers::bip96::Bip96;
+use crate::bolt::modifiers::Bip96;
 use crate::channel::{Channel, Error};
 use crate::p2p::legacy::Messages;
 use crate::{channel, extension, ChannelExtension, Extension};
@@ -46,20 +46,27 @@ pub type AssetsBalance = BTreeMap<AssetId, u64>;
 #[display(Debug)]
 pub enum ExtensionId {
     /// The channel itself
-    Channel,
+    Channel = 0,
 
     /// Main channel constructor
-    Bolt3,
+    Bolt3 = 1,
     /// HTLC payments
-    Htlc,
+    Htlc = 2,
 
     /// BOLT-9 feature: shutdown script
-    ShutdownScript,
+    ShutdownScript = 10,
     /// BOLT-9 feature: anchor
-    AnchorOutputs,
+    AnchorOutputs = 11,
+
+    /// The role of policy extension is to make sure that aggregate properties
+    /// of the transaction (no of HTLCs, fees etc) does not violate channel
+    /// policies – and adjust to these policies if needed
+    ///
+    /// NB: Policy must always be applied after other extenders
+    Policy = 100,
 
     /// Deterministic transaction ordering
-    Bip96,
+    Bip96 = 1000,
 }
 
 impl Default for ExtensionId {

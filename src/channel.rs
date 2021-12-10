@@ -42,7 +42,7 @@ pub enum Error {
     Extension(String),
 
     // HTLC Extension Errors
-    HTLC(String),
+    Htlc(String),
 }
 
 /// Marker trait for any data that can be used as a part of the channel state

@@ -16,6 +16,7 @@ use bitcoin::blockdata::{opcodes::all::*, script};
 use bitcoin::secp256k1::PublicKey;
 use bitcoin::{OutPoint, Transaction, TxIn, TxOut};
 use lnp2p::legacy::Messages;
+use p2p::legacy::{ChannelId, TempChannelId};
 use wallet::lex_order::LexOrder;
 use wallet::psbt::Psbt;
 use wallet::scripts::{LockScript, PubkeyScript, WitnessScript};
@@ -26,7 +27,7 @@ use crate::bolt::ExtensionId;
 use crate::{channel, ChannelExtension, Extension};
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, StrictEncode, StrictDecode)]
-struct Keyset {
+pub struct Keyset {
     pub revocation_basepoint: PublicKey,
     pub payment_basepoint: PublicKey,
     pub delayed_payment_basepoint: PublicKey,
@@ -42,15 +43,56 @@ impl DumbDefault for Keyset {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug, StrictEncode, StrictDecode)]
+#[derive(
+    Getters, Copy, Clone, PartialEq, Eq, Debug, StrictEncode, StrictDecode,
+)]
+#[getter(as_copy)]
 pub struct Bolt3 {
+    channel_id: ChannelId,
+
+    /// A temporary channel ID, until the funding outpoint is announced
+    temp_channel_id: TempChannelId,
+
+    /// The threshold below which outputs on transactions broadcast by sender
+    /// will be omitted
+    dust_limit_satoshis: u64,
+
+    /// Minimum depth of the funding transaction before the channel is
+    /// considered open
+    minimum_depth: u32,
+
+    /// The number of blocks which the counterparty will have to wait to claim
+    /// on-chain funds if they broadcast a commitment transaction
+    to_self_delay: u16,
+
+    /// The maximum inbound HTLC value in flight towards sender, in
+    /// milli-satoshi
+    max_htlc_value_in_flight_msat: u64,
+
+    /// The minimum value unencumbered by HTLCs for the counterparty to keep in
+    /// the channel
+    channel_reserve_satoshis: u64,
+
+    /// The maximum number of inbound HTLCs towards sender
+    max_accepted_htlcs: u16,
+
+    /// Amount in millisatoshis
     local_amount: u64,
+
+    /// Amount in millisatoshis
     remote_amount: u64,
+
     commitment_number: u64,
+
     obscuring_factor: u64,
 
+    #[getter(as_ref)]
     params: Params,
+
+    #[getter(as_ref)]
     local_keys: Keyset,
+
+    #[getter(as_ref)]
     remote_keys: Keyset,
 
     is_originator: bool,
@@ -66,6 +108,14 @@ impl Default for Bolt3 {
             dumb_keys.payment_basepoint,
         );
         Bolt3 {
+            channel_id: none!(),
+            temp_channel_id: TempChannelId::dumb_default(),
+            dust_limit_satoshis: 0,
+            minimum_depth: 0,
+            to_self_delay: 0,
+            max_htlc_value_in_flight_msat: 0,
+            channel_reserve_satoshis: 0,
+            max_accepted_htlcs: 0,
             local_amount: 0,
             remote_amount: 0,
             commitment_number: 0,
@@ -99,8 +149,20 @@ impl Extension for Bolt3 {
         match message {
             Messages::OpenChannel(open_channel) => {
                 self.is_originator = false;
+                self.temp_channel_id = open_channel.temporary_channel_id;
                 self.local_amount = open_channel.funding_satoshis * 1000;
                 self.remote_amount = open_channel.push_msat;
+
+                // Policies
+                self.dust_limit_satoshis = open_channel.dust_limit_satoshis;
+                self.to_self_delay = open_channel.to_self_delay;
+                self.max_htlc_value_in_flight_msat =
+                    open_channel.max_htlc_value_in_flight_msat;
+                self.channel_reserve_satoshis =
+                    open_channel.channel_reserve_satoshis;
+                self.max_accepted_htlcs = open_channel.max_accepted_htlcs;
+
+                // Keys
                 self.remote_keys.payment_basepoint = open_channel.payment_point;
                 self.remote_keys.revocation_basepoint =
                     open_channel.revocation_basepoint;
@@ -108,6 +170,12 @@ impl Extension for Bolt3 {
                     open_channel.delayed_payment_basepoint;
             }
             Messages::AcceptChannel(accept_channel) => {
+                // Policies
+                self.dust_limit_satoshis = accept_channel.dust_limit_satoshis;
+                self.to_self_delay = accept_channel.to_self_delay;
+                self.minimum_depth = accept_channel.minimum_depth;
+
+                // Keys
                 self.remote_keys.payment_basepoint =
                     accept_channel.payment_point;
                 self.remote_keys.revocation_basepoint =
@@ -116,11 +184,23 @@ impl Extension for Bolt3 {
                     accept_channel.delayed_payment_basepoint;
             }
             Messages::FundingCreated(_) => {}
-            Messages::FundingSigned(_) => {}
+            Messages::FundingSigned(funding_signed) => {
+                self.channel_id = funding_signed.channel_id;
+            }
             Messages::FundingLocked(_) => {}
             Messages::Shutdown(_) => {}
             Messages::ClosingSigned(_) => {}
-            Messages::UpdateAddHtlc(_) => {}
+            Messages::UpdateAddHtlc(_message) => {
+                /* TODO
+                if message.amount_msat + total_htlc_value_in_flight_msat
+                    > self.max_htlc_value_in_flight_msat
+                {
+                    return Err(channel::Error::Htlc(
+                        "max HTLC inflight amount limit exceeded".to_string(),
+                    ));
+                }
+                 */
+            }
             Messages::UpdateFulfillHtlc(_) => {}
             Messages::UpdateFailHtlc(_) => {}
             Messages::UpdateFailMalformedHtlc(_) => {}

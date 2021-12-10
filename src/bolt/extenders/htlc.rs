@@ -95,8 +95,6 @@ pub struct Htlc {
     channel_id: ChannelId,
     commitment_outpoint: OutPoint,
     htlc_minimum_msat: u64,
-    max_htlc_value_in_flight_msat: u64,
-    total_htlc_value_in_flight_msat: u64,
     max_accepted_htlcs: u16,
     total_accepted_htlcs: u16,
     last_recieved_htlc_id: u64,
@@ -118,8 +116,6 @@ impl Default for Htlc {
             channel_id: Default::default(),
             commitment_outpoint: Default::default(),
             htlc_minimum_msat: 0,
-            max_htlc_value_in_flight_msat: 0,
-            total_htlc_value_in_flight_msat: 0,
             max_accepted_htlcs: 0,
             total_accepted_htlcs: 0,
             last_recieved_htlc_id: 0,
@@ -150,6 +146,12 @@ impl Extension for Htlc {
         message: &Messages,
     ) -> Result<(), channel::Error> {
         match message {
+            Messages::OpenChannel(open_channel) => {
+                self.htlc_minimum_msat = open_channel.htlc_minimum_msat;
+            }
+            Messages::AcceptChannel(accept_channel) => {
+                self.htlc_minimum_msat = accept_channel.htlc_minimum_msat;
+            }
             Messages::UpdateAddHtlc(message) => {
                 if message.channel_id == self.channel_id {
                     // Checks
@@ -160,34 +162,26 @@ impl Extension for Htlc {
                     if message.amount_msat == 0
                         || message.amount_msat < self.htlc_minimum_msat
                     {
-                        return Err(channel::Error::HTLC(
+                        return Err(channel::Error::Htlc(
                             "amount_msat has to be greater than 0".to_string(),
                         ));
                     } else if self.total_accepted_htlcs
                         == self.max_accepted_htlcs
                     {
-                        return Err(channel::Error::HTLC(
+                        return Err(channel::Error::Htlc(
                             "max no. of HTLC limit exceeded".to_string(),
                         ));
-                    } else if message.amount_msat
-                        + self.total_htlc_value_in_flight_msat
-                        > self.max_htlc_value_in_flight_msat
-                    {
-                        return Err(channel::Error::HTLC(
-                            "max HTLC inflight amount limit exceeded"
-                                .to_string(),
-                        ));
                     } else if message.cltv_expiry > 500000000 {
-                        return Err(channel::Error::HTLC(
+                        return Err(channel::Error::Htlc(
                             "cltv_expiry limit exceeded".to_string(),
                         ));
                     } else if message.amount_msat.leading_zeros() < 32 {
-                        return Err(channel::Error::HTLC(
+                        return Err(channel::Error::Htlc(
                             "Leading zeros not satisfied for Bitcoin network"
                                 .to_string(),
                         ));
                     } else if message.htlc_id <= self.last_recieved_htlc_id {
-                        return Err(channel::Error::HTLC(
+                        return Err(channel::Error::Htlc(
                             "HTLC id violation occurred".to_string(),
                         )); // TODO handle reconnection
                     } else {
@@ -206,7 +200,7 @@ impl Extension for Htlc {
                         self.last_recieved_htlc_id += 1;
                     }
                 } else {
-                    return Err(channel::Error::HTLC(
+                    return Err(channel::Error::Htlc(
                         "Missmatched channel_id, bad remote node".to_string(),
                     ));
                 }
@@ -220,7 +214,7 @@ impl Extension for Htlc {
                         .enumerate()
                         .filter(|(_, htlc)| htlc.id == message.htlc_id)
                         .next()
-                        .ok_or(channel::Error::HTLC(
+                        .ok_or(channel::Error::Htlc(
                             "HTLC id didn't match".to_string(),
                         ))?;
 
@@ -240,7 +234,7 @@ impl Extension for Htlc {
                         self.resolved_htlcs.push(resolved_htlc);
                     }
                 } else {
-                    return Err(channel::Error::HTLC(
+                    return Err(channel::Error::Htlc(
                         "Missmatched channel_id, bad remote node".to_string(),
                     ));
                 }
@@ -254,7 +248,7 @@ impl Extension for Htlc {
                         .enumerate()
                         .filter(|(_, htlc)| htlc.id == message.htlc_id)
                         .next()
-                        .ok_or(channel::Error::HTLC(
+                        .ok_or(channel::Error::Htlc(
                             "HTLC id didn't match".to_string(),
                         ))?;
 

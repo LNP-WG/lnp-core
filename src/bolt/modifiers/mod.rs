@@ -11,4 +11,6 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
-pub mod bip96; // Lexicographic ordering
+mod bip96; // Lexicographic ordering
+
+pub use bip96::Bip96;
