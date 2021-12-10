@@ -79,18 +79,37 @@ pub enum Messages {
     //
     // 1. Channel establishment / closing
     // ----------------------------------
+    /// This message contains information about a node and indicates its desire
+    /// to set up a new channel. This is the first step toward creating the
+    /// funding transaction and both versions of the commitment transaction.
     #[api(type = 32)]
     OpenChannel(OpenChannel),
 
+    /// This message contains information about a node and indicates its
+    /// acceptance of the new channel. This is the second step toward creating
+    /// the funding transaction and both versions of the commitment
+    /// transaction.
     #[api(type = 33)]
     AcceptChannel(AcceptChannel),
 
+    /// This message describes the outpoint which the funder has created for
+    /// the initial commitment transactions. After receiving the peer's
+    /// signature, via `funding_signed`, it will broadcast the funding
+    /// transaction.
     #[api(type = 34)]
     FundingCreated(FundingCreated),
 
+    /// This message gives the funder the signature it needs for the first
+    /// commitment transaction, so it can broadcast the transaction knowing
+    /// that funds can be redeemed, if need be.
+    ///
+    /// This message introduces the `channel_id` to identify the channel.
     #[api(type = 35)]
     FundingSigned(FundingSigned),
 
+    /// This message indicates that the funding transaction has reached the
+    /// `minimum_depth` asked for in `accept_channel`. Once both nodes have
+    /// sent this, the channel enters normal operating mode.
     #[api(type = 36)]
     FundingLocked(FundingLocked),
 

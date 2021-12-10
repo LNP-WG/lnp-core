@@ -130,6 +130,9 @@ impl lightning_encoding::LightningDecode for ChannelType {
     }
 }
 
+/// This message contains information about a node and indicates its desire to
+/// set up a new channel. This is the first step toward creating the funding
+/// transaction and both versions of the commitment transaction.
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
@@ -200,7 +203,12 @@ pub struct OpenChannel {
     /// The first to-be-broadcast-by-sender transaction's per commitment point
     pub first_per_commitment_point: PublicKey,
 
-    /// Channel flags
+    /// Channel flags.
+    ///
+    /// Only the least-significant bit of channel_flags is currently defined:
+    /// announce_channel. This indicates whether the initiator of the funding
+    /// flow wishes to advertise this channel publicly to the network, as
+    /// detailed within BOLT #7.
     pub channel_flags: u8,
 
     /// Optionally, a request to pre-set the to-sender output's scriptPubkey
@@ -209,6 +217,10 @@ pub struct OpenChannel {
     #[network_encoding(tlv = 0)]
     pub shutdown_scriptpubkey: Option<PubkeyScript>,
 
+    /// Channel types are an explicit enumeration: for convenience of future
+    /// definitions they reuse even feature bits, but they are not an arbitrary
+    /// combination (they represent the persistent features which affect the
+    /// channel operation).
     #[lightning_encoding(tlv = 1)]
     #[network_encoding(tlv = 1)]
     pub channel_type: Option<ChannelType>,
@@ -247,6 +259,9 @@ impl OpenChannel {
     }
 }
 
+/// This message contains information about a node and indicates its acceptance
+/// of the new channel. This is the second step toward creating the funding
+/// transaction and both versions of the commitment transaction.
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
@@ -314,10 +329,15 @@ pub struct AcceptChannel {
     #[network_encoding(tlv = 0)]
     pub shutdown_scriptpubkey: Option<PubkeyScript>,
 
+    /// Channel types are an explicit enumeration: for convenience of future
+    /// definitions they reuse even feature bits, but they are not an arbitrary
+    /// combination (they represent the persistent features which affect the
+    /// channel operation).
     #[lightning_encoding(tlv = 1)]
     #[network_encoding(tlv = 1)]
     pub channel_type: Option<ChannelType>,
 
+    /// The rest of TLVs with unknown odd type ids
     #[lightning_encoding(unknown_tlvs)]
     #[network_encoding(unknown_tlvs)]
     pub unknown_tlvs: tlv::Stream,
@@ -345,6 +365,9 @@ impl AcceptChannel {
     }
 }
 
+/// This message describes the outpoint which the funder has created for the
+/// initial commitment transactions. After receiving the peer's signature, via
+/// `funding_signed`, it will broadcast the funding transaction.
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
@@ -365,6 +388,11 @@ pub struct FundingCreated {
     pub signature: Signature,
 }
 
+/// This message gives the funder the signature it needs for the first
+/// commitment transaction, so it can broadcast the transaction knowing that
+/// funds can be redeemed, if need be.
+///
+/// This message introduces the `channel_id` to identify the channel.
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]
@@ -378,6 +406,9 @@ pub struct FundingSigned {
     pub signature: Signature,
 }
 
+/// This message indicates that the funding transaction has reached the
+/// `minimum_depth` asked for in `accept_channel`. Once both nodes have sent
+/// this, the channel enters normal operating mode.
 #[derive(
     Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
 )]

@@ -197,11 +197,11 @@ pub enum Lifecycle {
     #[display("INIT")]
     Initial,
 
-    /// Sent `open_channel`
+    /// Sent or received `open_channel`
     #[display("PROPOSED")]
     Proposed,
 
-    /// Received `accept_channel`
+    /// Sent or received `accept_channel`
     #[display("ACCEPTED")]
     Accepted,
 
