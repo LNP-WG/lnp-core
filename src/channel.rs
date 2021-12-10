@@ -15,6 +15,7 @@ use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::hash::Hash;
 
+use crate::bolt::channel::PolicyError;
 use bitcoin::util::psbt::PartiallySignedTransaction as Psbt;
 use bitcoin::{OutPoint, Transaction, TxIn, TxOut};
 use lnp2p::legacy::Messages;
@@ -26,8 +27,6 @@ use super::extension::{self, ChannelExtension, Extension};
     Clone,
     PartialEq,
     Eq,
-    PartialOrd,
-    Ord,
     Hash,
     Debug,
     Display,
@@ -45,6 +44,11 @@ pub enum Error {
     // TODO: Expand into specific error types
     #[display(inner)]
     Htlc(String),
+
+    /// Policy errors happening during channel negotiation
+    #[from]
+    #[display(inner)]
+    Policy(PolicyError),
 }
 
 /// Marker trait for any data that can be used as a part of the channel state

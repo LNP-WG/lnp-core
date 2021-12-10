@@ -23,7 +23,7 @@ use wallet::psbt::Psbt;
 use wallet::scripts::{LockScript, PubkeyScript, WitnessScript};
 use wallet::IntoPk;
 
-use crate::bolt::channel::Params;
+use crate::bolt::channel::{CommonParams, PeerParams, Policy};
 use crate::bolt::ExtensionId;
 use crate::{channel, ChannelExtension, Extension};
 
@@ -44,9 +44,7 @@ impl DumbDefault for Keyset {
     }
 }
 
-#[derive(
-    Getters, Copy, Clone, PartialEq, Eq, Debug, StrictEncode, StrictDecode,
-)]
+#[derive(Getters, Clone, PartialEq, Eq, Debug, StrictEncode, StrictDecode)]
 #[getter(as_copy)]
 pub struct Bolt3 {
     /// The chain_hash value denotes the exact blockchain that the opened
@@ -76,14 +74,17 @@ pub struct Bolt3 {
     obscuring_factor: u64,
 
     /// The policy for accepting remote node params
-    policy: Params,
+    policy: Policy,
+
+    /// Common parapeters applying for both nodes
+    common_params: CommonParams,
 
     /// Channel parameters required to be met by the remote node when operating
     /// towards the local one
-    local_params: Params,
+    local_params: PeerParams,
 
     /// Channel parameters to be used towards the remote node
-    remote_params: Params,
+    remote_params: PeerParams,
 
     local_keys: Keyset,
 
@@ -109,9 +110,10 @@ impl Default for Bolt3 {
             remote_amount: 0,
             commitment_number: 0,
             obscuring_factor,
-            policy: DumbDefault::dumb_default(),
-            local_params: DumbDefault::dumb_default(),
-            remote_params: DumbDefault::dumb_default(),
+            policy: default!(),
+            common_params: default!(),
+            local_params: default!(),
+            remote_params: default!(),
             local_keys: dumb_keys,
             remote_keys: dumb_keys,
             is_originator,
@@ -160,16 +162,9 @@ impl Extension for Bolt3 {
                 self.local_amount = open_channel.funding_satoshis * 1000;
                 self.remote_amount = open_channel.push_msat;
 
-                // Policies: TODO - transfer this into `Params`
-                /*
-                self.dust_limit_satoshis = open_channel.dust_limit_satoshis;
-                self.to_self_delay = open_channel.to_self_delay;
-                self.max_htlc_value_in_flight_msat =
-                    open_channel.max_htlc_value_in_flight_msat;
-                self.channel_reserve_satoshis =
-                    open_channel.channel_reserve_satoshis;
-                self.max_accepted_htlcs = open_channel.max_accepted_htlcs;
-                 */
+                // Policies
+                self.remote_params =
+                    self.policy.validate_inbound(open_channel)?;
 
                 // Keys
                 self.remote_keys.payment_basepoint = open_channel.payment_point;
@@ -179,12 +174,9 @@ impl Extension for Bolt3 {
                     open_channel.delayed_payment_basepoint;
             }
             Messages::AcceptChannel(accept_channel) => {
-                // Policies:  TODO - transfer this into `Params`
-                /*
-                self.dust_limit_satoshis = accept_channel.dust_limit_satoshis;
-                self.to_self_delay = accept_channel.to_self_delay;
-                self.minimum_depth = accept_channel.minimum_depth;
-                 */
+                self.remote_params = self
+                    .policy
+                    .confirm_outbound(self.local_params, accept_channel)?;
 
                 // Keys
                 self.remote_keys.payment_basepoint =
@@ -230,13 +222,13 @@ impl Extension for Bolt3 {
     }
 
     fn extension_state(&self) -> Box<dyn channel::State> {
-        Box::new(*self)
+        Box::new(self.clone())
     }
 }
 
 impl ChannelExtension for Bolt3 {
     fn channel_state(&self) -> Box<dyn channel::State> {
-        Box::new(*self)
+        Box::new(self.clone())
     }
 
     fn apply(

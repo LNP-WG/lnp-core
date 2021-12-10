@@ -50,7 +50,7 @@ pub const BOLT3_DUST_LIMIT: u64 = 354;
     StrictDecode,
 )]
 #[display(doc_comments)]
-pub enum NegotiationError {
+pub enum PolicyError {
     /// proposed `to_self_delay` value {proposed} is unreasonably large and
     /// exceeds node policy limit of {allowed_maximum}; rejecting the channel
     /// according to BOLT-2
@@ -273,76 +273,45 @@ impl Policy {
         todo!()
     }
 
-    /// Validates parameters proposed by remote peer in `open_channel` message
-    /// against the policy
-    ///
-    /// # Arguments
-    /// - `self`: local policy;
-    /// - `open_channel`: BOLT-2 message received by the peer.
-    pub fn validate_inbound(
-        self,
-        open_channel: &OpenChannel,
-    ) -> Result<Params, NegotiationError> {
+    fn validate_peer_params(
+        &self,
+        params: PeerParams,
+    ) -> Result<(), PolicyError> {
         // if `to_self_delay` is unreasonably large.
-        if open_channel.to_self_delay > self.to_self_delay_max {
-            return Err(NegotiationError::ToSelfDelayUnreasonablyLarge {
-                proposed: open_channel.to_self_delay,
+        if params.to_self_delay > self.to_self_delay_max {
+            return Err(PolicyError::ToSelfDelayUnreasonablyLarge {
+                proposed: params.to_self_delay,
                 allowed_maximum: self.to_self_delay_max,
             });
         }
 
         // if `max_accepted_htlcs` is greater than 483.
-        if open_channel.max_accepted_htlcs > BOLT3_MAX_ACCEPTED_HTLC_LIMIT {
-            return Err(NegotiationError::MaxAcceptedHtlcLimitExceeded(
-                open_channel.max_accepted_htlcs,
+        if params.max_accepted_htlcs > BOLT3_MAX_ACCEPTED_HTLC_LIMIT {
+            return Err(PolicyError::MaxAcceptedHtlcLimitExceeded(
+                params.max_accepted_htlcs,
             ));
         }
 
-        // if we consider `feerate_per_kw` too small for timely processing or
-        // unreasonably large.
-        if !self
-            .feerate_per_kw_range
-            .contains(&open_channel.feerate_per_kw)
-        {
-            return Err(NegotiationError::FeeRateUnreasonable {
-                proposed: open_channel.feerate_per_kw,
-                lowest_accepted: self.feerate_per_kw_range.start,
-                highest_accepted: self.feerate_per_kw_range.end,
-            });
-        }
-
         // if `dust_limit_satoshis` is greater than `channel_reserve_satoshis`.
-        if open_channel.dust_limit_satoshis
-            > open_channel.channel_reserve_satoshis
-        {
-            return Err(NegotiationError::ChannelReserveLessDust {
-                reserve: open_channel.channel_reserve_satoshis,
-                dust_limit: open_channel.dust_limit_satoshis,
+        if params.dust_limit_satoshis > params.channel_reserve_satoshis {
+            return Err(PolicyError::ChannelReserveLessDust {
+                reserve: params.channel_reserve_satoshis,
+                dust_limit: params.dust_limit_satoshis,
             });
         }
 
         // if `dust_limit_satoshis` is smaller than 354 satoshis
-        if open_channel.dust_limit_satoshis < BOLT3_DUST_LIMIT {
-            return Err(NegotiationError::DustLimitTooSmall(
-                open_channel.dust_limit_satoshis,
+        if params.dust_limit_satoshis < BOLT3_DUST_LIMIT {
+            return Err(PolicyError::DustLimitTooSmall(
+                params.dust_limit_satoshis,
             ));
-        }
-
-        // if `funding_satoshis` is too small
-        if let Some(limit) = self.funding_satoshis_min {
-            if open_channel.funding_satoshis < limit {
-                return Err(NegotiationError::ChannelFundingTooSmall {
-                    proposed: open_channel.funding_satoshis,
-                    required_minimum: limit,
-                });
-            }
         }
 
         // if we consider `htlc_minimum_msat` too large
         if let Some(limit) = self.htlc_minimum_msat_max {
-            if open_channel.htlc_minimum_msat > limit {
-                return Err(NegotiationError::HtlcMinimumTooLarge {
-                    proposed: open_channel.htlc_minimum_msat,
+            if params.htlc_minimum_msat > limit {
+                return Err(PolicyError::HtlcMinimumTooLarge {
+                    proposed: params.htlc_minimum_msat,
                     allowed_maximum: limit,
                 });
             }
@@ -350,9 +319,9 @@ impl Policy {
 
         // if we consider `max_htlc_value_in_flight_msat` too small
         if let Some(limit) = self.max_htlc_value_in_flight_msat_min {
-            if open_channel.max_htlc_value_in_flight_msat < limit {
-                return Err(NegotiationError::HtclInFlightMaximumTooSmall {
-                    proposed: open_channel.max_htlc_value_in_flight_msat,
+            if params.max_htlc_value_in_flight_msat < limit {
+                return Err(PolicyError::HtclInFlightMaximumTooSmall {
+                    proposed: params.max_htlc_value_in_flight_msat,
                     required_minimum: limit,
                 });
             }
@@ -361,18 +330,9 @@ impl Policy {
         // if we consider `channel_reserve_satoshis` too large - in both abosute
         // and relative values
         if let Some(limit) = self.channel_reserve_satoshis_max_abs {
-            if open_channel.channel_reserve_satoshis > limit {
-                return Err(NegotiationError::ChannelReserveTooLarge {
-                    proposed: open_channel.channel_reserve_satoshis,
-                    allowed_maximum: limit,
-                });
-            }
-        }
-        if let Some(percents) = self.channel_reserve_satoshis_max_percent {
-            let limit = open_channel.funding_satoshis * percents as u64;
-            if open_channel.channel_reserve_satoshis > limit {
-                return Err(NegotiationError::ChannelReserveTooLarge {
-                    proposed: open_channel.channel_reserve_satoshis,
+            if params.channel_reserve_satoshis > limit {
+                return Err(PolicyError::ChannelReserveTooLarge {
+                    proposed: params.channel_reserve_satoshis,
                     allowed_maximum: limit,
                 });
             }
@@ -380,9 +340,9 @@ impl Policy {
 
         // if we consider `max_accepted_htlcs` too small
         if let Some(limit) = self.max_accepted_htlcs_min {
-            if open_channel.max_accepted_htlcs < limit {
-                return Err(NegotiationError::MaxAcceptedHtlcsTooSmall {
-                    proposed: open_channel.max_accepted_htlcs,
+            if params.max_accepted_htlcs < limit {
+                return Err(PolicyError::MaxAcceptedHtlcsTooSmall {
+                    proposed: params.max_accepted_htlcs,
                     required_minimum: limit,
                 });
             }
@@ -390,25 +350,69 @@ impl Policy {
 
         // if we consider `dust_limit_satoshis` too large
         if let Some(limit) = self.dust_limit_satoshis_max {
-            if open_channel.dust_limit_satoshis > limit {
-                return Err(NegotiationError::DustLimitTooLarge {
-                    proposed: open_channel.dust_limit_satoshis,
+            if params.dust_limit_satoshis > limit {
+                return Err(PolicyError::DustLimitTooLarge {
+                    proposed: params.dust_limit_satoshis,
                     allowed_maximum: limit,
                 });
             }
         }
 
-        Ok(Params {
-            dust_limit_satoshis: open_channel.dust_limit_satoshis,
-            max_htlc_value_in_flight_msat: open_channel
-                .max_htlc_value_in_flight_msat,
-            channel_reserve_satoshis: open_channel.channel_reserve_satoshis,
-            feerate_per_kw: open_channel.feerate_per_kw,
-            minimum_depth: self.minimum_depth,
-            to_self_delay: open_channel.to_self_delay,
-            max_accepted_htlcs: open_channel.max_accepted_htlcs,
-            htlc_minimum_msat: open_channel.htlc_minimum_msat,
-        })
+        Ok(())
+    }
+
+    /// Validates parameters proposed by remote peer in `open_channel` message
+    /// against the policy
+    ///
+    /// # Arguments
+    /// - `self`: local policy;
+    /// - `open_channel`: BOLT-2 message received by the peer.
+    ///
+    /// # Returns
+    /// [`PeerParams`] to use for constructing channel transactions which should
+    /// be signed by the local node.
+    pub fn validate_inbound(
+        &self,
+        open_channel: &OpenChannel,
+    ) -> Result<PeerParams, PolicyError> {
+        // if we consider `feerate_per_kw` too small for timely processing or
+        // unreasonably large.
+        if !self
+            .feerate_per_kw_range
+            .contains(&open_channel.feerate_per_kw)
+        {
+            return Err(PolicyError::FeeRateUnreasonable {
+                proposed: open_channel.feerate_per_kw,
+                lowest_accepted: self.feerate_per_kw_range.start,
+                highest_accepted: self.feerate_per_kw_range.end,
+            });
+        }
+
+        // if `funding_satoshis` is too small
+        if let Some(limit) = self.funding_satoshis_min {
+            if open_channel.funding_satoshis < limit {
+                return Err(PolicyError::ChannelFundingTooSmall {
+                    proposed: open_channel.funding_satoshis,
+                    required_minimum: limit,
+                });
+            }
+        }
+
+        // if we consider `channel_reserve_satoshis` too large - in both abosute
+        // and relative values
+        if let Some(percents) = self.channel_reserve_satoshis_max_percent {
+            let limit = open_channel.funding_satoshis * percents as u64;
+            if open_channel.channel_reserve_satoshis > limit {
+                return Err(PolicyError::ChannelReserveTooLarge {
+                    proposed: open_channel.channel_reserve_satoshis,
+                    allowed_maximum: limit,
+                });
+            }
+        }
+
+        let peer_params = PeerParams::from(open_channel);
+        self.validate_peer_params(peer_params)?;
+        Ok(peer_params)
     }
 
     /// Confirms that parameters which were asked by a remote node via
@@ -421,12 +425,13 @@ impl Policy {
     /// - `accept_channel`: BOLT-2 message received by the peer.
     ///
     /// # Returns
-    /// Parameters to use for the remote node
+    /// [`PeerParams`] to use for constructing channel transactions which should
+    /// be signed by the local node.
     pub fn confirm_outbound(
-        self,
-        params: Params,
+        &self,
+        our_params: PeerParams,
         accept_channel: &AcceptChannel,
-    ) -> Result<Params, NegotiationError> {
+    ) -> Result<PeerParams, PolicyError> {
         // The temporary_channel_id MUST be the same as the temporary_channel_id
         // in the open_channel message.
 
@@ -435,7 +440,7 @@ impl Policy {
         //     MAY reject the channel.
         if let Some(limit) = self.maximum_depth {
             if accept_channel.minimum_depth > limit {
-                return Err(NegotiationError::UnreasonableMinDepth {
+                return Err(PolicyError::UnreasonableMinDepth {
                     proposed: accept_channel.minimum_depth,
                     allowed_maximum: limit,
                 });
@@ -446,11 +451,12 @@ impl Policy {
         // within the open_channel message:
         //
         //     MUST reject the channel.
-        if accept_channel.channel_reserve_satoshis < params.dust_limit_satoshis
+        if accept_channel.channel_reserve_satoshis
+            < our_params.dust_limit_satoshis
         {
-            return Err(NegotiationError::LocalDustExceedsRemoteReserve {
+            return Err(PolicyError::LocalDustExceedsRemoteReserve {
                 channel_reserve: accept_channel.channel_reserve_satoshis,
-                dust_limit: params.dust_limit_satoshis,
+                dust_limit: our_params.dust_limit_satoshis,
             });
         }
 
@@ -458,51 +464,28 @@ impl Policy {
         // than `dust_limit_satoshis`:
         //
         //     MUST reject the channel.
-        if params.channel_reserve_satoshis < accept_channel.dust_limit_satoshis
+        if our_params.channel_reserve_satoshis
+            < accept_channel.dust_limit_satoshis
         {
-            return Err(NegotiationError::RemoteDustExceedsLocalReserve {
-                channel_reserve: params.channel_reserve_satoshis,
+            return Err(PolicyError::RemoteDustExceedsLocalReserve {
+                channel_reserve: our_params.channel_reserve_satoshis,
                 dust_limit: accept_channel.dust_limit_satoshis,
             });
         }
 
-        // TODO: Other fields have the same requirements as their counterparts
-        //       in `open_channel`.
-        Ok(Params {
-            dust_limit_satoshis: accept_channel.dust_limit_satoshis,
-            max_htlc_value_in_flight_msat: accept_channel
-                .max_htlc_value_in_flight_msat,
-            channel_reserve_satoshis: accept_channel.channel_reserve_satoshis,
-            minimum_depth: accept_channel.minimum_depth,
-            to_self_delay: accept_channel.to_self_delay,
-            max_accepted_htlcs: accept_channel.max_accepted_htlcs,
-            feerate_per_kw: params.feerate_per_kw,
-            htlc_minimum_msat: accept_channel.htlc_minimum_msat,
-        })
+        let peer_params = PeerParams::from(accept_channel);
+        self.validate_peer_params(peer_params)?;
+        Ok(peer_params)
     }
 }
 
-/// Structure containing part of the channel state which must follow specific
-/// policies and be accepted or validated basing on those policies and
-/// additional protocol-level requirements.
+/// Structure containing part of the channel configuration (and state, as it
+/// contains adjustible fee) which must follow specific policies and be accepted
+/// or validated basing on those policies and additional protocol-level
+/// requirements.
 ///
-/// Should be instantiated directly as a [`Bolt3::policy`] and
-/// [`Bolt3::local_params`] objects first by deserializing from the node
-/// configuration persistent storage and/or command line parameters via
-/// [`Channel::constructor()`]
-/// [`::as_bolt3()`](Channel::as_bolt3)[`.set_policy()`](Bolt3::set_policy) and
-/// [`.set_local_params()`](Bolt3::set_local_params).
-///
-/// Later, when creating new channels, it should be copied from the local
-/// channel defaults object and updated / checked against local policies upon
-/// receiving `accept_channel` reply by setting [`Bolt3::remote_params`] to a
-/// value returned from
-/// [`Bolt3::local_params`][`.accept_remote`](Params::accept_remote) method.
-///
-/// Upon receiving `open_channel` message from the remote node must validate the
-/// proposed parameters against local policy with
-/// [`Bolt3::policy`][`.validate`](Params::validate) method and assign the
-/// return value to [`Bolt3::remote_params`].
+/// This information applies for both channel peers and used in constructing
+/// both sides of asymmetric transactions.
 #[derive(
     Clone, Copy, PartialEq, Eq, Debug, Hash, StrictEncode, StrictDecode,
 )]
@@ -510,16 +493,86 @@ impl Policy {
     feature = "serde",
     derive(Display, Serialize, Deserialize),
     serde(crate = "serde_crate"),
-    display(Params::to_yaml_string)
+    display(CommonParams::to_yaml_string)
 )]
-pub struct Params {
-    /// The threshold below which outputs on transactions broadcast by sender
-    /// will be omitted
-    pub dust_limit_satoshis: u64,
-
+pub struct CommonParams {
     /// Minimum depth of the funding transaction before the channel is
     /// considered open
     pub minimum_depth: u32,
+
+    /// indicates the initial fee rate in satoshi per 1000-weight (i.e. 1/4 the
+    /// more normally-used 'satoshi per 1000 vbytes') that this side will pay
+    /// for commitment and HTLC transactions, as described in BOLT #3 (this can
+    /// be adjusted later with an update_fee message).
+    pub feerate_per_kw: u32,
+}
+
+#[cfg(feature = "serde")]
+impl ToYamlString for CommonParams {}
+
+impl Default for CommonParams {
+    /// Sets reasonable values for the common channel parameters used in
+    /// constructing `open_channel` message.
+    ///
+    /// Usually this should not be used and instead [`Channel::with`] should be
+    /// provided with custom channel parameters basing on the current state of
+    /// the bitcoin mempool and hash rate.
+    fn default() -> Self {
+        CommonParams {
+            minimum_depth: 3,
+            feerate_per_kw: 2,
+        }
+    }
+}
+
+impl CommonParams {
+    /// Extracts common parameters from the incoming `open_channel` message and
+    /// local default requirement for the minimum depth.
+    #[inline]
+    pub fn with(open_channel: &OpenChannel, minimum_depth: u32) -> Self {
+        CommonParams {
+            minimum_depth,
+            feerate_per_kw: open_channel.feerate_per_kw,
+        }
+    }
+}
+
+/// Structure containing part of the channel state which must follow specific
+/// policies and be accepted or validated basing on those policies and
+/// additional protocol-level requirements.
+///
+/// This information applies for only to one of the peers and requested by the
+/// other peer. It is used in constructing transactions which should be signed
+/// by the node demanding this requirements.
+///
+/// Should be instantiated from the node
+/// configuration persistent storage and/or command line parameters and provided
+/// to the channel constructor via [`Channel::with`].
+///
+/// Later, when creating new channels, it should be copied from the local
+/// channel defaults object and updated / checked against local policies upon
+/// receiving `accept_channel` reply by setting [`Bolt3::remote_params`] to a
+/// value returned from
+/// [`Bolt3::local_params`][`.confirm_outbound`](Policy::confirm_outbound)
+/// method.
+///
+/// Upon receiving `open_channel` message from the remote node must validate the
+/// proposed parameters against local policy with
+/// [`Bolt3::policy`][`.validate_inbound`](Policy::validate_inbound) method and
+/// assign the return value to [`Bolt3::remote_params`].
+#[derive(
+    Clone, Copy, PartialEq, Eq, Debug, Hash, StrictEncode, StrictDecode,
+)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Display, Serialize, Deserialize),
+    serde(crate = "serde_crate"),
+    display(PeerParams::to_yaml_string)
+)]
+pub struct PeerParams {
+    /// The threshold below which outputs on transactions broadcast by sender
+    /// will be omitted
+    pub dust_limit_satoshis: u64,
 
     /// The number of blocks which the counterparty will have to wait to claim
     /// on-chain funds if they broadcast a commitment transaction
@@ -538,28 +591,59 @@ pub struct Params {
 
     /// The maximum number of inbound HTLCs towards sender
     pub max_accepted_htlcs: u16,
-
-    /// indicates the initial fee rate in satoshi per 1000-weight (i.e. 1/4 the
-    /// more normally-used 'satoshi per 1000 vbytes') that this side will pay
-    /// for commitment and HTLC transactions, as described in BOLT #3 (this can
-    /// be adjusted later with an update_fee message).
-    pub feerate_per_kw: u32,
 }
 
 #[cfg(feature = "serde")]
-impl ToYamlString for Params {}
+impl ToYamlString for PeerParams {}
 
-impl DumbDefault for Params {
-    fn dumb_default() -> Self {
-        Params {
-            dust_limit_satoshis: 0,
-            minimum_depth: 0,
-            to_self_delay: 0,
-            htlc_minimum_msat: 0,
-            max_htlc_value_in_flight_msat: 0,
-            channel_reserve_satoshis: 0,
-            max_accepted_htlcs: 0,
-            feerate_per_kw: 0,
+impl Default for PeerParams {
+    /// Sets reasonable values for the channel parameters requested from the
+    /// other peer in sent `open_channel` or `accept_channel` messages.
+    ///
+    /// Usually this should not be used and instead [`Channel::with`] should be
+    /// provided with custom channel parameters basing on the user preferences.
+    fn default() -> Self {
+        PeerParams {
+            dust_limit_satoshis: BOLT3_DUST_LIMIT,
+            to_self_delay: 3,
+            htlc_minimum_msat: 1,
+            max_htlc_value_in_flight_msat: 1_000_000_000,
+            channel_reserve_satoshis: 10000,
+            max_accepted_htlcs: BOLT3_MAX_ACCEPTED_HTLC_LIMIT,
+        }
+    }
+}
+
+impl From<&OpenChannel> for PeerParams {
+    /// Extracts peer-specific parameters from the incoming `open_channel`
+    /// message. These parameters are applied to the local node.
+    #[inline]
+    fn from(open_channel: &OpenChannel) -> Self {
+        PeerParams {
+            dust_limit_satoshis: open_channel.dust_limit_satoshis,
+            to_self_delay: open_channel.to_self_delay,
+            htlc_minimum_msat: open_channel.htlc_minimum_msat,
+            max_htlc_value_in_flight_msat: open_channel
+                .max_htlc_value_in_flight_msat,
+            channel_reserve_satoshis: open_channel.channel_reserve_satoshis,
+            max_accepted_htlcs: open_channel.max_accepted_htlcs,
+        }
+    }
+}
+
+impl From<&AcceptChannel> for PeerParams {
+    /// Extracts peer-specific parameters from the incoming `accept_channel`
+    /// message. These parameters are applied to the local node.
+    #[inline]
+    fn from(accept_channel: &AcceptChannel) -> Self {
+        PeerParams {
+            dust_limit_satoshis: accept_channel.dust_limit_satoshis,
+            to_self_delay: accept_channel.to_self_delay,
+            htlc_minimum_msat: accept_channel.htlc_minimum_msat,
+            max_htlc_value_in_flight_msat: accept_channel
+                .max_htlc_value_in_flight_msat,
+            channel_reserve_satoshis: accept_channel.channel_reserve_satoshis,
+            max_accepted_htlcs: accept_channel.max_accepted_htlcs,
         }
     }
 }
