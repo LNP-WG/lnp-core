@@ -48,8 +48,8 @@ impl DumbDefault for Keyset {
 /// This is "channel constructor" used by `Channel` structure and managing part
 /// of the state which is not HTLC-related.
 ///
-/// The type should nt be constructed directly or used from outside of the
-/// library, but it's made public for documentation purposes.
+/// The type should not be constructed directly or used from outside of the
+/// library, but it's made public for allowing channel state access.
 #[derive(Getters, Clone, PartialEq, Eq, Debug, StrictEncode, StrictDecode)]
 #[getter(as_copy)]
 pub struct Bolt3 {

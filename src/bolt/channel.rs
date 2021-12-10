@@ -184,9 +184,9 @@ impl Channel<ExtensionId> {
         self.as_bolt3_mut().set_local_params(params)
     }
 
-    /// Returns reference to the channel core object
+    /// Returns reference to the channel core state object (BOLT-3)
     #[inline]
-    fn as_bolt3(&self) -> &Bolt3 {
+    pub fn as_bolt3(&self) -> &Bolt3 {
         let any = self.constructor() as &dyn Any;
         any.downcast_ref()
             .expect("BOLT channel uses non-BOLT-3 constructor")
