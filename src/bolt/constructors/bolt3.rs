@@ -103,18 +103,15 @@ impl Default for Bolt3 {
             dumb_keys.payment_basepoint,
         );
         Bolt3 {
+            chain_hash: default!(),
             active_channel_id: ActiveChannelId::random(),
-            dust_limit_satoshis: 0,
-            minimum_depth: 0,
-            to_self_delay: 0,
-            max_htlc_value_in_flight_msat: 0,
-            channel_reserve_satoshis: 0,
-            max_accepted_htlcs: 0,
             local_amount: 0,
             remote_amount: 0,
             commitment_number: 0,
             obscuring_factor,
-            params: Default::default(),
+            policy: DumbDefault::dumb_default(),
+            local_params: DumbDefault::dumb_default(),
+            remote_params: DumbDefault::dumb_default(),
             local_keys: dumb_keys,
             remote_keys: dumb_keys,
             is_originator,
@@ -163,7 +160,8 @@ impl Extension for Bolt3 {
                 self.local_amount = open_channel.funding_satoshis * 1000;
                 self.remote_amount = open_channel.push_msat;
 
-                // Policies
+                // Policies: TODO - transfer this into `Params`
+                /*
                 self.dust_limit_satoshis = open_channel.dust_limit_satoshis;
                 self.to_self_delay = open_channel.to_self_delay;
                 self.max_htlc_value_in_flight_msat =
@@ -171,6 +169,7 @@ impl Extension for Bolt3 {
                 self.channel_reserve_satoshis =
                     open_channel.channel_reserve_satoshis;
                 self.max_accepted_htlcs = open_channel.max_accepted_htlcs;
+                 */
 
                 // Keys
                 self.remote_keys.payment_basepoint = open_channel.payment_point;
@@ -180,10 +179,12 @@ impl Extension for Bolt3 {
                     open_channel.delayed_payment_basepoint;
             }
             Messages::AcceptChannel(accept_channel) => {
-                // Policies
+                // Policies:  TODO - transfer this into `Params`
+                /*
                 self.dust_limit_satoshis = accept_channel.dust_limit_satoshis;
                 self.to_self_delay = accept_channel.to_self_delay;
                 self.minimum_depth = accept_channel.minimum_depth;
+                 */
 
                 // Keys
                 self.remote_keys.payment_basepoint =
@@ -259,7 +260,7 @@ impl ChannelExtension for Bolt3 {
                 self.remote_amount,
                 self.local_keys.revocation_basepoint,
                 self.remote_keys.delayed_payment_basepoint,
-                self.params.to_self_delay,
+                self.remote_params.to_self_delay,
             ),
             TxOut::ln_to_remote_v1(
                 self.local_amount,

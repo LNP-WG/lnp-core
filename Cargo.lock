@@ -1338,9 +1338,9 @@ dependencies = [
 
 [[package]]
 name = "strict_encoding"
-version = "1.7.7"
+version = "1.7.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf7db5f818134da2336186e7249b4c5027af4bc07ba50b9d154e07702a7c1add"
+checksum = "bf183380b9928b1b14476f8b1aac0beee9f9920537a0025feffc49d10277db03"
 dependencies = [
  "amplify",
  "bitcoin",

@@ -70,6 +70,7 @@ pub struct Channel<N>
 where
     N: extension::Nomenclature,
 {
+    // TODO: Use associated type here
     /// Constructor extensions constructs base transaction graph. There could
     /// be only a single extension of this type
     constructor: Box<dyn ChannelExtension<Identity = N>>,
