@@ -15,16 +15,16 @@ use std::collections::BTreeMap;
 use std::convert::TryFrom;
 use std::fmt::Debug;
 
+use lnp2p::legacy::Messages;
 use lnpbp::chain::AssetId;
 use strict_encoding::{
     self, strict_deserialize, strict_serialize, StrictDecode, StrictEncode,
 };
 
-use super::extenders::AnchorOutputs;
-use super::modifiers::Bip96;
+use super::extensions::AnchorOutputs;
 use super::Bolt3;
 use crate::channel::{Channel, Error};
-use crate::p2p::legacy::Messages;
+use crate::shared_ext::Bip96;
 use crate::{channel, extension, ChannelExtension, Extension};
 
 /// Shorthand for representing asset - amount pairs

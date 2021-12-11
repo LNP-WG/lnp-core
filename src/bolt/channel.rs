@@ -25,8 +25,7 @@ use std::ops::Range;
 use wallet::hd::HardenedIndex;
 use wallet::scripts::{Category, PubkeyScript, ToPubkeyScript};
 
-use crate::bolt::extenders::AnchorOutputs;
-use crate::bolt::htlc::Htlc;
+use crate::bolt::extensions::{AnchorOutputs, Htlc};
 use crate::bolt::{ExtensionId, Lifecycle};
 use crate::channel::{self, Channel};
 use crate::Extension;

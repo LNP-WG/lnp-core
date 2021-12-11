@@ -15,9 +15,7 @@ pub mod channel;
 mod types;
 
 mod constructor;
-mod extenders;
-mod modifiers;
+pub mod extensions;
 
 pub use constructor::Bolt3;
-pub use extenders::htlc;
 pub use types::{AssetsBalance, ExtensionId, Lifecycle, TxType};
