@@ -18,6 +18,7 @@ use bitcoin::{OutPoint, Transaction, TxIn, TxOut};
 use lnp2p::legacy::ChannelId;
 use lnp2p::legacy::Messages;
 use lnpbp::chain::AssetId;
+use p2p::legacy::ChannelType;
 use wallet::hlc::{HashLock, HashPreimage};
 use wallet::scripts::{LockScript, PubkeyScript, WitnessScript};
 use wallet::IntoPk;
@@ -136,13 +137,6 @@ impl Default for Htlc {
     }
 }
 
-impl Htlc {
-    #[inline]
-    pub fn set_anchors_zero_fee_htlc_tx(&mut self, flag: bool) {
-        self.anchors_zero_fee_htlc_tx = flag
-    }
-}
-
 impl channel::State for Htlc {}
 
 impl Extension for Htlc {
@@ -166,6 +160,10 @@ impl Extension for Htlc {
     ) -> Result<(), channel::Error> {
         match message {
             Messages::OpenChannel(open_channel) => {
+                self.anchors_zero_fee_htlc_tx = open_channel
+                    .channel_type
+                    .map(ChannelType::has_anchors_zero_fee_htlc_tx)
+                    .unwrap_or_default();
                 self.htlc_minimum_msat = open_channel.htlc_minimum_msat;
                 self.max_accepted_htlcs = open_channel.max_accepted_htlcs;
                 self.max_htlc_value_in_flight_msat =
@@ -178,6 +176,10 @@ impl Extension for Htlc {
                 self.to_self_delay = open_channel.to_self_delay;
             }
             Messages::AcceptChannel(accept_channel) => {
+                self.anchors_zero_fee_htlc_tx = accept_channel
+                    .channel_type
+                    .map(ChannelType::has_anchors_zero_fee_htlc_tx)
+                    .unwrap_or_default();
                 self.htlc_minimum_msat = accept_channel.htlc_minimum_msat;
                 self.max_accepted_htlcs = accept_channel.max_accepted_htlcs;
                 self.max_htlc_value_in_flight_msat =

@@ -91,9 +91,6 @@ impl Channel<ExtensionId> {
         if channel_type.has_anchor_outputs() {
             channel.add_extender(AnchorOutputs::new());
         }
-        if channel_type.has_anchors_zero_fee_htlc_tx() {
-            channel.htlc_mut().set_anchors_zero_fee_htlc_tx(true);
-        }
 
         let core = channel.constructor_mut();
         core.set_policy(policy);
@@ -142,18 +139,6 @@ impl Channel<ExtensionId> {
             as &dyn Any;
         extension
             .downcast_ref::<Htlc>()
-            .expect("ExtensionId::Htlc must be of Htlc type")
-    }
-
-    /// Returns mutable HTLC extension
-    #[inline]
-    fn htlc_mut(&mut self) -> &mut Htlc {
-        let extension = &mut *self
-            .extender_mut(ExtensionId::Htlc)
-            .expect("BOLT channels must always have HTLC extension")
-            as &mut dyn Any;
-        extension
-            .downcast_mut::<Htlc>()
             .expect("ExtensionId::Htlc must be of Htlc type")
     }
 
