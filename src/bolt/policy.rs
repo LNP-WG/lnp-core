@@ -646,6 +646,8 @@ pub struct Keyset {
     pub payment_basepoint: PublicKey,
     /// Base point for deriving keys in `to_local` time-locked spending paths
     pub delayed_payment_basepoint: PublicKey,
+    /// Base point for deriving HTLC-related keys
+    pub htlc_basepoint: PublicKey,
     /// Base point for deriving keys used for penalty spending paths
     pub first_per_commitment_point: PublicKey,
     /// Allows the sending node to commit to where funds will go on mutual
@@ -668,6 +670,7 @@ impl From<&OpenChannel> for Keyset {
             revocation_basepoint: open_channel.revocation_basepoint,
             payment_basepoint: open_channel.payment_point,
             delayed_payment_basepoint: open_channel.delayed_payment_basepoint,
+            htlc_basepoint: open_channel.htlc_basepoint,
             first_per_commitment_point: open_channel.first_per_commitment_point,
             shutdown_scriptpubkey: open_channel.shutdown_scriptpubkey.clone(),
             static_remotekey: false,
@@ -682,6 +685,7 @@ impl From<&AcceptChannel> for Keyset {
             revocation_basepoint: accept_channel.revocation_basepoint,
             payment_basepoint: accept_channel.payment_point,
             delayed_payment_basepoint: accept_channel.delayed_payment_basepoint,
+            htlc_basepoint: accept_channel.htlc_basepoint,
             first_per_commitment_point: accept_channel
                 .first_per_commitment_point,
             shutdown_scriptpubkey: accept_channel.shutdown_scriptpubkey.clone(),
@@ -700,6 +704,7 @@ impl DumbDefault for Keyset {
             revocation_basepoint: dumb_pubkey!(),
             payment_basepoint: dumb_pubkey!(),
             delayed_payment_basepoint: dumb_pubkey!(),
+            htlc_basepoint: dumb_pubkey!(),
             first_per_commitment_point: dumb_pubkey!(),
             shutdown_scriptpubkey: None,
             static_remotekey: false,
@@ -735,6 +740,7 @@ impl Keyset {
             revocation_basepoint: keys[2],
             payment_basepoint: keys[0],
             delayed_payment_basepoint: keys[1],
+            htlc_basepoint: keys[5],
             first_per_commitment_point: keys[4],
             shutdown_scriptpubkey: if commit_to_shutdown_scriptpubkey {
                 Some(keys[7].to_pubkey_script(Category::SegWit))

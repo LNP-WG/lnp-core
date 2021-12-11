@@ -18,13 +18,12 @@ use bitcoin::{OutPoint, Transaction, TxIn, TxOut};
 use lnp2p::legacy::{AcceptChannel, Messages, OpenChannel};
 use lnp2p::legacy::{ActiveChannelId, ChannelId, TempChannelId};
 use lnpbp::chain::AssetId;
-use std::any::Any;
 use wallet::lex_order::LexOrder;
 use wallet::psbt::Psbt;
 use wallet::scripts::{LockScript, PubkeyScript, WitnessScript};
 use wallet::IntoPk;
 
-use super::extensions::{AnchorOutputs, Htlc};
+use super::extensions::AnchorOutputs;
 use super::policy::{CommonParams, Keyset, PeerParams, Policy};
 use super::{ExtensionId, Lifecycle};
 use crate::{channel, Channel, ChannelExtension, Extension};
@@ -130,18 +129,6 @@ impl Channel<ExtensionId> {
         self.constructor_mut().set_local_params(params)
     }
 
-    /// Returns reference to HTLC extension
-    #[inline]
-    pub fn htlc(&self) -> &Htlc {
-        let extension = &*self
-            .extender(ExtensionId::Htlc)
-            .expect("BOLT channels must always have HTLC extension")
-            as &dyn Any;
-        extension
-            .downcast_ref::<Htlc>()
-            .expect("ExtensionId::Htlc must be of Htlc type")
-    }
-
     /// Returns active channel id, covering both temporary and final channel ids
     #[inline]
     pub fn active_channel_id(&self) -> ActiveChannelId {
@@ -207,7 +194,7 @@ impl Channel<ExtensionId> {
             revocation_basepoint: local_keyset.revocation_basepoint,
             payment_point: local_keyset.payment_basepoint,
             delayed_payment_basepoint: local_keyset.delayed_payment_basepoint,
-            htlc_basepoint: *self.htlc().local_basepoint(),
+            htlc_basepoint: local_keyset.htlc_basepoint,
             first_per_commitment_point: local_keyset.first_per_commitment_point,
             shutdown_scriptpubkey: local_keyset.shutdown_scriptpubkey.clone(),
             channel_flags: if common_params.announce_channel { 1 } else { 0 },
@@ -259,7 +246,7 @@ impl Channel<ExtensionId> {
             revocation_basepoint: local_keyset.revocation_basepoint,
             payment_point: local_keyset.payment_basepoint,
             delayed_payment_basepoint: local_keyset.delayed_payment_basepoint,
-            htlc_basepoint: *self.htlc().local_basepoint(),
+            htlc_basepoint: local_keyset.htlc_basepoint,
             first_per_commitment_point: local_keyset.first_per_commitment_point,
             shutdown_scriptpubkey: local_keyset.shutdown_scriptpubkey.clone(),
             channel_type: common_params.channel_type.into_option(),
