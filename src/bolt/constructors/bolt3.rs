@@ -23,26 +23,9 @@ use wallet::psbt::Psbt;
 use wallet::scripts::{LockScript, PubkeyScript, WitnessScript};
 use wallet::IntoPk;
 
-use crate::bolt::channel::{CommonParams, PeerParams, Policy};
-use crate::bolt::ExtensionId;
+use crate::bolt::channel::{CommonParams, Keyset, PeerParams, Policy};
+use crate::bolt::{ExtensionId, Lifecycle};
 use crate::{channel, ChannelExtension, Extension};
-
-#[derive(Copy, Clone, PartialEq, Eq, Debug, StrictEncode, StrictDecode)]
-pub struct Keyset {
-    pub revocation_basepoint: PublicKey,
-    pub payment_basepoint: PublicKey,
-    pub delayed_payment_basepoint: PublicKey,
-}
-
-impl DumbDefault for Keyset {
-    fn dumb_default() -> Self {
-        Self {
-            revocation_basepoint: dumb_pubkey!(),
-            payment_basepoint: dumb_pubkey!(),
-            delayed_payment_basepoint: dumb_pubkey!(),
-        }
-    }
-}
 
 /// The core of the lightning channel operating according to the Bolt3 standard.
 /// This is "channel constructor" used by `Channel` structure and managing part
@@ -53,12 +36,17 @@ impl DumbDefault for Keyset {
 #[derive(Getters, Clone, PartialEq, Eq, Debug, StrictEncode, StrictDecode)]
 #[getter(as_copy)]
 pub struct Bolt3 {
+    /// Current channel lifecycle stage
+    #[getter(as_copy)]
+    stage: Lifecycle,
+
     /// The chain_hash value denotes the exact blockchain that the opened
     /// channel will reside within. This is usually the genesis hash of the
     /// respective blockchain. The existence of the chain_hash allows nodes to
     /// open channels across many distinct blockchains as well as have channels
     /// within multiple blockchains opened to the same peer (if it supports the
     /// target chains).
+    #[getter(as_copy)]
     chain_hash: AssetId,
 
     /// Channel id used by the channel; first temporary and later final.
@@ -67,29 +55,38 @@ pub struct Bolt3 {
     /// basis until the funding transaction is established, at which point it
     /// is replaced by the channel_id, which is derived from the funding
     /// transaction.
+    #[getter(as_copy)]
     active_channel_id: ActiveChannelId,
 
     /// Amount in millisatoshis
+    #[getter(as_copy)]
     local_amount: u64,
 
     /// Amount in millisatoshis
+    #[getter(as_copy)]
     remote_amount: u64,
 
+    #[getter(as_copy)]
     commitment_number: u64,
 
+    #[getter(as_copy)]
     obscuring_factor: u64,
 
     /// The policy for accepting remote node params
+    #[getter(as_ref)]
     policy: Policy,
 
-    /// Common parapeters applying for both nodes
+    /// Common parameters applying for both nodes
+    #[getter(as_copy)]
     common_params: CommonParams,
 
     /// Channel parameters required to be met by the remote node when operating
     /// towards the local one
+    #[getter(as_copy)]
     local_params: PeerParams,
 
     /// Channel parameters to be used towards the remote node
+    #[getter(as_copy)]
     remote_params: PeerParams,
 
     /// Set of locally-derived keys for creating channel transactions
@@ -99,6 +96,7 @@ pub struct Bolt3 {
     remote_keys: Keyset,
 
     /// Keeps information whether this node is the originator of the channel
+    #[getter(as_copy)]
     is_originator: bool,
 }
 
@@ -112,6 +110,7 @@ impl Default for Bolt3 {
             dumb_keys.payment_basepoint,
         );
         Bolt3 {
+            stage: Lifecycle::Initial,
             chain_hash: default!(),
             active_channel_id: ActiveChannelId::random(),
             local_amount: 0,
@@ -122,7 +121,7 @@ impl Default for Bolt3 {
             common_params: default!(),
             local_params: default!(),
             remote_params: default!(),
-            local_keys: dumb_keys,
+            local_keys: dumb_keys.clone(),
             remote_keys: dumb_keys,
             is_originator,
         }
@@ -143,6 +142,18 @@ impl Bolt3 {
         self.active_channel_id.temp_channel_id()
     }
 
+    /// Marks the channel as an inbound
+    #[inline]
+    pub fn set_inbound(&mut self) {
+        self.is_originator = false;
+    }
+
+    /// Marks the channel as an outbound
+    #[inline]
+    pub fn set_outbound(&mut self) {
+        self.is_originator = true;
+    }
+
     /// Sets channel policy
     #[inline]
     pub fn set_policy(&mut self, policy: Policy) {
@@ -155,10 +166,22 @@ impl Bolt3 {
         self.common_params = params
     }
 
-    /// Sets local parameters fro the channel
+    /// Sets local parameters for the channel
     #[inline]
     pub fn set_local_params(&mut self, params: PeerParams) {
         self.local_params = params
+    }
+
+    /// Sets local keys for the channel
+    #[inline]
+    pub fn set_local_keys(&mut self, keys: Keyset) {
+        self.local_keys = keys
+    }
+
+    /// Sets `static_remotekey` flag for the channel
+    #[inline]
+    pub fn set_static_remotekey(&mut self, static_remotekey: bool) {
+        self.local_keys.static_remotekey = static_remotekey
     }
 }
 
@@ -180,8 +203,11 @@ impl Extension for Bolt3 {
         &mut self,
         message: &Messages,
     ) -> Result<(), channel::Error> {
+        // TODO: Check lifecycle
         match message {
             Messages::OpenChannel(open_channel) => {
+                self.stage = Lifecycle::Proposed;
+
                 self.is_originator = false;
                 self.active_channel_id =
                     ActiveChannelId::from(open_channel.temporary_channel_id);
@@ -192,6 +218,18 @@ impl Extension for Bolt3 {
                 self.remote_params =
                     self.policy.validate_inbound(open_channel)?;
 
+                // TODO: Add channel checks and fail on:
+                // 1) the `chain_hash` value is set to a hash of a chain that is
+                //    unknown to the receiver;
+                // 2) `push_msat` is greater than `funding_satoshis` * 1000;
+                // 3) the funder's amount for the initial commitment transaction
+                //    is not sufficient for full fee payment;
+                // 4) both `to_local` and `to_remote` amounts for the initial
+                //    commitment transaction are less than or equal to
+                //    `channel_reserve_satoshis`;
+                // 5) funding_satoshis is greater than or equal to 2^24 and the
+                //    receiver does not support `option_support_large_channel`.
+
                 // Keys
                 self.remote_keys.payment_basepoint = open_channel.payment_point;
                 self.remote_keys.revocation_basepoint =
@@ -200,9 +238,20 @@ impl Extension for Bolt3 {
                     open_channel.delayed_payment_basepoint;
             }
             Messages::AcceptChannel(accept_channel) => {
+                self.stage = Lifecycle::Accepted;
+
                 self.remote_params = self
                     .policy
                     .confirm_outbound(self.local_params, accept_channel)?;
+
+                // TODO: Add channel type and other checks
+                // 1) the `temporary_channel_id` MUST be the same as the
+                //    `temporary_channel_id` in the `open_channel`
+                //    message;
+                // 2) if `channel_type` is set, and `channel_type` was set in
+                //    `open_channel`, and they are equal types;
+                // 3) if the `channel_type` is not set it must had not been set
+                //    in the `open_channel`.
 
                 // Keys
                 self.remote_keys.payment_basepoint =
@@ -213,16 +262,22 @@ impl Extension for Bolt3 {
                     accept_channel.delayed_payment_basepoint;
             }
             Messages::FundingCreated(funding_created) => {
+                self.stage = Lifecycle::Funding;
+
                 self.active_channel_id = ActiveChannelId::with(
                     funding_created.funding_txid,
                     funding_created.funding_output_index,
                 );
             }
             Messages::FundingSigned(funding_signed) => {
+                self.stage = Lifecycle::Funded;
+
                 self.active_channel_id =
                     ActiveChannelId::from(funding_signed.channel_id);
             }
-            Messages::FundingLocked(_) => {}
+            Messages::FundingLocked(_) => {
+                self.stage = Lifecycle::Locked; // TODO: or Active
+            }
             Messages::Shutdown(_) => {}
             Messages::ClosingSigned(_) => {}
             Messages::UpdateAddHtlc(_message) => {

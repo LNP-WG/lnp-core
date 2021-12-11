@@ -17,15 +17,19 @@ use amplify::ToYamlString;
 use bitcoin::secp256k1::PublicKey;
 use bitcoin::util::bip32::{ChildNumber, ExtendedPrivKey};
 use lnp2p::legacy::{AcceptChannel, OpenChannel};
-use p2p::legacy::{ActiveChannelId, ChannelId, TempChannelId};
+use p2p::legacy::{ActiveChannelId, ChannelId, ChannelType, TempChannelId};
 use secp256k1::{Secp256k1, Signing};
 use std::any::Any;
 use std::fmt::Debug;
 use std::ops::Range;
 use wallet::hd::HardenedIndex;
+use wallet::scripts::{Category, PubkeyScript, ToPubkeyScript};
 
-use crate::bolt::{Bolt3, ExtensionId};
-use crate::channel::Channel;
+use crate::bolt::extenders::AnchorOutputs;
+use crate::bolt::htlc::Htlc;
+use crate::bolt::{Bolt3, ExtensionId, Lifecycle};
+use crate::channel::{self, Channel};
+use crate::Extension;
 
 /// Limit for the maximum number of the accepted HTLCs towards some node
 pub const BOLT3_MAX_ACCEPTED_HTLC_LIMIT: u16 = 483;
@@ -146,12 +150,27 @@ impl Channel<ExtensionId> {
         policy: Policy,
         common_params: CommonParams,
         local_params: PeerParams,
+        mut local_keys: Keyset,
     ) -> Self {
         let mut channel = Self::default();
+
+        let channel_type = common_params.channel_type;
+        if channel_type.has_static_remotekey() {
+            local_keys.static_remotekey = true;
+        }
+        if channel_type.has_anchor_outputs() {
+            channel.add_extender(AnchorOutputs::new());
+        }
+        if channel_type.has_anchors_zero_fee_htlc_tx() {
+            channel.as_htlc_mut().set_anchors_zero_fee_htlc_tx(true);
+        }
+
         let core = channel.as_bolt3_mut();
         core.set_policy(policy);
         core.set_common_params(common_params);
         core.set_local_params(local_params);
+        core.set_local_keys(local_keys);
+
         channel
     }
 
@@ -174,7 +193,7 @@ impl Channel<ExtensionId> {
         self.as_bolt3_mut().set_common_params(params)
     }
 
-    /// Sets local parameters fro the channel.
+    /// Sets local parameters for the channel.
     ///
     /// Can be used for changing prospective channel parameters on the fly to
     /// enable accepting new `open_channel` - or follow-up `accept_channel`
@@ -200,10 +219,34 @@ impl Channel<ExtensionId> {
             .expect("BOLT channel uses non-BOLT-3 constructor")
     }
 
+    /// Returns reference to HTLC extension
+    #[inline]
+    pub fn as_htlc(&self) -> &Htlc {
+        let extension = self
+            .extender(ExtensionId::Htlc)
+            .expect("BOLT channels must always have HTLC extension")
+            as &dyn Any;
+        extension
+            .downcast_ref::<Htlc>()
+            .expect("ExtensionId::Htlc must be of Htlc type")
+    }
+
+    /// Returns mutable HTLC extension
+    #[inline]
+    fn as_htlc_mut(&mut self) -> &mut Htlc {
+        let extension = self
+            .extender_mut(ExtensionId::Htlc)
+            .expect("BOLT channels must always have HTLC extension")
+            as &mut dyn Any;
+        extension
+            .downcast_mut::<Htlc>()
+            .expect("ExtensionId::Htlc must be of Htlc type")
+    }
+
     /// Returns active channel id, covering both temporary and final channel ids
     #[inline]
     pub fn active_channel_id(&self) -> ActiveChannelId {
-        *self.as_bolt3().active_channel_id()
+        self.as_bolt3().active_channel_id()
     }
 
     /// Returns [`ChannelId`], if the channel already assigned it
@@ -217,6 +260,112 @@ impl Channel<ExtensionId> {
     #[inline]
     pub fn temp_channel_id(&self) -> Option<TempChannelId> {
         self.active_channel_id().temp_channel_id()
+    }
+
+    /// Composes `open_channel` message used for proposing channel opening to a
+    /// remote peer. The message is composed basing on the local channel
+    /// parameters set with [`Channel::with`] or [`Channel::set_local_params`]
+    /// (see [`Bolt3::local_params`] for details on local parameters).
+    ///
+    /// Fails if the node is not in [`Lifecycle::Initial`] or
+    /// [`Lifecycle::Reestablishing`] state.
+    pub fn open_channel_compose(
+        &mut self,
+        funding_sat: u64,
+        push_msat: u64,
+    ) -> Result<OpenChannel, channel::Error> {
+        let stage = self.as_bolt3().stage();
+        if stage != Lifecycle::Initial && stage != Lifecycle::Reestablishing {
+            return Err(channel::Error::LifecycleMismatch {
+                current: stage,
+                required: &[Lifecycle::Initial, Lifecycle::Reestablishing],
+            });
+        }
+
+        self.as_bolt3_mut().set_outbound();
+
+        let core = self.as_bolt3();
+        let common_params: CommonParams = core.common_params();
+        let local_params: PeerParams = core.local_params();
+        let local_keyset: &Keyset = core.local_keys();
+
+        Ok(OpenChannel {
+            chain_hash: core.chain_hash(),
+            temporary_channel_id: core.temp_channel_id().expect(
+                "initial channel state must always have a temporary channel id",
+            ),
+            funding_satoshis: funding_sat,
+            push_msat,
+            dust_limit_satoshis: local_params.dust_limit_satoshis,
+            max_htlc_value_in_flight_msat: local_params
+                .max_htlc_value_in_flight_msat,
+            channel_reserve_satoshis: local_params.channel_reserve_satoshis,
+            htlc_minimum_msat: local_params.htlc_minimum_msat,
+            feerate_per_kw: common_params.feerate_per_kw,
+            to_self_delay: local_params.to_self_delay,
+            max_accepted_htlcs: local_params.max_accepted_htlcs,
+            funding_pubkey: local_keyset.funding_pubkey,
+            revocation_basepoint: local_keyset.revocation_basepoint,
+            payment_point: local_keyset.payment_basepoint,
+            delayed_payment_basepoint: local_keyset.delayed_payment_basepoint,
+            htlc_basepoint: *self.as_htlc().local_basepoint(),
+            first_per_commitment_point: local_keyset.first_per_commitment_point,
+            shutdown_scriptpubkey: local_keyset.shutdown_scriptpubkey.clone(),
+            channel_flags: if common_params.announce_channel { 1 } else { 0 },
+            channel_type: common_params.channel_type.into_option(),
+            unknown_tlvs: none!(),
+        })
+    }
+
+    /// Composes `accept_channel` message used for accepting channel opening
+    /// from a remote peer. The message is composed basing on the local
+    /// channel parameters set with [`Channel::with`] or
+    /// [`Channel::set_local_params`] (see [`Bolt3::local_params`] for
+    /// details on local parameters).
+    ///
+    /// Fails if the node is not in [`Lifecycle::Initial`] or
+    /// [`Lifecycle::Reestablishing`] state.
+    pub fn accept_channel_compose(
+        &mut self,
+    ) -> Result<AcceptChannel, channel::Error> {
+        let stage = self.as_bolt3().stage();
+        if stage != Lifecycle::Initial && stage != Lifecycle::Reestablishing {
+            return Err(channel::Error::LifecycleMismatch {
+                current: stage,
+                required: &[Lifecycle::Initial, Lifecycle::Reestablishing],
+            });
+        }
+
+        self.as_bolt3_mut().set_inbound();
+
+        let core = self.as_bolt3();
+        let policy: &Policy = core.policy();
+        let common_params: CommonParams = core.common_params();
+        let local_params: PeerParams = core.local_params();
+        let local_keyset: &Keyset = core.local_keys();
+
+        Ok(AcceptChannel {
+            temporary_channel_id: core.temp_channel_id().expect(
+                "initial channel state must always have a temporary channel id",
+            ),
+            dust_limit_satoshis: local_params.dust_limit_satoshis,
+            max_htlc_value_in_flight_msat: local_params
+                .max_htlc_value_in_flight_msat,
+            channel_reserve_satoshis: local_params.channel_reserve_satoshis,
+            htlc_minimum_msat: local_params.htlc_minimum_msat,
+            minimum_depth: policy.minimum_depth,
+            to_self_delay: local_params.to_self_delay,
+            max_accepted_htlcs: local_params.max_accepted_htlcs,
+            funding_pubkey: local_keyset.funding_pubkey,
+            revocation_basepoint: local_keyset.revocation_basepoint,
+            payment_point: local_keyset.payment_basepoint,
+            delayed_payment_basepoint: local_keyset.delayed_payment_basepoint,
+            htlc_basepoint: *self.as_htlc().local_basepoint(),
+            first_per_commitment_point: local_keyset.first_per_commitment_point,
+            shutdown_scriptpubkey: local_keyset.shutdown_scriptpubkey.clone(),
+            channel_type: common_params.channel_type.into_option(),
+            unknown_tlvs: none!(),
+        })
     }
 }
 
@@ -486,9 +635,6 @@ impl Policy {
         our_params: PeerParams,
         accept_channel: &AcceptChannel,
     ) -> Result<PeerParams, PolicyError> {
-        // The temporary_channel_id MUST be the same as the temporary_channel_id
-        // in the open_channel message.
-
         // if `minimum_depth` is unreasonably large:
         //
         //     MAY reject the channel.
@@ -559,6 +705,17 @@ pub struct CommonParams {
     /// for commitment and HTLC transactions, as described in BOLT #3 (this can
     /// be adjusted later with an update_fee message).
     pub feerate_per_kw: u32,
+
+    /// The least-significant bit of `channel_flags`. Indicates whether the
+    /// initiator of the funding flow wishes to advertise this channel publicly
+    /// to the network, as detailed within BOLT #7.
+    pub announce_channel: bool,
+
+    /// Channel types are an explicit enumeration: for convenience of future
+    /// definitions they reuse even feature bits, but they are not an arbitrary
+    /// combination (they represent the persistent features which affect the
+    /// channel operation).
+    pub channel_type: ChannelType,
 }
 
 #[cfg(feature = "serde")]
@@ -575,6 +732,8 @@ impl Default for CommonParams {
         CommonParams {
             minimum_depth: 3,
             feerate_per_kw: 2,
+            announce_channel: true,
+            channel_type: ChannelType::default(),
         }
     }
 }
@@ -587,6 +746,8 @@ impl CommonParams {
         CommonParams {
             minimum_depth,
             feerate_per_kw: open_channel.feerate_per_kw,
+            announce_channel: open_channel.should_announce_channel(),
+            channel_type: open_channel.channel_type.unwrap_or_default(),
         }
     }
 }
@@ -723,31 +884,47 @@ pub struct Keyset {
     pub delayed_payment_basepoint: PublicKey,
     /// Base point for deriving keys used for penalty spending paths
     pub first_per_commitment_point: PublicKey,
+    /// Allows the sending node to commit to where funds will go on mutual
+    /// close, which the remote node should enforce even if a node is
+    /// compromised later.
+    pub shutdown_scriptpubkey: Option<PubkeyScript>,
+    /// If `option_static_remotekey` or `option_anchors` is negotiated, the
+    /// remotepubkey is simply the remote node's payment_basepoint, otherwise
+    /// it is calculated as above using the remote node's payment_basepoint.
+    pub static_remotekey: bool,
 }
 
 #[cfg(feature = "serde")]
 impl ToYamlString for Keyset {}
 
 impl From<&OpenChannel> for Keyset {
-    fn from(msg: &OpenChannel) -> Self {
+    fn from(open_channel: &OpenChannel) -> Self {
         Self {
-            funding_pubkey: msg.funding_pubkey,
-            revocation_basepoint: msg.revocation_basepoint,
-            payment_basepoint: msg.payment_point,
-            delayed_payment_basepoint: msg.delayed_payment_basepoint,
-            first_per_commitment_point: msg.first_per_commitment_point,
+            funding_pubkey: open_channel.funding_pubkey,
+            revocation_basepoint: open_channel.revocation_basepoint,
+            payment_basepoint: open_channel.payment_point,
+            delayed_payment_basepoint: open_channel.delayed_payment_basepoint,
+            first_per_commitment_point: open_channel.first_per_commitment_point,
+            shutdown_scriptpubkey: open_channel.shutdown_scriptpubkey.clone(),
+            static_remotekey: false,
         }
     }
 }
 
 impl From<&AcceptChannel> for Keyset {
-    fn from(msg: &AcceptChannel) -> Self {
+    fn from(accept_channel: &AcceptChannel) -> Self {
         Self {
-            funding_pubkey: msg.funding_pubkey,
-            revocation_basepoint: msg.revocation_basepoint,
-            payment_basepoint: msg.payment_point,
-            delayed_payment_basepoint: msg.delayed_payment_basepoint,
-            first_per_commitment_point: msg.first_per_commitment_point,
+            funding_pubkey: accept_channel.funding_pubkey,
+            revocation_basepoint: accept_channel.revocation_basepoint,
+            payment_basepoint: accept_channel.payment_point,
+            delayed_payment_basepoint: accept_channel.delayed_payment_basepoint,
+            first_per_commitment_point: accept_channel
+                .first_per_commitment_point,
+            shutdown_scriptpubkey: accept_channel.shutdown_scriptpubkey.clone(),
+            static_remotekey: accept_channel
+                .channel_type
+                .map(ChannelType::has_static_remotekey)
+                .unwrap_or_default(),
         }
     }
 }
@@ -760,6 +937,8 @@ impl DumbDefault for Keyset {
             payment_basepoint: dumb_pubkey!(),
             delayed_payment_basepoint: dumb_pubkey!(),
             first_per_commitment_point: dumb_pubkey!(),
+            shutdown_scriptpubkey: None,
+            static_remotekey: false,
         }
     }
 }
@@ -770,8 +949,9 @@ impl Keyset {
         secp: &Secp256k1<C>,
         funding_pubkey: PublicKey,
         channel_xpriv: ExtendedPrivKey,
+        commit_to_shutdown_scriptpubkey: bool,
     ) -> Self {
-        let keys = [1u16, 2, 3, 4, 5]
+        let keys = [1u16, 2, 3, 4, 5, 6, 7]
             .into_iter()
             .map(HardenedIndex::from)
             .map(ChildNumber::from)
@@ -792,6 +972,12 @@ impl Keyset {
             payment_basepoint: keys[0],
             delayed_payment_basepoint: keys[1],
             first_per_commitment_point: keys[4],
+            shutdown_scriptpubkey: if commit_to_shutdown_scriptpubkey {
+                Some(keys[7].to_pubkey_script(Category::SegWit))
+            } else {
+                None
+            },
+            static_remotekey: false,
         }
     }
 }

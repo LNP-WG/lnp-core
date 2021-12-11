@@ -13,7 +13,6 @@
 
 // LN feature-flag based extensions
 mod anchor_outputs;
-mod shutdown_script;
 
 // Payment protocols
 pub mod htlc;
@@ -22,4 +21,3 @@ mod policy;
 pub use anchor_outputs::AnchorOutputs;
 pub use htlc::Htlc;
 pub use policy::Policy;
-pub use shutdown_script::ShutdownScript;

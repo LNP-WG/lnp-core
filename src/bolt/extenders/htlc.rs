@@ -66,6 +66,7 @@ pub struct HtlcSecret {
 }
 
 #[derive(
+    Getters,
     Clone,
     PartialEq,
     Eq,
@@ -79,6 +80,11 @@ pub struct HtlcSecret {
 pub struct Htlc {
     initialized: bool,
 
+    /// Set if the feature `option_anchors_zero_fee_htlc_tx` was negotiated via
+    /// `channel_type`. Indicates that HTLC transactions will use zero fees and
+    /// will be pushed through an anchor transaction.
+    anchors_zero_fee_htlc_tx: bool,
+
     // Sets of HTLC informations
     offered_htlcs: Vec<HtlcSecret>,
     received_htlcs: Vec<HtlcSecret>,
@@ -86,10 +92,11 @@ pub struct Htlc {
 
     // Commitment round specific information
     to_self_delay: u16,
-    revocation_pubkey: PublicKey,
-    local_htlc_pubkey: PublicKey,
-    remote_htlc_pubkey: PublicKey,
-    local_delayed_pubkey: PublicKey,
+    local_revocation_basepoint: PublicKey,
+    remote_revocation_basepoint: PublicKey,
+    local_basepoint: PublicKey,
+    remote_basepoint: PublicKey,
+    local_delayed_basepoint: PublicKey,
 
     // Channel specific information
     channel_id: ChannelId,
@@ -97,9 +104,9 @@ pub struct Htlc {
 
     /// indicates the smallest value HTLC this node will accept.
     htlc_minimum_msat: u64,
-
+    max_htlc_value_in_flight_msat: u64,
     max_accepted_htlcs: u16,
-    total_accepted_htlcs: u16,
+
     last_recieved_htlc_id: u64,
     last_offered_htlc_id: u64,
 }
@@ -108,22 +115,31 @@ impl Default for Htlc {
     fn default() -> Self {
         Htlc {
             initialized: false,
+            anchors_zero_fee_htlc_tx: false,
             offered_htlcs: vec![],
             received_htlcs: vec![],
             resolved_htlcs: vec![],
             to_self_delay: 0,
-            revocation_pubkey: dumb_pubkey!(),
-            local_htlc_pubkey: dumb_pubkey!(),
-            remote_htlc_pubkey: dumb_pubkey!(),
-            local_delayed_pubkey: dumb_pubkey!(),
+            local_revocation_basepoint: dumb_pubkey!(),
+            remote_revocation_basepoint: dumb_pubkey!(),
+            local_basepoint: dumb_pubkey!(),
+            remote_basepoint: dumb_pubkey!(),
+            local_delayed_basepoint: dumb_pubkey!(),
             channel_id: Default::default(),
             commitment_outpoint: Default::default(),
             htlc_minimum_msat: 0,
+            max_htlc_value_in_flight_msat: 0,
             max_accepted_htlcs: 0,
-            total_accepted_htlcs: 0,
             last_recieved_htlc_id: 0,
             last_offered_htlc_id: 0,
         }
+    }
+}
+
+impl Htlc {
+    #[inline]
+    pub fn set_anchors_zero_fee_htlc_tx(&mut self, flag: bool) {
+        self.anchors_zero_fee_htlc_tx = flag
     }
 }
 
@@ -151,9 +167,27 @@ impl Extension for Htlc {
         match message {
             Messages::OpenChannel(open_channel) => {
                 self.htlc_minimum_msat = open_channel.htlc_minimum_msat;
+                self.max_accepted_htlcs = open_channel.max_accepted_htlcs;
+                self.max_htlc_value_in_flight_msat =
+                    open_channel.max_htlc_value_in_flight_msat;
+                self.remote_basepoint = open_channel.htlc_basepoint;
+                self.remote_revocation_basepoint =
+                    open_channel.revocation_basepoint;
+                self.local_delayed_basepoint =
+                    open_channel.delayed_payment_basepoint;
+                self.to_self_delay = open_channel.to_self_delay;
             }
             Messages::AcceptChannel(accept_channel) => {
                 self.htlc_minimum_msat = accept_channel.htlc_minimum_msat;
+                self.max_accepted_htlcs = accept_channel.max_accepted_htlcs;
+                self.max_htlc_value_in_flight_msat =
+                    accept_channel.max_htlc_value_in_flight_msat;
+                self.remote_basepoint = accept_channel.htlc_basepoint;
+                self.remote_revocation_basepoint =
+                    accept_channel.revocation_basepoint;
+                self.local_delayed_basepoint =
+                    accept_channel.delayed_payment_basepoint;
+                self.to_self_delay = accept_channel.to_self_delay;
             }
             Messages::UpdateAddHtlc(message) => {
                 if message.channel_id == self.channel_id {
@@ -168,8 +202,8 @@ impl Extension for Htlc {
                         return Err(channel::Error::Htlc(
                             "amount_msat has to be greater than 0".to_string(),
                         ));
-                    } else if self.total_accepted_htlcs
-                        == self.max_accepted_htlcs
+                    } else if self.received_htlcs.len()
+                        >= self.max_accepted_htlcs as usize
                     {
                         return Err(channel::Error::Htlc(
                             "max no. of HTLC limit exceeded".to_string(),
@@ -287,9 +321,9 @@ impl ChannelExtension for Htlc {
         for (index, offered) in self.offered_htlcs.iter().enumerate() {
             let htlc_output = TxOut::ln_offered_htlc(
                 offered.amount,
-                self.revocation_pubkey,
-                self.local_htlc_pubkey,
-                self.remote_htlc_pubkey,
+                self.remote_revocation_basepoint,
+                self.local_basepoint,
+                self.remote_basepoint,
                 offered.hashlock,
             );
             tx_graph.cmt_outs.push(htlc_output); // Should htlc outputs be inside graph.cmt?
@@ -298,8 +332,8 @@ impl ChannelExtension for Htlc {
                 offered.amount,
                 self.commitment_outpoint,
                 offered.cltv_expiry,
-                self.revocation_pubkey,
-                self.local_delayed_pubkey,
+                self.remote_revocation_basepoint,
+                self.local_delayed_basepoint,
                 self.to_self_delay,
             );
             // Last index of transaction in graph
@@ -315,9 +349,9 @@ impl ChannelExtension for Htlc {
         for (index, recieved) in self.received_htlcs.iter().enumerate() {
             let htlc_output = TxOut::ln_received_htlc(
                 recieved.amount,
-                self.revocation_pubkey,
-                self.local_htlc_pubkey,
-                self.remote_htlc_pubkey,
+                self.remote_revocation_basepoint,
+                self.local_basepoint,
+                self.remote_basepoint,
                 recieved.cltv_expiry,
                 recieved.hashlock.clone(),
             );
@@ -327,8 +361,8 @@ impl ChannelExtension for Htlc {
                 recieved.amount,
                 self.commitment_outpoint,
                 recieved.cltv_expiry,
-                self.revocation_pubkey,
-                self.local_delayed_pubkey,
+                self.remote_revocation_basepoint,
+                self.local_delayed_basepoint,
                 self.to_self_delay,
             );
             // Figure out the last index of transaction in graph

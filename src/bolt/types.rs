@@ -21,7 +21,7 @@ use strict_encoding::{
 };
 
 use crate::bolt::constructors::Bolt3;
-use crate::bolt::extenders::{AnchorOutputs, ShutdownScript};
+use crate::bolt::extenders::AnchorOutputs;
 use crate::bolt::modifiers::Bip96;
 use crate::channel::{Channel, Error};
 use crate::p2p::legacy::Messages;
@@ -111,14 +111,8 @@ impl extension::Nomenclature for ExtensionId {
     ) -> Result<(), Error> {
         match message {
             Messages::OpenChannel(open_channel) => {
-                if open_channel.shutdown_scriptpubkey.is_some() {
-                    channel.add_extension(ShutdownScript::new());
-                    // We will populate extension with parameters via
-                    // `update_from_peer` call which will happen after the
-                    // return from this function
-                }
                 if open_channel.has_anchor_outputs() {
-                    channel.add_extension(AnchorOutputs::new())
+                    channel.add_extender(AnchorOutputs::new())
                 }
             }
             _ => {}

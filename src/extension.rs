@@ -11,13 +11,13 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
-use crate::channel::Channel;
 use lnp2p::legacy::Messages;
 use std::convert::TryFrom;
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
 
 use super::channel;
+use crate::channel::Channel;
 
 /// Marker trait for creating extension nomenclatures, defining order in which
 /// extensions are applied to the channel transaction structure.

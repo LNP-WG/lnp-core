@@ -33,6 +33,11 @@ use super::{ChannelId, OnionPacket, TempChannelId};
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display(Debug)] // BOLT does not define human readable names for channel types
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
 pub enum ChannelType {
     /// no features (no bits set)
     Basic,
@@ -65,6 +70,16 @@ impl ChannelType {
     #[inline]
     pub fn has_anchors_zero_fee_htlc_tx(self) -> bool {
         self == ChannelType::AnchorsZeroFeeHtlcTxStaticRemotekey
+    }
+
+    /// Converts default channel type into `None` and non-default into
+    /// `Some(ChannelType)`
+    #[inline]
+    pub fn into_option(self) -> Option<ChannelType> {
+        match self {
+            ChannelType::Basic => None,
+            _ => Some(self),
+        }
     }
 }
 

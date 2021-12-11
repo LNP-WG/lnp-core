@@ -16,6 +16,7 @@ use std::fmt::Debug;
 use std::hash::Hash;
 
 use crate::bolt::channel::PolicyError;
+use crate::bolt::Lifecycle;
 use bitcoin::util::psbt::PartiallySignedTransaction as Psbt;
 use bitcoin::{OutPoint, Transaction, TxIn, TxOut};
 use lnp2p::legacy::Messages;
@@ -23,18 +24,7 @@ use strict_encoding::{StrictDecode, StrictEncode};
 
 use super::extension::{self, ChannelExtension, Extension};
 
-#[derive(
-    Clone,
-    PartialEq,
-    Eq,
-    Hash,
-    Debug,
-    Display,
-    Error,
-    From,
-    StrictEncode,
-    StrictDecode,
-)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug, Display, Error, From)]
 #[display(doc_comments)]
 pub enum Error {
     /// Extension-specific error: {0}
@@ -49,6 +39,14 @@ pub enum Error {
     #[from]
     #[display(inner)]
     Policy(PolicyError),
+
+    /// channel is in a state {current} incompatible with the requested
+    /// operation
+    #[display(doc_comments)]
+    LifecycleMismatch {
+        current: Lifecycle,
+        required: &'static [Lifecycle],
+    },
 }
 
 /// Marker trait for any data that can be used as a part of the channel state
@@ -95,6 +93,7 @@ impl<N> Channel<N>
 where
     N: extension::Nomenclature,
 {
+    /// Constructs channel with all used extensions
     pub fn new(
         constructor: Box<dyn ChannelExtension<Identity = N>>,
         extenders: impl IntoIterator<Item = Box<dyn ChannelExtension<Identity = N>>>,
@@ -119,14 +118,56 @@ where
         }
     }
 
+    /// Gets extender by extension identifier
     #[inline]
-    pub fn add_extension(
+    pub fn extender(
+        &self,
+        id: N,
+    ) -> Option<&Box<dyn ChannelExtension<Identity = N>>> {
+        self.extenders.get(&id)
+    }
+
+    /// Gets modifier by extension identifier
+    #[inline]
+    pub fn modifier(
+        &self,
+        id: N,
+    ) -> Option<&Box<dyn ChannelExtension<Identity = N>>> {
+        self.modifiers.get(&id)
+    }
+
+    /// Gets mutable extender by extension identifier
+    #[inline]
+    pub fn extender_mut(
+        &mut self,
+        id: N,
+    ) -> Option<&mut Box<dyn ChannelExtension<Identity = N>>> {
+        self.extenders.get_mut(&id)
+    }
+
+    /// Gets mutable modifier by extension identifier
+    #[inline]
+    pub fn modifier_mut(
+        &mut self,
+        id: N,
+    ) -> Option<&mut Box<dyn ChannelExtension<Identity = N>>> {
+        self.modifiers.get_mut(&id)
+    }
+
+    /// Adds new extension to the channel.
+    ///
+    /// Will be effective onl upon next channel state update.
+    #[inline]
+    pub fn add_extender(
         &mut self,
         extension: Box<dyn ChannelExtension<Identity = N>>,
     ) {
         self.extenders.insert(extension.identity(), extension);
     }
 
+    /// Adds new modifier to the channel.
+    ///
+    /// Will be effective onl upon next channel state update.
     #[inline]
     pub fn add_modifier(
         &mut self,
