@@ -23,6 +23,7 @@ use strict_encoding::{
 
 use super::extensions::AnchorOutputs;
 use super::Core;
+use crate::bolt::extensions::Htlc;
 use crate::channel::{Channel, Error};
 use crate::shared_ext::Bip96;
 use crate::{channel, extension, ChannelExtension, Extension};
@@ -96,6 +97,11 @@ impl TryFrom<u16> for ExtensionId {
 
 impl extension::Nomenclature for ExtensionId {
     type Constructor = Core;
+
+    #[inline]
+    fn default_extenders() -> Vec<Box<dyn ChannelExtension<Identity = Self>>> {
+        vec![Htlc::new()]
+    }
 
     #[inline]
     fn default_modifiers() -> Vec<Box<dyn ChannelExtension<Identity = Self>>> {
