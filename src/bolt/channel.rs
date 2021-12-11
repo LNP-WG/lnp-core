@@ -29,6 +29,48 @@ use super::policy::{CommonParams, Keyset, PeerParams, Policy};
 use super::{ExtensionId, Lifecycle};
 use crate::{channel, Channel, ChannelExtension, Extension};
 
+/// Channel direction
+#[derive(
+    Copy,
+    Clone,
+    Ord,
+    PartialOrd,
+    Eq,
+    PartialEq,
+    Hash,
+    Debug,
+    Display,
+    StrictEncode,
+    StrictDecode,
+)]
+pub enum Direction {
+    /// Inbound channels accepted by the local node.
+    ///
+    /// Launched in response to received `accept_channel` messages
+    #[display("inbound")]
+    Inbound,
+
+    /// Outbound channels proposed to a remote node.
+    ///
+    /// Created by sending `open_channel` message
+    #[display("outbound")]
+    Outbount,
+}
+
+impl Direction {
+    /// Detects if the channel is inbound
+    #[inline]
+    pub fn is_inbound(self) -> bool {
+        self == Direction::Inbound
+    }
+
+    /// Detects if the channel is outbound
+    #[inline]
+    pub fn is_outbound(self) -> bool {
+        self == Direction::Outbount
+    }
+}
+
 impl Channel<ExtensionId> {
     /// Constructs the new channel which will check the negotiation
     /// process against the provided policy and will use given parameters
@@ -309,17 +351,17 @@ pub struct Core {
     /// Set of remote-derived keys for creating channel transactions
     remote_keys: Keyset,
 
-    /// Keeps information whether this node is the originator of the channel
+    /// Keeps information about node directionality
     #[getter(as_copy)]
-    is_originator: bool,
+    direction: Direction,
 }
 
 impl Default for Core {
     fn default() -> Self {
-        let is_originator = true;
+        let direction = Direction::Outbount;
         let dumb_keys = Keyset::dumb_default();
         let obscuring_factor = compute_obscuring_factor(
-            is_originator,
+            direction,
             dumb_keys.payment_basepoint,
             dumb_keys.payment_basepoint,
         );
@@ -337,7 +379,7 @@ impl Default for Core {
             remote_params: default!(),
             local_keys: dumb_keys.clone(),
             remote_keys: dumb_keys,
-            is_originator,
+            direction,
         }
     }
 }
@@ -359,13 +401,13 @@ impl Core {
     /// Marks the channel as an inbound
     #[inline]
     pub fn set_inbound(&mut self) {
-        self.is_originator = false;
+        self.direction = Direction::Inbound;
     }
 
     /// Marks the channel as an outbound
     #[inline]
     pub fn set_outbound(&mut self) {
-        self.is_originator = true;
+        self.direction = Direction::Outbount;
     }
 
     /// Sets channel policy
@@ -422,7 +464,7 @@ impl Extension for Core {
             Messages::OpenChannel(open_channel) => {
                 self.stage = Lifecycle::Proposed;
 
-                self.is_originator = false;
+                self.direction = Direction::Inbound;
                 self.active_channel_id =
                     ActiveChannelId::from(open_channel.temporary_channel_id);
                 self.local_amount = open_channel.funding_satoshis * 1000;
@@ -743,14 +785,14 @@ impl ScriptGenerators for TxOut {
 }
 
 fn compute_obscuring_factor(
-    is_originator: bool,
+    direction: Direction,
     local_payment_basepoint: PublicKey,
     remote_payment_basepoint: PublicKey,
 ) -> u64 {
     use bitcoin::hashes::{sha256, Hash, HashEngine};
 
     let mut engine = sha256::Hash::engine();
-    if is_originator {
+    if direction.is_inbound() {
         engine.input(&local_payment_basepoint.serialize());
         engine.input(&remote_payment_basepoint.serialize());
     } else {
