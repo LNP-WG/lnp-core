@@ -16,8 +16,6 @@ mod anchor_outputs;
 
 // Payment protocols
 mod htlc;
-mod policy;
 
 pub use anchor_outputs::AnchorOutputs;
 pub use htlc::{Htlc, HtlcKnown, HtlcSecret};
-pub use policy::Policy;
