@@ -76,7 +76,7 @@ where
     /// Constructor extensions constructs base transaction graph. There could
     /// be only a single extension of this type
     #[getter(as_mut)]
-    constructor: Box<dyn ChannelExtension<Identity = N>>,
+    constructor: N::Constructor,
 
     /// Extender extensions adds additional outputs to the transaction graph
     /// and the state data associated with these outputs, like HTLCs, PTLCs,
@@ -95,7 +95,7 @@ where
 {
     /// Constructs channel with all used extensions
     pub fn new(
-        constructor: Box<dyn ChannelExtension<Identity = N>>,
+        constructor: N::Constructor,
         extenders: impl IntoIterator<Item = Box<dyn ChannelExtension<Identity = N>>>,
         modifiers: impl IntoIterator<Item = Box<dyn ChannelExtension<Identity = N>>>,
     ) -> Self {
@@ -183,7 +183,7 @@ where
 {
     fn default() -> Self {
         Channel::new(
-            N::default_constructor(),
+            N::Constructor::default(),
             N::default_extenders(),
             N::default_modifiers(),
         )

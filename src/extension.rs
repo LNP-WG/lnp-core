@@ -39,8 +39,7 @@ where
         + TryFrom<u16, Error = strict_encoding::Error>
         + Into<u16>,
 {
-    /// Returns default constructor
-    fn default_constructor() -> Box<dyn ChannelExtension<Identity = Self>>;
+    type Constructor: ChannelExtension<Identity = Self> + Default;
 
     /// Returns set of default channel extenders
     fn default_extenders() -> Vec<Box<dyn ChannelExtension<Identity = Self>>> {

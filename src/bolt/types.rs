@@ -20,9 +20,9 @@ use strict_encoding::{
     self, strict_deserialize, strict_serialize, StrictDecode, StrictEncode,
 };
 
-use crate::bolt::constructors::Bolt3;
-use crate::bolt::extenders::AnchorOutputs;
-use crate::bolt::modifiers::Bip96;
+use super::extenders::AnchorOutputs;
+use super::modifiers::Bip96;
+use super::Bolt3;
 use crate::channel::{Channel, Error};
 use crate::p2p::legacy::Messages;
 use crate::{channel, extension, ChannelExtension, Extension};
@@ -95,10 +95,7 @@ impl TryFrom<u16> for ExtensionId {
 }
 
 impl extension::Nomenclature for ExtensionId {
-    #[inline]
-    fn default_constructor() -> Box<dyn ChannelExtension<Identity = Self>> {
-        Bolt3::new()
-    }
+    type Constructor = Bolt3;
 
     #[inline]
     fn default_modifiers() -> Vec<Box<dyn ChannelExtension<Identity = Self>>> {

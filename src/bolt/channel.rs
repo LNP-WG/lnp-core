@@ -27,7 +27,7 @@ use wallet::scripts::{Category, PubkeyScript, ToPubkeyScript};
 
 use crate::bolt::extenders::AnchorOutputs;
 use crate::bolt::htlc::Htlc;
-use crate::bolt::{Bolt3, ExtensionId, Lifecycle};
+use crate::bolt::{ExtensionId, Lifecycle};
 use crate::channel::{self, Channel};
 use crate::Extension;
 
@@ -162,10 +162,10 @@ impl Channel<ExtensionId> {
             channel.add_extender(AnchorOutputs::new());
         }
         if channel_type.has_anchors_zero_fee_htlc_tx() {
-            channel.as_htlc_mut().set_anchors_zero_fee_htlc_tx(true);
+            channel.htlc_mut().set_anchors_zero_fee_htlc_tx(true);
         }
 
-        let core = channel.as_bolt3_mut();
+        let core = channel.constructor_mut();
         core.set_policy(policy);
         core.set_common_params(common_params);
         core.set_local_params(local_params);
@@ -180,7 +180,7 @@ impl Channel<ExtensionId> {
     /// `open_channel` - or follow-up `accept_channel` requests.
     #[inline]
     pub fn set_policy(&mut self, policy: Policy) {
-        self.as_bolt3_mut().set_policy(policy)
+        self.constructor_mut().set_policy(policy)
     }
 
     /// Sets common parameters for the chanel.
@@ -190,7 +190,7 @@ impl Channel<ExtensionId> {
     /// requests.
     #[inline]
     pub fn set_common_params(&mut self, params: CommonParams) {
-        self.as_bolt3_mut().set_common_params(params)
+        self.constructor_mut().set_common_params(params)
     }
 
     /// Sets local parameters for the channel.
@@ -200,28 +200,12 @@ impl Channel<ExtensionId> {
     /// requests.
     #[inline]
     pub fn set_local_params(&mut self, params: PeerParams) {
-        self.as_bolt3_mut().set_local_params(params)
-    }
-
-    /// Returns reference to the channel core state object (BOLT-3)
-    #[inline]
-    pub fn as_bolt3(&self) -> &Bolt3 {
-        let any = self.constructor() as &dyn Any;
-        any.downcast_ref()
-            .expect("BOLT channel uses non-BOLT-3 constructor")
-    }
-
-    /// Returns a mutable BOLT-3 channel core
-    #[inline]
-    fn as_bolt3_mut(&mut self) -> &mut Bolt3 {
-        let any = self.constructor_mut() as &mut dyn Any;
-        any.downcast_mut()
-            .expect("BOLT channel uses non-BOLT-3 constructor")
+        self.constructor_mut().set_local_params(params)
     }
 
     /// Returns reference to HTLC extension
     #[inline]
-    pub fn as_htlc(&self) -> &Htlc {
+    pub fn htlc(&self) -> &Htlc {
         let extension = self
             .extender(ExtensionId::Htlc)
             .expect("BOLT channels must always have HTLC extension")
@@ -233,7 +217,7 @@ impl Channel<ExtensionId> {
 
     /// Returns mutable HTLC extension
     #[inline]
-    fn as_htlc_mut(&mut self) -> &mut Htlc {
+    fn htlc_mut(&mut self) -> &mut Htlc {
         let extension = self
             .extender_mut(ExtensionId::Htlc)
             .expect("BOLT channels must always have HTLC extension")
@@ -246,7 +230,7 @@ impl Channel<ExtensionId> {
     /// Returns active channel id, covering both temporary and final channel ids
     #[inline]
     pub fn active_channel_id(&self) -> ActiveChannelId {
-        self.as_bolt3().active_channel_id()
+        self.constructor().active_channel_id()
     }
 
     /// Returns [`ChannelId`], if the channel already assigned it
@@ -274,7 +258,7 @@ impl Channel<ExtensionId> {
         funding_sat: u64,
         push_msat: u64,
     ) -> Result<OpenChannel, channel::Error> {
-        let stage = self.as_bolt3().stage();
+        let stage = self.constructor().stage();
         if stage != Lifecycle::Initial && stage != Lifecycle::Reestablishing {
             return Err(channel::Error::LifecycleMismatch {
                 current: stage,
@@ -282,9 +266,9 @@ impl Channel<ExtensionId> {
             });
         }
 
-        self.as_bolt3_mut().set_outbound();
+        self.constructor_mut().set_outbound();
 
-        let core = self.as_bolt3();
+        let core = self.constructor();
         let common_params: CommonParams = core.common_params();
         let local_params: PeerParams = core.local_params();
         let local_keyset: &Keyset = core.local_keys();
@@ -308,7 +292,7 @@ impl Channel<ExtensionId> {
             revocation_basepoint: local_keyset.revocation_basepoint,
             payment_point: local_keyset.payment_basepoint,
             delayed_payment_basepoint: local_keyset.delayed_payment_basepoint,
-            htlc_basepoint: *self.as_htlc().local_basepoint(),
+            htlc_basepoint: *self.htlc().local_basepoint(),
             first_per_commitment_point: local_keyset.first_per_commitment_point,
             shutdown_scriptpubkey: local_keyset.shutdown_scriptpubkey.clone(),
             channel_flags: if common_params.announce_channel { 1 } else { 0 },
@@ -328,7 +312,7 @@ impl Channel<ExtensionId> {
     pub fn accept_channel_compose(
         &mut self,
     ) -> Result<AcceptChannel, channel::Error> {
-        let stage = self.as_bolt3().stage();
+        let stage = self.constructor().stage();
         if stage != Lifecycle::Initial && stage != Lifecycle::Reestablishing {
             return Err(channel::Error::LifecycleMismatch {
                 current: stage,
@@ -336,9 +320,9 @@ impl Channel<ExtensionId> {
             });
         }
 
-        self.as_bolt3_mut().set_inbound();
+        self.constructor_mut().set_inbound();
 
-        let core = self.as_bolt3();
+        let core = self.constructor();
         let policy: &Policy = core.policy();
         let common_params: CommonParams = core.common_params();
         let local_params: PeerParams = core.local_params();
@@ -360,7 +344,7 @@ impl Channel<ExtensionId> {
             revocation_basepoint: local_keyset.revocation_basepoint,
             payment_point: local_keyset.payment_basepoint,
             delayed_payment_basepoint: local_keyset.delayed_payment_basepoint,
-            htlc_basepoint: *self.as_htlc().local_basepoint(),
+            htlc_basepoint: *self.htlc().local_basepoint(),
             first_per_commitment_point: local_keyset.first_per_commitment_point,
             shutdown_scriptpubkey: local_keyset.shutdown_scriptpubkey.clone(),
             channel_type: common_params.channel_type.into_option(),
