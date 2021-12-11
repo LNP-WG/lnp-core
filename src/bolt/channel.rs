@@ -136,7 +136,7 @@ impl Channel<ExtensionId> {
     /// Returns reference to HTLC extension
     #[inline]
     pub fn htlc(&self) -> &Htlc {
-        let extension = self
+        let extension = &*self
             .extender(ExtensionId::Htlc)
             .expect("BOLT channels must always have HTLC extension")
             as &dyn Any;
@@ -148,7 +148,7 @@ impl Channel<ExtensionId> {
     /// Returns mutable HTLC extension
     #[inline]
     fn htlc_mut(&mut self) -> &mut Htlc {
-        let extension = self
+        let extension = &mut *self
             .extender_mut(ExtensionId::Htlc)
             .expect("BOLT channels must always have HTLC extension")
             as &mut dyn Any;
