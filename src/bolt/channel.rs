@@ -12,133 +12,22 @@
 // If not, see <https://opensource.org/licenses/MIT>.
 
 use amplify::DumbDefault;
-#[cfg(feature = "serde")]
-use amplify::ToYamlString;
+use bitcoin::blockdata::{opcodes::all::*, script};
 use bitcoin::secp256k1::PublicKey;
-use bitcoin::util::bip32::{ChildNumber, ExtendedPrivKey};
-use lnp2p::legacy::{AcceptChannel, OpenChannel};
-use p2p::legacy::{ActiveChannelId, ChannelId, ChannelType, TempChannelId};
-use secp256k1::{Secp256k1, Signing};
+use bitcoin::{OutPoint, Transaction, TxIn, TxOut};
+use lnp2p::legacy::{AcceptChannel, Messages, OpenChannel};
+use lnp2p::legacy::{ActiveChannelId, ChannelId, TempChannelId};
+use lnpbp::chain::AssetId;
 use std::any::Any;
-use std::fmt::Debug;
-use std::ops::Range;
-use wallet::hd::HardenedIndex;
-use wallet::scripts::{Category, PubkeyScript, ToPubkeyScript};
+use wallet::lex_order::LexOrder;
+use wallet::psbt::Psbt;
+use wallet::scripts::{LockScript, PubkeyScript, WitnessScript};
+use wallet::IntoPk;
 
-use crate::bolt::extensions::{AnchorOutputs, Htlc};
-use crate::bolt::{ExtensionId, Lifecycle};
-use crate::channel::{self, Channel};
-use crate::Extension;
-
-/// Limit for the maximum number of the accepted HTLCs towards some node
-pub const BOLT3_MAX_ACCEPTED_HTLC_LIMIT: u16 = 483;
-
-/// BOLT-3 dust limit
-pub const BOLT3_DUST_LIMIT: u64 = 354;
-
-/// Errors from [BOLT-2] policy validations for `open_channel` and
-/// `accept_channel` messages.
-///
-/// [BOLT-2]: https://github.com/lightningnetwork/lightning-rfc/blob/master/02-peer-protocol.md
-#[derive(
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Debug,
-    Display,
-    Error,
-    StrictEncode,
-    StrictDecode,
-)]
-#[display(doc_comments)]
-pub enum PolicyError {
-    /// proposed `to_self_delay` value {proposed} is unreasonably large and
-    /// exceeds node policy limit of {allowed_maximum}; rejecting the channel
-    /// according to BOLT-2
-    ToSelfDelayUnreasonablyLarge { proposed: u16, allowed_maximum: u16 },
-
-    /// proposed limit for maximum accepted number of HTLCs {0} exceeds BOLT-3
-    /// requirement to be below 483; rejecting the channel according to BOLT-2
-    MaxAcceptedHtlcLimitExceeded(u16),
-
-    /// proposed fee rate {proposed} sat/kw is outside of the fee rate policy
-    /// of the local node ({lowest_accepted}..{highest_accepted} sat/kw);
-    /// rejecting the channel according to BOLT-2
-    FeeRateUnreasonable {
-        proposed: u32,
-        lowest_accepted: u32,
-        highest_accepted: u32,
-    },
-
-    /// proposed channel reserve limit {reserve} sat is less than dust limit
-    /// {dust_limit} sat; rejecting the channel according to BOLT-2
-    ChannelReserveLessDust { reserve: u64, dust_limit: u64 },
-
-    /// dust limit {0} sat is less than protocol minimum requirement of 354
-    /// sat; rejecting the channel according to BOLT-2
-    DustLimitTooSmall(u64),
-
-    /// offered channel funding of {proposed} sat is too small and less than
-    /// {required_minimum} required by the node policy; rejecting the channel
-    /// according to BOLT-2
-    ChannelFundingTooSmall {
-        proposed: u64,
-        required_minimum: u64,
-    },
-
-    /// HTLC minimum {proposed} is too large and exceeds node policy
-    /// requirements ({allowed_maximum}); rejecting the channel according to
-    /// BOLT-2
-    HtlcMinimumTooLarge { proposed: u64, allowed_maximum: u64 },
-
-    /// HTLC-in-flight maximum requirement of {proposed} is too small and
-    /// does not match the node policy; the smallest requirement is
-    /// {required_minimum}; rejecting the channel according to BOLT-2
-    HtlcInFlightMaximumTooSmall {
-        proposed: u64,
-        required_minimum: u64,
-    },
-
-    /// requested {proposed} channel reserve is too large and exceeds local
-    /// policy requirement of {allowed_maximum}; rejecting the channel
-    /// according to BOLT-2
-    ChannelReserveTooLarge { proposed: u64, allowed_maximum: u64 },
-
-    /// maximum number of HTLCs {proposed} that can be accepted by the remote
-    /// node is too small and does not match node policy requirement of
-    /// {required_minimum}; rejecting the channel according to BOLT-2
-    MaxAcceptedHtlcsTooSmall {
-        proposed: u16,
-        required_minimum: u16,
-    },
-
-    /// dust limit {proposed} sats exceeds node policy requirement of
-    /// {allowed_maximum}; rejecting the channel according to BOLT-2
-    DustLimitTooLarge { proposed: u64, allowed_maximum: u64 },
-
-    /// minimum depth of {proposed} requested by the remote peer is exceeds
-    /// local policy limit of {allowed_maximum}; rejecting the channel
-    /// according to BOLT-2
-    UnreasonableMinDepth { proposed: u32, allowed_maximum: u32 },
-
-    /// `channel_reserve_satoshis` ({channel_reserve}) is less than
-    /// `dust_limit_satoshis` ({dust_limit}) within the `open_channel`
-    /// message; rejecting the channel according to BOLT-2
-    LocalDustExceedsRemoteReserve {
-        channel_reserve: u64,
-        dust_limit: u64,
-    },
-
-    /// `channel_reserve_satoshis` from the open_channel message
-    /// ({channel_reserve}) is less than `dust_limit_satoshis`
-    /// ({dust_limit}; rejecting the channel according to BOLT-2
-    RemoteDustExceedsLocalReserve {
-        channel_reserve: u64,
-        dust_limit: u64,
-    },
-}
+use super::extensions::{AnchorOutputs, Htlc};
+use super::policy::{CommonParams, Keyset, PeerParams, Policy};
+use super::{ExtensionId, Lifecycle};
+use crate::{channel, Channel, ChannelExtension, Extension};
 
 impl Channel<ExtensionId> {
     /// Constructs the new channel which will check the negotiation
@@ -352,615 +241,630 @@ impl Channel<ExtensionId> {
     }
 }
 
-/// Policy to validate channel parameters proposed by a remote peer.
+/// The core of the lightning channel operating according to the Bolt3 standard.
+/// This is "channel constructor" used by `Channel` structure and managing part
+/// of the state which is not HTLC-related.
 ///
-/// By default, [`Channel::new`] uses reasonable default policy created by
-/// [`Policy::default()`] method. Channel creator may provide a custom policy by
-/// using [`Channel::with`] method.
-#[derive(Clone, Eq, PartialEq, Hash, Debug, StrictEncode, StrictDecode)]
-#[cfg_attr(
-    feature = "serde",
-    derive(Display, Serialize, Deserialize),
-    serde(crate = "serde_crate"),
-    display(Policy::to_yaml_string)
-)]
-pub struct Policy {
-    /// Reasonable limit to check value of `to_self_delay` required by a remote
-    /// node, in blocks.
-    pub to_self_delay_max: u16,
+/// The type should not be constructed directly or used from outside of the
+/// library, but it's made public for allowing channel state access.
+#[derive(Getters, Clone, PartialEq, Eq, Debug, StrictEncode, StrictDecode)]
+#[getter(as_copy)]
+pub struct Core {
+    /// Current channel lifecycle stage
+    #[getter(as_copy)]
+    stage: Lifecycle,
 
-    /// Range of acceptable channel fees.
-    pub feerate_per_kw_range: Range<u32>,
+    /// The chain_hash value denotes the exact blockchain that the opened
+    /// channel will reside within. This is usually the genesis hash of the
+    /// respective blockchain. The existence of the chain_hash allows nodes to
+    /// open channels across many distinct blockchains as well as have channels
+    /// within multiple blockchains opened to the same peer (if it supports the
+    /// target chains).
+    #[getter(as_copy)]
+    chain_hash: AssetId,
 
-    /// Minimum funding transaction mining depth required from the remote node
-    /// for a channel proposed by it.
-    pub minimum_depth: u32,
+    /// Channel id used by the channel; first temporary and later final.
+    ///
+    /// The temporary_channel_id is used to identify this channel on a per-peer
+    /// basis until the funding transaction is established, at which point it
+    /// is replaced by the channel_id, which is derived from the funding
+    /// transaction.
+    #[getter(as_copy)]
+    active_channel_id: ActiveChannelId,
 
-    // The following are optional policies which may not be set by a local
-    // node:
-    /// Maximum funding transaction mining depth which may be required by a
-    /// remote node for a channel opened by a local node.
-    pub maximum_depth: Option<u32>,
+    /// Amount in millisatoshis
+    #[getter(as_copy)]
+    local_amount: u64,
 
-    /// Minimum funding for a channel by this node.
-    pub funding_satoshis_min: Option<u64>,
+    /// Amount in millisatoshis
+    #[getter(as_copy)]
+    remote_amount: u64,
 
-    /// The maximum acceptable limit on the value stored in a single HTLC.
-    pub htlc_minimum_msat_max: Option<u64>,
+    #[getter(as_copy)]
+    commitment_number: u64,
 
-    /// Minimum boundary for the upper limit of in-flight HTLC funds.
-    pub max_htlc_value_in_flight_msat_min: Option<u64>,
+    #[getter(as_copy)]
+    obscuring_factor: u64,
 
-    /// Maximum reserve for a channel from a local node required by the remote
-    /// node in absolute value.
-    pub channel_reserve_satoshis_max_abs: Option<u64>,
+    /// The policy for accepting remote node params
+    #[getter(as_ref)]
+    policy: Policy,
 
-    /// Maximum reserve for a channel from a local node required by the remote
-    /// node in persents from the channel funding.
-    pub channel_reserve_satoshis_max_percent: Option<u8>,
+    /// Common parameters applying for both nodes
+    #[getter(as_copy)]
+    common_params: CommonParams,
 
-    /// Minimum boundary to the limit of HTLCs offered to a remote peer.
-    pub max_accepted_htlcs_min: Option<u16>,
+    /// Channel parameters required to be met by the remote node when operating
+    /// towards the local one
+    #[getter(as_copy)]
+    local_params: PeerParams,
 
-    /// Maximum value for the dust limit required by a remote node.
-    pub dust_limit_satoshis_max: Option<u64>,
+    /// Channel parameters to be used towards the remote node
+    #[getter(as_copy)]
+    remote_params: PeerParams,
+
+    /// Set of locally-derived keys for creating channel transactions
+    local_keys: Keyset,
+
+    /// Set of remote-derived keys for creating channel transactions
+    remote_keys: Keyset,
+
+    /// Keeps information whether this node is the originator of the channel
+    #[getter(as_copy)]
+    is_originator: bool,
 }
 
-#[cfg(feature = "serde")]
-impl ToYamlString for Policy {}
-
-impl Default for Policy {
-    /// Sets reasonable values for the local node policies
-    fn default() -> Policy {
-        Policy {
-            // the remote node should not be too sleepy not to be able to detect
-            // the thief within one hour
-            to_self_delay_max: 6,
-            // normal operational range for the fees in bitcoin network - it
-            // really never went above 100 to get tx mined within an hour or two
-            feerate_per_kw_range: 1..100,
-            // three blocks is enough to get sufficient security
-            minimum_depth: 3,
-            // 6 blocks is enough to provide the necessary security
-            maximum_depth: Some(6),
-            // no reason of spamming blockchain with channels < 10000 sats
-            funding_satoshis_min: Some(10000),
-            // HTLCs can be arbitrary small:
-            htlc_minimum_msat_max: None,
-            // we need to earn commissions on routing, so limiting HTLCs too
-            // much does not make sense
-            max_htlc_value_in_flight_msat_min: Some(10000),
-            max_accepted_htlcs_min: Some(100),
-            // we do not want to over-collateralize on our channels in regard to
-            // the size of the channel: it should not exceed 10% of funds in the
-            // channel.
-            channel_reserve_satoshis_max_abs: None,
-            channel_reserve_satoshis_max_percent: Some(10),
-            // we do not want to require too large `to_local` / `to_remote`
-            // outputs
-            dust_limit_satoshis_max: Some(1000),
+impl Default for Core {
+    fn default() -> Self {
+        let is_originator = true;
+        let dumb_keys = Keyset::dumb_default();
+        let obscuring_factor = compute_obscuring_factor(
+            is_originator,
+            dumb_keys.payment_basepoint,
+            dumb_keys.payment_basepoint,
+        );
+        Core {
+            stage: Lifecycle::Initial,
+            chain_hash: default!(),
+            active_channel_id: ActiveChannelId::random(),
+            local_amount: 0,
+            remote_amount: 0,
+            commitment_number: 0,
+            obscuring_factor,
+            policy: default!(),
+            common_params: default!(),
+            local_params: default!(),
+            remote_params: default!(),
+            local_keys: dumb_keys.clone(),
+            remote_keys: dumb_keys,
+            is_originator,
         }
     }
 }
 
-impl Policy {
-    /// Sets policy to match default policy used in c-lightning
-    pub fn with_clightning_defaults() -> Policy {
-        todo!()
+impl Core {
+    /// Returns [`ChannelId`], if the channel already assigned it
+    #[inline]
+    pub fn channel_id(&self) -> Option<ChannelId> {
+        self.active_channel_id.channel_id()
     }
 
-    /// Sets policy to match default policy used in LND
-    pub fn with_lnd_defaults() -> Policy {
-        todo!()
+    /// Before the channel is assigned a final [`ChannelId`] returns
+    /// [`TempChannelId`], and `None` after
+    #[inline]
+    pub fn temp_channel_id(&self) -> Option<TempChannelId> {
+        self.active_channel_id.temp_channel_id()
     }
 
-    /// Sets policy to match default policy used in Eclair
-    pub fn with_eclair_defaults() -> Policy {
-        todo!()
+    /// Marks the channel as an inbound
+    #[inline]
+    pub fn set_inbound(&mut self) {
+        self.is_originator = false;
     }
 
-    fn validate_peer_params(
-        &self,
-        params: PeerParams,
-    ) -> Result<(), PolicyError> {
-        // if `to_self_delay` is unreasonably large.
-        if params.to_self_delay > self.to_self_delay_max {
-            return Err(PolicyError::ToSelfDelayUnreasonablyLarge {
-                proposed: params.to_self_delay,
-                allowed_maximum: self.to_self_delay_max,
-            });
-        }
+    /// Marks the channel as an outbound
+    #[inline]
+    pub fn set_outbound(&mut self) {
+        self.is_originator = true;
+    }
 
-        // if `max_accepted_htlcs` is greater than 483.
-        if params.max_accepted_htlcs > BOLT3_MAX_ACCEPTED_HTLC_LIMIT {
-            return Err(PolicyError::MaxAcceptedHtlcLimitExceeded(
-                params.max_accepted_htlcs,
-            ));
-        }
+    /// Sets channel policy
+    #[inline]
+    pub fn set_policy(&mut self, policy: Policy) {
+        self.policy = policy
+    }
 
-        // if `dust_limit_satoshis` is greater than `channel_reserve_satoshis`.
-        if params.dust_limit_satoshis > params.channel_reserve_satoshis {
-            return Err(PolicyError::ChannelReserveLessDust {
-                reserve: params.channel_reserve_satoshis,
-                dust_limit: params.dust_limit_satoshis,
-            });
-        }
+    /// Sets common parameters for the chanel
+    #[inline]
+    pub fn set_common_params(&mut self, params: CommonParams) {
+        self.common_params = params
+    }
 
-        // if `dust_limit_satoshis` is smaller than 354 satoshis
-        if params.dust_limit_satoshis < BOLT3_DUST_LIMIT {
-            return Err(PolicyError::DustLimitTooSmall(
-                params.dust_limit_satoshis,
-            ));
-        }
+    /// Sets local parameters for the channel
+    #[inline]
+    pub fn set_local_params(&mut self, params: PeerParams) {
+        self.local_params = params
+    }
 
-        // if we consider `htlc_minimum_msat` too large
-        if let Some(limit) = self.htlc_minimum_msat_max {
-            if params.htlc_minimum_msat > limit {
-                return Err(PolicyError::HtlcMinimumTooLarge {
-                    proposed: params.htlc_minimum_msat,
-                    allowed_maximum: limit,
-                });
+    /// Sets local keys for the channel
+    #[inline]
+    pub fn set_local_keys(&mut self, keys: Keyset) {
+        self.local_keys = keys
+    }
+
+    /// Sets `static_remotekey` flag for the channel
+    #[inline]
+    pub fn set_static_remotekey(&mut self, static_remotekey: bool) {
+        self.local_keys.static_remotekey = static_remotekey
+    }
+}
+
+impl channel::State for Core {}
+
+impl Extension for Core {
+    type Identity = ExtensionId;
+
+    #[inline]
+    fn new() -> Box<dyn ChannelExtension<Identity = Self::Identity>> {
+        Box::new(Core::default())
+    }
+
+    fn identity(&self) -> Self::Identity {
+        ExtensionId::Bolt3
+    }
+
+    fn update_from_peer(
+        &mut self,
+        message: &Messages,
+    ) -> Result<(), channel::Error> {
+        // TODO: Check lifecycle
+        match message {
+            Messages::OpenChannel(open_channel) => {
+                self.stage = Lifecycle::Proposed;
+
+                self.is_originator = false;
+                self.active_channel_id =
+                    ActiveChannelId::from(open_channel.temporary_channel_id);
+                self.local_amount = open_channel.funding_satoshis * 1000;
+                self.remote_amount = open_channel.push_msat;
+
+                // Policies
+                self.remote_params =
+                    self.policy.validate_inbound(open_channel)?;
+
+                // TODO: Add channel checks and fail on:
+                // 1) the `chain_hash` value is set to a hash of a chain that is
+                //    unknown to the receiver;
+                // 2) `push_msat` is greater than `funding_satoshis` * 1000;
+                // 3) the funder's amount for the initial commitment transaction
+                //    is not sufficient for full fee payment;
+                // 4) both `to_local` and `to_remote` amounts for the initial
+                //    commitment transaction are less than or equal to
+                //    `channel_reserve_satoshis`;
+                // 5) funding_satoshis is greater than or equal to 2^24 and the
+                //    receiver does not support `option_support_large_channel`.
+
+                // Keys
+                self.remote_keys.payment_basepoint = open_channel.payment_point;
+                self.remote_keys.revocation_basepoint =
+                    open_channel.revocation_basepoint;
+                self.remote_keys.delayed_payment_basepoint =
+                    open_channel.delayed_payment_basepoint;
             }
-        }
+            Messages::AcceptChannel(accept_channel) => {
+                self.stage = Lifecycle::Accepted;
 
-        // if we consider `max_htlc_value_in_flight_msat` too small
-        if let Some(limit) = self.max_htlc_value_in_flight_msat_min {
-            if params.max_htlc_value_in_flight_msat < limit {
-                return Err(PolicyError::HtlcInFlightMaximumTooSmall {
-                    proposed: params.max_htlc_value_in_flight_msat,
-                    required_minimum: limit,
-                });
+                self.remote_params = self
+                    .policy
+                    .confirm_outbound(self.local_params, accept_channel)?;
+
+                // TODO: Add channel type and other checks
+                // 1) the `temporary_channel_id` MUST be the same as the
+                //    `temporary_channel_id` in the `open_channel`
+                //    message;
+                // 2) if `channel_type` is set, and `channel_type` was set in
+                //    `open_channel`, and they are equal types;
+                // 3) if the `channel_type` is not set it must had not been set
+                //    in the `open_channel`.
+
+                // Keys
+                self.remote_keys.payment_basepoint =
+                    accept_channel.payment_point;
+                self.remote_keys.revocation_basepoint =
+                    accept_channel.revocation_basepoint;
+                self.remote_keys.delayed_payment_basepoint =
+                    accept_channel.delayed_payment_basepoint;
             }
-        }
+            Messages::FundingCreated(funding_created) => {
+                self.stage = Lifecycle::Funding;
 
-        // if we consider `channel_reserve_satoshis` too large - in both abosute
-        // and relative values
-        if let Some(limit) = self.channel_reserve_satoshis_max_abs {
-            if params.channel_reserve_satoshis > limit {
-                return Err(PolicyError::ChannelReserveTooLarge {
-                    proposed: params.channel_reserve_satoshis,
-                    allowed_maximum: limit,
-                });
+                self.active_channel_id = ActiveChannelId::with(
+                    funding_created.funding_txid,
+                    funding_created.funding_output_index,
+                );
             }
-        }
+            Messages::FundingSigned(funding_signed) => {
+                self.stage = Lifecycle::Funded;
 
-        // if we consider `max_accepted_htlcs` too small
-        if let Some(limit) = self.max_accepted_htlcs_min {
-            if params.max_accepted_htlcs < limit {
-                return Err(PolicyError::MaxAcceptedHtlcsTooSmall {
-                    proposed: params.max_accepted_htlcs,
-                    required_minimum: limit,
-                });
+                self.active_channel_id =
+                    ActiveChannelId::from(funding_signed.channel_id);
             }
-        }
-
-        // if we consider `dust_limit_satoshis` too large
-        if let Some(limit) = self.dust_limit_satoshis_max {
-            if params.dust_limit_satoshis > limit {
-                return Err(PolicyError::DustLimitTooLarge {
-                    proposed: params.dust_limit_satoshis,
-                    allowed_maximum: limit,
-                });
+            Messages::FundingLocked(_) => {
+                self.stage = Lifecycle::Locked; // TODO: or Active
             }
+            Messages::Shutdown(_) => {}
+            Messages::ClosingSigned(_) => {}
+            Messages::UpdateAddHtlc(_message) => {
+                /* TODO
+                if message.amount_msat + total_htlc_value_in_flight_msat
+                    > self.max_htlc_value_in_flight_msat
+                {
+                    return Err(channel::Error::Htlc(
+                        "max HTLC inflight amount limit exceeded".to_string(),
+                    ));
+                }
+                 */
+            }
+            Messages::UpdateFulfillHtlc(_) => {}
+            Messages::UpdateFailHtlc(_) => {}
+            Messages::UpdateFailMalformedHtlc(_) => {}
+            Messages::CommitmentSigned(_) => {}
+            Messages::RevokeAndAck(_) => {}
+            Messages::ChannelReestablish(_) => {}
+            _ => {}
         }
-
         Ok(())
     }
 
-    /// Validates parameters proposed by remote peer in `open_channel` message
-    /// against the policy
-    ///
-    /// # Arguments
-    /// - `self`: local policy;
-    /// - `open_channel`: BOLT-2 message received by the peer.
-    ///
-    /// # Returns
-    /// [`PeerParams`] to use for constructing channel transactions which should
-    /// be signed by the local node.
-    pub fn validate_inbound(
-        &self,
-        open_channel: &OpenChannel,
-    ) -> Result<PeerParams, PolicyError> {
-        // if we consider `feerate_per_kw` too small for timely processing or
-        // unreasonably large.
-        if !self
-            .feerate_per_kw_range
-            .contains(&open_channel.feerate_per_kw)
-        {
-            return Err(PolicyError::FeeRateUnreasonable {
-                proposed: open_channel.feerate_per_kw,
-                lowest_accepted: self.feerate_per_kw_range.start,
-                highest_accepted: self.feerate_per_kw_range.end,
-            });
-        }
-
-        // if `funding_satoshis` is too small
-        if let Some(limit) = self.funding_satoshis_min {
-            if open_channel.funding_satoshis < limit {
-                return Err(PolicyError::ChannelFundingTooSmall {
-                    proposed: open_channel.funding_satoshis,
-                    required_minimum: limit,
-                });
-            }
-        }
-
-        // if we consider `channel_reserve_satoshis` too large - in both abosute
-        // and relative values
-        if let Some(percents) = self.channel_reserve_satoshis_max_percent {
-            let limit = open_channel.funding_satoshis * percents as u64;
-            if open_channel.channel_reserve_satoshis > limit {
-                return Err(PolicyError::ChannelReserveTooLarge {
-                    proposed: open_channel.channel_reserve_satoshis,
-                    allowed_maximum: limit,
-                });
-            }
-        }
-
-        let peer_params = PeerParams::from(open_channel);
-        self.validate_peer_params(peer_params)?;
-        Ok(peer_params)
-    }
-
-    /// Confirms that parameters which were asked by a remote node via
-    /// `accept_channel` message are confirming our policy.
-    ///
-    /// # Arguments
-    /// - `self`: local policy;
-    /// - `params`: parameters proposed by the local node in `open_channel`
-    ///   message;
-    /// - `accept_channel`: BOLT-2 message received by the peer.
-    ///
-    /// # Returns
-    /// [`PeerParams`] to use for constructing channel transactions which should
-    /// be signed by the local node.
-    pub fn confirm_outbound(
-        &self,
-        our_params: PeerParams,
-        accept_channel: &AcceptChannel,
-    ) -> Result<PeerParams, PolicyError> {
-        // if `minimum_depth` is unreasonably large:
-        //
-        //     MAY reject the channel.
-        if let Some(limit) = self.maximum_depth {
-            if accept_channel.minimum_depth > limit {
-                return Err(PolicyError::UnreasonableMinDepth {
-                    proposed: accept_channel.minimum_depth,
-                    allowed_maximum: limit,
-                });
-            }
-        }
-
-        // if `channel_reserve_satoshis` is less than `dust_limit_satoshis`
-        // within the open_channel message:
-        //
-        //     MUST reject the channel.
-        if accept_channel.channel_reserve_satoshis
-            < our_params.dust_limit_satoshis
-        {
-            return Err(PolicyError::LocalDustExceedsRemoteReserve {
-                channel_reserve: accept_channel.channel_reserve_satoshis,
-                dust_limit: our_params.dust_limit_satoshis,
-            });
-        }
-
-        // if `channel_reserve_satoshis` from the open_channel message is less
-        // than `dust_limit_satoshis`:
-        //
-        //     MUST reject the channel.
-        if our_params.channel_reserve_satoshis
-            < accept_channel.dust_limit_satoshis
-        {
-            return Err(PolicyError::RemoteDustExceedsLocalReserve {
-                channel_reserve: our_params.channel_reserve_satoshis,
-                dust_limit: accept_channel.dust_limit_satoshis,
-            });
-        }
-
-        let peer_params = PeerParams::from(accept_channel);
-        self.validate_peer_params(peer_params)?;
-        Ok(peer_params)
+    fn extension_state(&self) -> Box<dyn channel::State> {
+        Box::new(self.clone())
     }
 }
 
-/// Structure containing part of the channel configuration (and state, as it
-/// contains adjustible fee) which must follow specific policies and be accepted
-/// or validated basing on those policies and additional protocol-level
-/// requirements.
-///
-/// This information applies for both channel peers and used in constructing
-/// both sides of asymmetric transactions.
-#[derive(
-    Clone, Copy, PartialEq, Eq, Debug, Hash, StrictEncode, StrictDecode,
-)]
-#[cfg_attr(
-    feature = "serde",
-    derive(Display, Serialize, Deserialize),
-    serde(crate = "serde_crate"),
-    display(CommonParams::to_yaml_string)
-)]
-pub struct CommonParams {
-    /// Minimum depth of the funding transaction before the channel is
-    /// considered open
-    pub minimum_depth: u32,
+impl ChannelExtension for Core {
+    fn channel_state(&self) -> Box<dyn channel::State> {
+        Box::new(self.clone())
+    }
 
-    /// indicates the initial fee rate in satoshi per 1000-weight (i.e. 1/4 the
-    /// more normally-used 'satoshi per 1000 vbytes') that this side will pay
-    /// for commitment and HTLC transactions, as described in BOLT #3 (this can
-    /// be adjusted later with an update_fee message).
-    pub feerate_per_kw: u32,
+    fn apply(
+        &mut self,
+        tx_graph: &mut channel::TxGraph,
+    ) -> Result<(), channel::Error> {
+        // The 48-bit commitment number is obscured by XOR with the lower
+        // 48 bits of `obscuring_factor`
+        let obscured_commitment = (self.commitment_number & 0xFFFFFF)
+            ^ (self.obscuring_factor & 0xFFFFFF);
+        let obscured_commitment = obscured_commitment as u32;
+        let lock_time = (0x20u32 << 24) | obscured_commitment;
+        let sequence = (0x80u32 << 24) | obscured_commitment;
 
-    /// The least-significant bit of `channel_flags`. Indicates whether the
-    /// initiator of the funding flow wishes to advertise this channel publicly
-    /// to the network, as detailed within BOLT #7.
-    pub announce_channel: bool,
+        tx_graph.cmt_version = 2;
+        tx_graph.cmt_locktime = lock_time;
+        tx_graph.cmt_sequence = sequence;
+        // We are doing counterparty's transaction!
+        tx_graph.cmt_outs = vec![
+            TxOut::ln_to_local(
+                self.remote_amount,
+                self.local_keys.revocation_basepoint,
+                self.remote_keys.delayed_payment_basepoint,
+                self.remote_params.to_self_delay,
+            ),
+            TxOut::ln_to_remote_v1(
+                self.local_amount,
+                self.local_keys.payment_basepoint,
+            ),
+        ];
 
-    /// Channel types are an explicit enumeration: for convenience of future
-    /// definitions they reuse even feature bits, but they are not an arbitrary
-    /// combination (they represent the persistent features which affect the
-    /// channel operation).
-    pub channel_type: ChannelType,
-}
-
-#[cfg(feature = "serde")]
-impl ToYamlString for CommonParams {}
-
-impl Default for CommonParams {
-    /// Sets reasonable values for the common channel parameters used in
-    /// constructing `open_channel` message.
-    ///
-    /// Usually this should not be used and instead [`Channel::with`] should be
-    /// provided with custom channel parameters basing on the current state of
-    /// the bitcoin mempool and hash rate.
-    fn default() -> Self {
-        CommonParams {
-            minimum_depth: 3,
-            feerate_per_kw: 2,
-            announce_channel: true,
-            channel_type: ChannelType::default(),
-        }
+        Ok(())
     }
 }
 
-impl CommonParams {
-    /// Extracts common parameters from the incoming `open_channel` message and
-    /// local default requirement for the minimum depth.
-    #[inline]
-    pub fn with(open_channel: &OpenChannel, minimum_depth: u32) -> Self {
-        CommonParams {
-            minimum_depth,
-            feerate_per_kw: open_channel.feerate_per_kw,
-            announce_channel: open_channel.should_announce_channel(),
-            channel_type: open_channel.channel_type.unwrap_or_default(),
-        }
+pub trait ScriptGenerators {
+    fn ln_funding(amount: u64, pubkey1: PublicKey, pubkey2: PublicKey) -> Self;
+
+    fn ln_to_local(
+        amount: u64,
+        revocationpubkey: PublicKey,
+        local_delayedpubkey: PublicKey,
+        to_self_delay: u16,
+    ) -> Self;
+
+    fn ln_to_remote_v1(amount: u64, remote_pubkey: PublicKey) -> Self;
+
+    fn ln_to_remote_v2(amount: u64, remote_pubkey: PublicKey) -> Self;
+}
+
+impl ScriptGenerators for LockScript {
+    fn ln_funding(_: u64, pubkey1: PublicKey, pubkey2: PublicKey) -> Self {
+        let pk = vec![pubkey1.into_pk(), pubkey2.into_pk()].lex_ordered();
+
+        script::Builder::new()
+            .push_int(2)
+            .push_key(&pk[0])
+            .push_key(&pk[1])
+            .push_int(2)
+            .push_opcode(OP_CHECKMULTISIG)
+            .into_script()
+            .into()
     }
-}
 
-/// Structure containing part of the channel state which must follow specific
-/// policies and be accepted or validated basing on those policies and
-/// additional protocol-level requirements.
-///
-/// This information applies for only to one of the peers and requested by the
-/// other peer. It is used in constructing transactions which should be signed
-/// by the node demanding this requirements.
-///
-/// Should be instantiated from the node
-/// configuration persistent storage and/or command line parameters and provided
-/// to the channel constructor via [`Channel::with`].
-///
-/// Later, when creating new channels, it should be copied from the local
-/// channel defaults object and updated / checked against local policies upon
-/// receiving `accept_channel` reply by setting [`Bolt3::remote_params`] to a
-/// value returned from
-/// [`Bolt3::local_params`][`.confirm_outbound`](Policy::confirm_outbound)
-/// method.
-///
-/// Upon receiving `open_channel` message from the remote node must validate the
-/// proposed parameters against local policy with
-/// [`Bolt3::policy`][`.validate_inbound`](Policy::validate_inbound) method and
-/// assign the return value to [`Bolt3::remote_params`].
-#[derive(
-    Clone, Copy, PartialEq, Eq, Debug, Hash, StrictEncode, StrictDecode,
-)]
-#[cfg_attr(
-    feature = "serde",
-    derive(Display, Serialize, Deserialize),
-    serde(crate = "serde_crate"),
-    display(PeerParams::to_yaml_string)
-)]
-pub struct PeerParams {
-    /// The threshold below which outputs on transactions broadcast by sender
-    /// will be omitted
-    pub dust_limit_satoshis: u64,
-
-    /// The number of blocks which the counterparty will have to wait to claim
-    /// on-chain funds if they broadcast a commitment transaction
-    pub to_self_delay: u16,
-
-    /// Indicates the smallest value HTLC this node will accept.
-    pub htlc_minimum_msat: u64,
-
-    /// The maximum inbound HTLC value in flight towards sender, in
-    /// milli-satoshi
-    pub max_htlc_value_in_flight_msat: u64,
-
-    /// The minimum value unencumbered by HTLCs for the counterparty to keep in
-    /// the channel
-    pub channel_reserve_satoshis: u64,
-
-    /// The maximum number of inbound HTLCs towards sender
-    pub max_accepted_htlcs: u16,
-}
-
-#[cfg(feature = "serde")]
-impl ToYamlString for PeerParams {}
-
-impl Default for PeerParams {
-    /// Sets reasonable values for the channel parameters requested from the
-    /// other peer in sent `open_channel` or `accept_channel` messages.
-    ///
-    /// Usually this should not be used and instead [`Channel::with`] should be
-    /// provided with custom channel parameters basing on the user preferences.
-    fn default() -> Self {
-        PeerParams {
-            dust_limit_satoshis: BOLT3_DUST_LIMIT,
-            to_self_delay: 3,
-            htlc_minimum_msat: 1,
-            max_htlc_value_in_flight_msat: 1_000_000_000,
-            channel_reserve_satoshis: 10000,
-            max_accepted_htlcs: BOLT3_MAX_ACCEPTED_HTLC_LIMIT,
-        }
-    }
-}
-
-impl From<&OpenChannel> for PeerParams {
-    /// Extracts peer-specific parameters from the incoming `open_channel`
-    /// message. These parameters are applied to the local node.
-    #[inline]
-    fn from(open_channel: &OpenChannel) -> Self {
-        PeerParams {
-            dust_limit_satoshis: open_channel.dust_limit_satoshis,
-            to_self_delay: open_channel.to_self_delay,
-            htlc_minimum_msat: open_channel.htlc_minimum_msat,
-            max_htlc_value_in_flight_msat: open_channel
-                .max_htlc_value_in_flight_msat,
-            channel_reserve_satoshis: open_channel.channel_reserve_satoshis,
-            max_accepted_htlcs: open_channel.max_accepted_htlcs,
-        }
-    }
-}
-
-impl From<&AcceptChannel> for PeerParams {
-    /// Extracts peer-specific parameters from the incoming `accept_channel`
-    /// message. These parameters are applied to the local node.
-    #[inline]
-    fn from(accept_channel: &AcceptChannel) -> Self {
-        PeerParams {
-            dust_limit_satoshis: accept_channel.dust_limit_satoshis,
-            to_self_delay: accept_channel.to_self_delay,
-            htlc_minimum_msat: accept_channel.htlc_minimum_msat,
-            max_htlc_value_in_flight_msat: accept_channel
-                .max_htlc_value_in_flight_msat,
-            channel_reserve_satoshis: accept_channel.channel_reserve_satoshis,
-            max_accepted_htlcs: accept_channel.max_accepted_htlcs,
-        }
-    }
-}
-
-/// Set of keys used by the core of the channel (in fact, [`Bolt3`]). It does
-/// not include HTLC basepoint which is managed separately by
-/// [`self::htlc::Htlc`] extension.
-#[derive(Clone, PartialEq, Eq, Debug, StrictEncode, StrictDecode)]
-#[cfg_attr(
-    feature = "serde",
-    derive(Display, Serialize, Deserialize),
-    serde(crate = "serde_crate"),
-    display(Keyset::to_yaml_string)
-)]
-pub struct Keyset {
-    /// Public key used in the funding outpoint multisig
-    pub funding_pubkey: PublicKey,
-    /// Base point for deriving keys used for penalty spending paths
-    pub revocation_basepoint: PublicKey,
-    /// Base point for deriving keys in `to_remote`
-    pub payment_basepoint: PublicKey,
-    /// Base point for deriving keys in `to_local` time-locked spending paths
-    pub delayed_payment_basepoint: PublicKey,
-    /// Base point for deriving keys used for penalty spending paths
-    pub first_per_commitment_point: PublicKey,
-    /// Allows the sending node to commit to where funds will go on mutual
-    /// close, which the remote node should enforce even if a node is
-    /// compromised later.
-    pub shutdown_scriptpubkey: Option<PubkeyScript>,
-    /// If `option_static_remotekey` or `option_anchors` is negotiated, the
-    /// remotepubkey is simply the remote node's payment_basepoint, otherwise
-    /// it is calculated as above using the remote node's payment_basepoint.
-    pub static_remotekey: bool,
-}
-
-#[cfg(feature = "serde")]
-impl ToYamlString for Keyset {}
-
-impl From<&OpenChannel> for Keyset {
-    fn from(open_channel: &OpenChannel) -> Self {
-        Self {
-            funding_pubkey: open_channel.funding_pubkey,
-            revocation_basepoint: open_channel.revocation_basepoint,
-            payment_basepoint: open_channel.payment_point,
-            delayed_payment_basepoint: open_channel.delayed_payment_basepoint,
-            first_per_commitment_point: open_channel.first_per_commitment_point,
-            shutdown_scriptpubkey: open_channel.shutdown_scriptpubkey.clone(),
-            static_remotekey: false,
-        }
-    }
-}
-
-impl From<&AcceptChannel> for Keyset {
-    fn from(accept_channel: &AcceptChannel) -> Self {
-        Self {
-            funding_pubkey: accept_channel.funding_pubkey,
-            revocation_basepoint: accept_channel.revocation_basepoint,
-            payment_basepoint: accept_channel.payment_point,
-            delayed_payment_basepoint: accept_channel.delayed_payment_basepoint,
-            first_per_commitment_point: accept_channel
-                .first_per_commitment_point,
-            shutdown_scriptpubkey: accept_channel.shutdown_scriptpubkey.clone(),
-            static_remotekey: accept_channel
-                .channel_type
-                .map(ChannelType::has_static_remotekey)
-                .unwrap_or_default(),
-        }
-    }
-}
-
-impl DumbDefault for Keyset {
-    fn dumb_default() -> Self {
-        Self {
-            funding_pubkey: dumb_pubkey!(),
-            revocation_basepoint: dumb_pubkey!(),
-            payment_basepoint: dumb_pubkey!(),
-            delayed_payment_basepoint: dumb_pubkey!(),
-            first_per_commitment_point: dumb_pubkey!(),
-            shutdown_scriptpubkey: None,
-            static_remotekey: false,
-        }
-    }
-}
-
-impl Keyset {
-    /// Derives keyset from a *channel extended key* using LNPBP-46 standard
-    pub fn with<C: Signing>(
-        secp: &Secp256k1<C>,
-        funding_pubkey: PublicKey,
-        channel_xpriv: ExtendedPrivKey,
-        commit_to_shutdown_scriptpubkey: bool,
+    fn ln_to_local(
+        _: u64,
+        revocationpubkey: PublicKey,
+        local_delayedpubkey: PublicKey,
+        to_self_delay: u16,
     ) -> Self {
-        let keys = [1u16, 2, 3, 4, 5, 6, 7]
-            .into_iter()
-            .map(HardenedIndex::from)
-            .map(ChildNumber::from)
-            .map(|index| [index])
-            .map(|path| {
-                channel_xpriv
-                    .derive_priv(&secp, &path)
-                    .expect("negligible probability")
-                    .private_key
-                    .key
-            })
-            .map(|seckey| PublicKey::from_secret_key(&secp, &seckey))
-            .collect::<Vec<_>>();
+        script::Builder::new()
+            .push_opcode(OP_IF)
+            .push_key(&revocationpubkey.into_pk())
+            .push_opcode(OP_ELSE)
+            .push_int(to_self_delay as i64)
+            .push_opcode(OP_CSV)
+            .push_opcode(OP_DROP)
+            .push_key(&local_delayedpubkey.into_pk())
+            .push_opcode(OP_ENDIF)
+            .push_opcode(OP_CHECKSIG)
+            .into_script()
+            .into()
+    }
 
-        Self {
-            funding_pubkey,
-            revocation_basepoint: keys[2],
-            payment_basepoint: keys[0],
-            delayed_payment_basepoint: keys[1],
-            first_per_commitment_point: keys[4],
-            shutdown_scriptpubkey: if commit_to_shutdown_scriptpubkey {
-                Some(keys[7].to_pubkey_script(Category::SegWit))
-            } else {
-                None
-            },
-            static_remotekey: false,
+    fn ln_to_remote_v1(_: u64, _: PublicKey) -> Self {
+        unimplemented!("LockScript can't be generated for to_remote v1 output")
+    }
+
+    fn ln_to_remote_v2(_: u64, remote_pubkey: PublicKey) -> Self {
+        script::Builder::new()
+            .push_key(&remote_pubkey.into_pk())
+            .push_opcode(OP_CHECKSIGVERIFY)
+            .push_int(1)
+            .push_opcode(OP_CSV)
+            .into_script()
+            .into()
+    }
+}
+
+impl ScriptGenerators for WitnessScript {
+    #[inline]
+    fn ln_funding(amount: u64, pubkey1: PublicKey, pubkey2: PublicKey) -> Self {
+        LockScript::ln_funding(amount, pubkey1, pubkey2).into()
+    }
+
+    #[inline]
+    fn ln_to_local(
+        amount: u64,
+        revocationpubkey: PublicKey,
+        local_delayedpubkey: PublicKey,
+        to_self_delay: u16,
+    ) -> Self {
+        LockScript::ln_to_local(
+            amount,
+            revocationpubkey,
+            local_delayedpubkey,
+            to_self_delay,
+        )
+        .into()
+    }
+
+    #[inline]
+    fn ln_to_remote_v1(_: u64, _: PublicKey) -> Self {
+        unimplemented!(
+            "WitnessScript can't be generated for to_remote v1 output"
+        )
+    }
+
+    fn ln_to_remote_v2(amount: u64, remote_pubkey: PublicKey) -> Self {
+        LockScript::ln_to_remote_v2(amount, remote_pubkey).into()
+    }
+}
+
+impl ScriptGenerators for PubkeyScript {
+    #[inline]
+    fn ln_funding(amount: u64, pubkey1: PublicKey, pubkey2: PublicKey) -> Self {
+        WitnessScript::ln_funding(amount, pubkey1, pubkey2).to_p2wsh()
+    }
+
+    #[inline]
+    fn ln_to_local(
+        amount: u64,
+        revocationpubkey: PublicKey,
+        local_delayedpubkey: PublicKey,
+        to_self_delay: u16,
+    ) -> Self {
+        WitnessScript::ln_to_local(
+            amount,
+            revocationpubkey,
+            local_delayedpubkey,
+            to_self_delay,
+        )
+        .to_p2wsh()
+    }
+
+    #[inline]
+    fn ln_to_remote_v1(_: u64, remote_pubkey: PublicKey) -> Self {
+        remote_pubkey
+            .into_pk()
+            .wpubkey_hash()
+            .expect("We just generated non-compressed key")
+            .into()
+    }
+
+    #[inline]
+    fn ln_to_remote_v2(amount: u64, remote_pubkey: PublicKey) -> Self {
+        WitnessScript::ln_to_remote_v2(amount, remote_pubkey).to_p2wsh()
+    }
+}
+
+impl ScriptGenerators for TxOut {
+    #[inline]
+    fn ln_funding(amount: u64, pubkey1: PublicKey, pubkey2: PublicKey) -> Self {
+        TxOut {
+            value: amount,
+            script_pubkey: PubkeyScript::ln_funding(amount, pubkey1, pubkey2)
+                .into(),
         }
+    }
+
+    #[inline]
+    fn ln_to_local(
+        amount: u64,
+        revocationpubkey: PublicKey,
+        local_delayedpubkey: PublicKey,
+        to_self_delay: u16,
+    ) -> Self {
+        TxOut {
+            value: amount,
+            script_pubkey: PubkeyScript::ln_to_local(
+                amount,
+                revocationpubkey,
+                local_delayedpubkey,
+                to_self_delay,
+            )
+            .into(),
+        }
+    }
+
+    #[inline]
+    fn ln_to_remote_v1(amount: u64, remote_pubkey: PublicKey) -> Self {
+        TxOut {
+            value: amount,
+            script_pubkey: PubkeyScript::ln_to_remote_v1(amount, remote_pubkey)
+                .into(),
+        }
+    }
+
+    #[inline]
+    fn ln_to_remote_v2(amount: u64, remote_pubkey: PublicKey) -> Self {
+        TxOut {
+            value: amount,
+            script_pubkey: PubkeyScript::ln_to_remote_v2(amount, remote_pubkey)
+                .into(),
+        }
+    }
+}
+
+fn compute_obscuring_factor(
+    is_originator: bool,
+    local_payment_basepoint: PublicKey,
+    remote_payment_basepoint: PublicKey,
+) -> u64 {
+    use bitcoin::hashes::{sha256, Hash, HashEngine};
+
+    let mut engine = sha256::Hash::engine();
+    if is_originator {
+        engine.input(&local_payment_basepoint.serialize());
+        engine.input(&remote_payment_basepoint.serialize());
+    } else {
+        engine.input(&remote_payment_basepoint.serialize());
+        engine.input(&local_payment_basepoint.serialize());
+    }
+    let obscuring_hash = sha256::Hash::from_engine(engine);
+
+    let mut buf = [0u8; 8];
+    buf.copy_from_slice(&obscuring_hash[24..]);
+    u64::from_be_bytes(buf)
+}
+
+// TODO: Remove TxGenerators since they are not needed
+pub trait TxGenerators {
+    fn ln_cmt_base(
+        local_amount: u64,
+        remote_amount: u64,
+        commitment_number: u64,
+        obscuring_factor: u64,
+        funding_outpoint: OutPoint,
+        remote_pubkey: PublicKey,
+        revocationpubkey: PublicKey,
+        local_delayedpubkey: PublicKey,
+        to_self_delay: u16,
+    ) -> Self;
+
+    fn ln_closing(outpoint: OutPoint, txout: Vec<TxOut>) -> Self;
+}
+
+impl TxGenerators for Transaction {
+    fn ln_cmt_base(
+        local_amount: u64,
+        remote_amount: u64,
+        commitment_number: u64,
+        obscuring_factor: u64,
+        funding_outpoint: OutPoint,
+        remote_pubkey: PublicKey,
+        revocationpubkey: PublicKey,
+        local_delayedpubkey: PublicKey,
+        to_self_delay: u16,
+    ) -> Self {
+        // The 48-bit commitment number is obscured by XOR with the lower
+        // 48 bits of `obscuring_factor`
+        let obscured_commitment =
+            (commitment_number & 0xFFFFFF) ^ (obscuring_factor & 0xFFFFFF);
+        let obscured_commitment = obscured_commitment as u32;
+        let lock_time = (0x20u32 << 24) | obscured_commitment;
+        let sequence = (0x80u32 << 24) | obscured_commitment;
+        let tx = Transaction {
+            version: 2,
+            lock_time,
+            input: vec![TxIn {
+                previous_output: funding_outpoint,
+                script_sig: none!(),
+                sequence,
+                witness: empty!(),
+            }],
+            output: vec![
+                TxOut::ln_to_local(
+                    local_amount,
+                    revocationpubkey,
+                    local_delayedpubkey,
+                    to_self_delay,
+                ),
+                TxOut::ln_to_remote_v1(remote_amount, remote_pubkey),
+            ],
+        };
+        tx.lex_ordered()
+    }
+
+    fn ln_closing(outpoint: OutPoint, txout: Vec<TxOut>) -> Self {
+        Transaction {
+            version: 2,
+            lock_time: 0,
+            input: vec![TxIn {
+                previous_output: outpoint,
+                script_sig: none!(),
+                sequence: core::u32::MAX,
+                witness: empty!(),
+            }],
+            output: txout,
+        }
+    }
+}
+
+impl TxGenerators for Psbt {
+    fn ln_cmt_base(
+        local_amount: u64,
+        remote_amount: u64,
+        commitment_number: u64,
+        obscuring_factor: u64,
+        funding_outpoint: OutPoint,
+        remote_pubkey: PublicKey,
+        revocationpubkey: PublicKey,
+        local_delayedpubkey: PublicKey,
+        to_self_delay: u16,
+    ) -> Self {
+        Psbt::from_unsigned_tx(Transaction::ln_cmt_base(
+            local_amount,
+            remote_amount,
+            commitment_number,
+            obscuring_factor,
+            funding_outpoint,
+            remote_pubkey,
+            revocationpubkey,
+            local_delayedpubkey,
+            to_self_delay,
+        ))
+        .expect("Tx has empty sigs so PSBT creation does not faile")
+    }
+
+    fn ln_closing(outpoint: OutPoint, txout: Vec<TxOut>) -> Self {
+        Psbt::from_unsigned_tx(Transaction::ln_closing(outpoint, txout))
+            .expect("Tx has empty sigs so PSBT creation does not faile")
     }
 }

@@ -15,8 +15,7 @@ use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::hash::Hash;
 
-use crate::bolt::channel::PolicyError;
-use crate::bolt::Lifecycle;
+use crate::bolt::{Lifecycle, PolicyError};
 use bitcoin::util::psbt::PartiallySignedTransaction as Psbt;
 use bitcoin::{OutPoint, Transaction, TxIn, TxOut};
 use lnp2p::legacy::Messages;

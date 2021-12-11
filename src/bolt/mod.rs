@@ -11,11 +11,12 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
-pub mod channel;
-mod types;
+mod policy;
+mod util;
 
-mod constructor;
+mod channel;
 pub mod extensions;
 
-pub use constructor::Bolt3;
-pub use types::{AssetsBalance, ExtensionId, Lifecycle, TxType};
+pub use channel::{Core, ScriptGenerators, TxGenerators};
+pub use policy::{CommonParams, Keyset, PeerParams, Policy, PolicyError};
+pub use util::{AssetsBalance, ExtensionId, Lifecycle, TxType};

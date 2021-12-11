@@ -22,7 +22,7 @@ use strict_encoding::{
 };
 
 use super::extensions::AnchorOutputs;
-use super::Bolt3;
+use super::Core;
 use crate::channel::{Channel, Error};
 use crate::shared_ext::Bip96;
 use crate::{channel, extension, ChannelExtension, Extension};
@@ -95,7 +95,7 @@ impl TryFrom<u16> for ExtensionId {
 }
 
 impl extension::Nomenclature for ExtensionId {
-    type Constructor = Bolt3;
+    type Constructor = Core;
 
     #[inline]
     fn default_modifiers() -> Vec<Box<dyn ChannelExtension<Identity = Self>>> {
