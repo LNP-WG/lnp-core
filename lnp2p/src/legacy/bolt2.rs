@@ -21,6 +21,7 @@ use bitcoin::Txid;
 use internet2::tlv;
 use lnpbp::chain::AssetId;
 use std::io;
+use std::str::FromStr;
 use wallet::hlc::{HashLock, HashPreimage};
 use wallet::scripts::PubkeyScript;
 
@@ -32,7 +33,6 @@ use super::{ChannelId, OnionPacket, TempChannelId};
 /// operation).
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
-#[display(Debug)] // BOLT does not define human readable names for channel types
 #[cfg_attr(
     feature = "serde",
     derive(Serialize, Deserialize),
@@ -40,16 +40,20 @@ use super::{ChannelId, OnionPacket, TempChannelId};
 )]
 pub enum ChannelType {
     /// no features (no bits set)
+    #[display("basic")]
     Basic,
 
     /// option_static_remotekey (bit 12)
+    #[display("static_remotekey")]
     StaticRemotekey,
 
     /// option_anchor_outputs and option_static_remotekey (bits 20 and 12)
+    #[display("anchored")]
     AnchorOutputsStaticRemotekey,
 
     /// option_anchors_zero_fee_htlc_tx and option_static_remotekey (bits 22
     /// and 12)
+    #[display("anchored_zero_fee")]
     AnchorsZeroFeeHtlcTxStaticRemotekey,
 }
 
@@ -80,6 +84,29 @@ impl ChannelType {
             ChannelType::Basic => None,
             _ => Some(self),
         }
+    }
+}
+
+/// Error parsing [`ChannelType`] from strings
+#[derive(
+    Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display, Error,
+)]
+#[display("unknown channel type name `{0}`")]
+pub struct ChannelTypeParseError(String);
+
+impl FromStr for ChannelType {
+    type Err = ChannelTypeParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s.to_lowercase().as_str() {
+            "basic" => ChannelType::Basic,
+            "static_remotekey" => ChannelType::StaticRemotekey,
+            "anchored" => ChannelType::AnchorOutputsStaticRemotekey,
+            "anchored_zero_fee" => {
+                ChannelType::AnchorsZeroFeeHtlcTxStaticRemotekey
+            }
+            _ => return Err(ChannelTypeParseError(s.to_owned())),
+        })
     }
 }
 
