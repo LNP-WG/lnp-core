@@ -716,11 +716,10 @@ impl Keyset {
     /// Derives keyset from a *channel extended key* using LNPBP-46 standard
     pub fn with<C: Signing>(
         secp: &Secp256k1<C>,
-        funding_pubkey: PublicKey,
         channel_xpriv: ExtendedPrivKey,
         commit_to_shutdown_scriptpubkey: bool,
     ) -> Self {
-        let keys = [1u16, 2, 3, 4, 5, 6, 7]
+        let keys = (0u16..=7)
             .into_iter()
             .map(HardenedIndex::from)
             .map(ChildNumber::from)
@@ -736,7 +735,7 @@ impl Keyset {
             .collect::<Vec<_>>();
 
         Self {
-            funding_pubkey,
+            funding_pubkey: keys[0],
             revocation_basepoint: keys[2],
             payment_basepoint: keys[0],
             delayed_payment_basepoint: keys[1],
