@@ -18,6 +18,7 @@ use bitcoin::{OutPoint, Transaction, TxIn, TxOut};
 use lnp2p::legacy::{AcceptChannel, Messages, OpenChannel};
 use lnp2p::legacy::{ActiveChannelId, ChannelId, TempChannelId};
 use lnpbp::chain::AssetId;
+use wallet::address::AddressCompat;
 use wallet::lex_order::LexOrder;
 use wallet::psbt::Psbt;
 use wallet::scripts::{LockScript, PubkeyScript, WitnessScript};
@@ -155,7 +156,7 @@ impl Channel<ExtensionId> {
     ///
     /// Fails if the node is not in [`Lifecycle::Initial`] or
     /// [`Lifecycle::Reestablishing`] state.
-    pub fn open_channel_compose(
+    pub fn compose_open_channel(
         &mut self,
         funding_sat: u64,
         push_msat: u64,
@@ -211,7 +212,7 @@ impl Channel<ExtensionId> {
     ///
     /// Fails if the node is not in [`Lifecycle::Initial`] or
     /// [`Lifecycle::Reestablishing`] state.
-    pub fn accept_channel_compose(
+    pub fn compose_accept_channel(
         &mut self,
     ) -> Result<AcceptChannel, channel::Error> {
         let stage = self.constructor().stage();
@@ -252,6 +253,36 @@ impl Channel<ExtensionId> {
             channel_type: common_params.channel_type.into_option(),
             unknown_tlvs: none!(),
         })
+    }
+
+    pub fn update_from_accept_channel(
+        &mut self,
+        accept_channel: AcceptChannel,
+    ) -> Result<(), channel::Error> {
+        // TODO: Implement
+        Ok(())
+    }
+
+    pub fn construct_refund(&mut self, funding_outpoint: OutPoint) -> Psbt {
+        todo!()
+    }
+
+    pub fn funding_outpoint(&self) -> OutPoint {
+        todo!()
+    }
+
+    pub fn funding_address(&self) -> AddressCompat {
+        todo!()
+    }
+
+    pub fn funding_fee(&self) -> u64 {
+        // TODO: Implement
+        0
+    }
+
+    pub fn local_amount(&self) -> u64 {
+        // TODO: Implement
+        0
     }
 }
 
