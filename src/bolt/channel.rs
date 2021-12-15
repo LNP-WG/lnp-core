@@ -11,17 +11,20 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
-use amplify::DumbDefault;
+use amplify::{DumbDefault, Slice32, Wrapper};
 use bitcoin::blockdata::{opcodes::all::*, script};
+use bitcoin::hashes::Hash;
 use bitcoin::secp256k1::PublicKey;
-use bitcoin::{OutPoint, TxOut};
+use bitcoin::{Network, OutPoint, TxOut, Txid};
 use lnp2p::legacy::{AcceptChannel, Messages, OpenChannel};
 use lnp2p::legacy::{ActiveChannelId, ChannelId, TempChannelId};
-use lnpbp::chain::AssetId;
+use lnpbp::chain::Chain;
 use wallet::address::AddressCompat;
 use wallet::lex_order::LexOrder;
 use wallet::psbt::Psbt;
-use wallet::scripts::{LockScript, PubkeyScript, WitnessScript};
+use wallet::scripts::{
+    Category, LockScript, PubkeyScript, ToPubkeyScript, WitnessScript,
+};
 use wallet::IntoPk;
 
 use super::extensions::AnchorOutputs;
@@ -267,22 +270,53 @@ impl Channel<ExtensionId> {
         todo!()
     }
 
-    pub fn funding_outpoint(&self) -> OutPoint {
-        todo!()
+    #[inline]
+    pub fn funding_pubkey(&self) -> PublicKey {
+        let core = self.constructor();
+        core.local_keys().funding_pubkey
     }
 
-    pub fn funding_address(&self) -> AddressCompat {
-        todo!()
+    #[inline]
+    pub fn funding_txid(&self) -> Txid {
+        let core = self.constructor();
+        core.funding_outpoint().txid
     }
 
-    pub fn funding_fee(&self) -> u64 {
-        // TODO: Implement
-        0
+    #[inline]
+    pub fn funding_output(&self) -> u16 {
+        let core = self.constructor();
+        core.funding_outpoint().vout as u16
     }
 
+    /// Tries to identify bitcoin network which channel is based on. Returns
+    /// `None` if the channel is using non-bitcoin chain.
+    #[inline]
+    pub fn network(&self) -> Option<Network> {
+        let chain_hash = self.constructor().chain_hash();
+        for chain in Chain::all_standard() {
+            if chain.as_genesis_hash().as_inner() == chain_hash.as_inner() {
+                return Network::try_from(chain).ok();
+            }
+        }
+        None
+    }
+
+    /// Constructs address which was used to fund the transaction.
+    ///
+    /// Returns result only for standard chain types (see
+    /// [`Chain::all_standard`]); for other chain types returns `None`.
+    #[inline]
+    pub fn funding_address(&self) -> Option<AddressCompat> {
+        let script_pubkey =
+            self.funding_pubkey().to_pubkey_script(Category::SegWit);
+        self.network().and_then(|network| {
+            AddressCompat::from_script(script_pubkey.as_inner(), network)
+        })
+    }
+
+    #[inline]
     pub fn local_amount(&self) -> u64 {
-        // TODO: Implement
-        0
+        self.constructor().local_amount()
     }
 }
 
@@ -306,7 +340,7 @@ pub struct Core {
     /// within multiple blockchains opened to the same peer (if it supports the
     /// target chains).
     #[getter(as_copy)]
-    chain_hash: AssetId,
+    chain_hash: Slice32,
 
     /// Channel id used by the channel; first temporary and later final.
     ///
@@ -316,6 +350,10 @@ pub struct Core {
     /// transaction.
     #[getter(as_copy)]
     active_channel_id: ActiveChannelId,
+
+    /// Funding transaction outpoint spent by commitment transactions input
+    #[getter(as_copy)]
+    funding_outpoint: OutPoint,
 
     /// Amount in millisatoshis
     #[getter(as_copy)]
@@ -372,6 +410,7 @@ impl Default for Core {
             stage: Lifecycle::Initial,
             chain_hash: default!(),
             active_channel_id: ActiveChannelId::random(),
+            funding_outpoint: OutPoint::default(),
             local_amount: 0,
             remote_amount: 0,
             commitment_number: 0,
@@ -792,7 +831,7 @@ fn compute_obscuring_factor(
     local_payment_basepoint: PublicKey,
     remote_payment_basepoint: PublicKey,
 ) -> u64 {
-    use bitcoin::hashes::{sha256, Hash, HashEngine};
+    use bitcoin::hashes::{sha256, HashEngine};
 
     let mut engine = sha256::Hash::engine();
     if direction.is_inbound() {

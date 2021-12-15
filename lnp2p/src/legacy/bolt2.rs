@@ -14,7 +14,7 @@
 // If not, see <https://opensource.org/licenses/MIT>.
 
 use amplify::flags::FlagVec;
-use amplify::DumbDefault;
+use amplify::{DumbDefault, Slice32};
 use bitcoin::hashes::sha256;
 use bitcoin::secp256k1::{PublicKey, Signature};
 use bitcoin::Txid;
@@ -187,7 +187,7 @@ impl lightning_encoding::LightningDecode for ChannelType {
 #[display("open_channel({chain_hash}, {temporary_channel_id}, {funding_satoshis}, {channel_flags}, ...)")]
 pub struct OpenChannel {
     /// The genesis hash of the blockchain where the channel is to be opened
-    pub chain_hash: AssetId,
+    pub chain_hash: Slice32,
 
     /// A temporary channel ID, until the funding outpoint is announced
     pub temporary_channel_id: TempChannelId,
