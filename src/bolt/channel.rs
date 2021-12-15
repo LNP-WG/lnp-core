@@ -186,6 +186,10 @@ impl Channel<ExtensionId> {
         &mut self,
         funding_sat: u64,
         push_msat: u64,
+        policy: Policy,
+        common_params: CommonParams,
+        local_params: PeerParams,
+        local_keys: Keyset,
     ) -> Result<OpenChannel, channel::Error> {
         let stage = self.constructor().stage();
         if stage != Lifecycle::Initial && stage != Lifecycle::Reestablishing {
@@ -196,6 +200,12 @@ impl Channel<ExtensionId> {
         }
 
         self.constructor_mut().set_outbound();
+
+        let core = self.constructor_mut();
+        core.set_policy(policy);
+        core.set_common_params(common_params);
+        core.set_local_params(local_params);
+        core.set_local_keys(local_keys);
 
         let core = self.constructor();
         let common_params: CommonParams = core.common_params();

@@ -495,7 +495,7 @@ impl Default for CommonParams {
     fn default() -> Self {
         CommonParams {
             minimum_depth: 3,
-            feerate_per_kw: 2,
+            feerate_per_kw: 256,
             announce_channel: true,
             channel_type: ChannelType::default(),
         }
