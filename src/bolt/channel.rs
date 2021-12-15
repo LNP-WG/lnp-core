@@ -19,6 +19,7 @@ use bitcoin::{Network, OutPoint, TxOut, Txid};
 use lnp2p::legacy::{AcceptChannel, Messages, OpenChannel};
 use lnp2p::legacy::{ActiveChannelId, ChannelId, TempChannelId};
 use lnpbp::chain::Chain;
+use secp256k1::Signature;
 use wallet::address::AddressCompat;
 use wallet::lex_order::LexOrder;
 use wallet::psbt::Psbt;
@@ -388,6 +389,8 @@ pub struct Core {
     #[getter(as_copy)]
     obscuring_factor: u64,
 
+    commitment_sigs: Vec<Signature>,
+
     /// The policy for accepting remote node params
     #[getter(as_ref)]
     policy: Policy,
@@ -434,6 +437,7 @@ impl Default for Core {
             remote_amount: 0,
             commitment_number: 0,
             obscuring_factor,
+            commitment_sigs: vec![],
             policy: default!(),
             common_params: default!(),
             local_params: default!(),
@@ -598,6 +602,8 @@ impl Extension for Core {
 
                 self.active_channel_id =
                     ActiveChannelId::from(funding_signed.channel_id);
+                self.commitment_sigs.push(funding_signed.signature);
+                // TODO: Verify signature agains transaction
             }
             Messages::FundingLocked(_) => {
                 self.stage = Lifecycle::Locked; // TODO: or Active
