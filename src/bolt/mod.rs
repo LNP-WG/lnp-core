@@ -17,6 +17,6 @@ mod util;
 mod channel;
 pub mod extensions;
 
-pub use channel::{Core, ScriptGenerators, TxGenerators};
+pub use channel::{Core, ScriptGenerators};
 pub use policy::{CommonParams, Keyset, PeerParams, Policy, PolicyError};
 pub use util::{AssetsBalance, ExtensionId, Lifecycle, TxType};

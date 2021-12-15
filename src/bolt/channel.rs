@@ -14,7 +14,7 @@
 use amplify::DumbDefault;
 use bitcoin::blockdata::{opcodes::all::*, script};
 use bitcoin::secp256k1::PublicKey;
-use bitcoin::{OutPoint, Transaction, TxIn, TxOut};
+use bitcoin::{OutPoint, TxOut};
 use lnp2p::legacy::{AcceptChannel, Messages, OpenChannel};
 use lnp2p::legacy::{ActiveChannelId, ChannelId, TempChannelId};
 use lnpbp::chain::AssetId;
@@ -807,109 +807,4 @@ fn compute_obscuring_factor(
     let mut buf = [0u8; 8];
     buf.copy_from_slice(&obscuring_hash[24..]);
     u64::from_be_bytes(buf)
-}
-
-// TODO: Remove TxGenerators since they are not needed
-pub trait TxGenerators {
-    fn ln_cmt_base(
-        local_amount: u64,
-        remote_amount: u64,
-        commitment_number: u64,
-        obscuring_factor: u64,
-        funding_outpoint: OutPoint,
-        remote_pubkey: PublicKey,
-        revocationpubkey: PublicKey,
-        local_delayedpubkey: PublicKey,
-        to_self_delay: u16,
-    ) -> Self;
-
-    fn ln_closing(outpoint: OutPoint, txout: Vec<TxOut>) -> Self;
-}
-
-impl TxGenerators for Transaction {
-    fn ln_cmt_base(
-        local_amount: u64,
-        remote_amount: u64,
-        commitment_number: u64,
-        obscuring_factor: u64,
-        funding_outpoint: OutPoint,
-        remote_pubkey: PublicKey,
-        revocationpubkey: PublicKey,
-        local_delayedpubkey: PublicKey,
-        to_self_delay: u16,
-    ) -> Self {
-        // The 48-bit commitment number is obscured by XOR with the lower
-        // 48 bits of `obscuring_factor`
-        let obscured_commitment =
-            (commitment_number & 0xFFFFFF) ^ (obscuring_factor & 0xFFFFFF);
-        let obscured_commitment = obscured_commitment as u32;
-        let lock_time = (0x20u32 << 24) | obscured_commitment;
-        let sequence = (0x80u32 << 24) | obscured_commitment;
-        let tx = Transaction {
-            version: 2,
-            lock_time,
-            input: vec![TxIn {
-                previous_output: funding_outpoint,
-                script_sig: none!(),
-                sequence,
-                witness: empty!(),
-            }],
-            output: vec![
-                TxOut::ln_to_local(
-                    local_amount,
-                    revocationpubkey,
-                    local_delayedpubkey,
-                    to_self_delay,
-                ),
-                TxOut::ln_to_remote_v1(remote_amount, remote_pubkey),
-            ],
-        };
-        tx.lex_ordered()
-    }
-
-    fn ln_closing(outpoint: OutPoint, txout: Vec<TxOut>) -> Self {
-        Transaction {
-            version: 2,
-            lock_time: 0,
-            input: vec![TxIn {
-                previous_output: outpoint,
-                script_sig: none!(),
-                sequence: core::u32::MAX,
-                witness: empty!(),
-            }],
-            output: txout,
-        }
-    }
-}
-
-impl TxGenerators for Psbt {
-    fn ln_cmt_base(
-        local_amount: u64,
-        remote_amount: u64,
-        commitment_number: u64,
-        obscuring_factor: u64,
-        funding_outpoint: OutPoint,
-        remote_pubkey: PublicKey,
-        revocationpubkey: PublicKey,
-        local_delayedpubkey: PublicKey,
-        to_self_delay: u16,
-    ) -> Self {
-        Psbt::from_unsigned_tx(Transaction::ln_cmt_base(
-            local_amount,
-            remote_amount,
-            commitment_number,
-            obscuring_factor,
-            funding_outpoint,
-            remote_pubkey,
-            revocationpubkey,
-            local_delayedpubkey,
-            to_self_delay,
-        ))
-        .expect("Tx has empty sigs so PSBT creation does not faile")
-    }
-
-    fn ln_closing(outpoint: OutPoint, txout: Vec<TxOut>) -> Self {
-        Psbt::from_unsigned_tx(Transaction::ln_closing(outpoint, txout))
-            .expect("Tx has empty sigs so PSBT creation does not faile")
-    }
 }
