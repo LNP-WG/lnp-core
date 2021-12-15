@@ -82,6 +82,7 @@ impl Channel<ExtensionId> {
     /// for constructing `open_channel` (for outbound channels) and
     /// `accept_channel` (for inbound channels) request sent to the remote node.
     pub fn with(
+        chain_hash: Slice32,
         policy: Policy,
         common_params: CommonParams,
         local_params: PeerParams,
@@ -98,6 +99,7 @@ impl Channel<ExtensionId> {
         }
 
         let core = channel.constructor_mut();
+        core.set_chain_hash(chain_hash);
         core.set_policy(policy);
         core.set_common_params(common_params);
         core.set_local_params(local_params);
@@ -473,6 +475,12 @@ impl Core {
     #[inline]
     pub fn set_outbound(&mut self) {
         self.direction = Direction::Outbount;
+    }
+
+    /// Sets the channel chain hash
+    #[inline]
+    pub fn set_chain_hash(&mut self, chain_hash: Slice32) {
+        self.chain_hash = chain_hash
     }
 
     /// Sets channel funding outpoint
