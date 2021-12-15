@@ -315,6 +315,12 @@ impl Channel<ExtensionId> {
     }
 
     #[inline]
+    pub fn feerate_per_kw(&self) -> u32 {
+        let core = self.constructor();
+        core.common_params().feerate_per_kw
+    }
+
+    #[inline]
     pub fn local_amount(&self) -> u64 {
         self.constructor().local_amount()
     }
