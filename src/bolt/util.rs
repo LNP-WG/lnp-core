@@ -202,6 +202,10 @@ pub enum Lifecycle {
     #[display("ACCEPTED")]
     Accepted,
 
+    /// Producing signature for the refund transaction internally
+    #[display("SIGNING")]
+    Signing,
+
     /// Local party signed funding tx
     #[display("FUNDING")]
     Funding,
