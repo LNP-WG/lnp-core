@@ -178,7 +178,7 @@ where
 
 impl<N> Default for Channel<N>
 where
-    N: extension::Nomenclature,
+    N: extension::Nomenclature + Default,
 {
     fn default() -> Self {
         Channel::new(
