@@ -14,6 +14,7 @@
 use std::io::{Read, Write};
 
 use amplify::flags::FlagVec;
+use amplify::{Slice32, Wrapper};
 
 use super::{strategies, Strategy};
 use crate::{Error, LightningDecode, LightningEncode};
@@ -114,6 +115,18 @@ impl LightningDecode for FlagVec {
     fn lightning_decode<D: Read>(d: D) -> Result<Self, Error> {
         let flags = Vec::<u8>::lightning_decode(d)?;
         Ok(FlagVec::from_inner(flags))
+    }
+}
+
+impl LightningEncode for Slice32 {
+    fn lightning_encode<E: Write>(&self, e: E) -> Result<usize, Error> {
+        self.as_inner().lightning_encode(e)
+    }
+}
+
+impl LightningDecode for Slice32 {
+    fn lightning_decode<D: Read>(d: D) -> Result<Self, Error> {
+        LightningDecode::lightning_decode(d).map(Slice32::from_inner)
     }
 }
 
