@@ -13,6 +13,8 @@
 
 use std::io::{Read, Write};
 
+use amplify::flags::FlagVec;
+
 use super::{strategies, Strategy};
 use crate::{Error, LightningDecode, LightningEncode};
 
@@ -101,12 +103,18 @@ impl LightningDecode for usize {
     }
 }
 
-impl Strategy for amplify::flags::FlagVec {
-    type Strategy = strategies::AsStrict;
+impl LightningEncode for FlagVec {
+    fn lightning_encode<E: Write>(&self, e: E) -> Result<usize, Error> {
+        let flags = self.shrunk();
+        flags.as_inner().lightning_encode(e)
+    }
 }
 
-impl Strategy for amplify::Slice32 {
-    type Strategy = strategies::AsStrict;
+impl LightningDecode for FlagVec {
+    fn lightning_decode<D: Read>(d: D) -> Result<Self, Error> {
+        let flags = Vec::<u8>::lightning_decode(d)?;
+        Ok(FlagVec::from_inner(flags))
+    }
 }
 
 mod _chrono {
