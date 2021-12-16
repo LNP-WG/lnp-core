@@ -344,7 +344,7 @@ pub struct InitFeatures {
 
 impl Display for InitFeatures {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        for (feature, required) in self.known_features() {
+        for (feature, required) in self.known_set_features() {
             Display::fmt(&feature, f)?;
             if !required {
                 f.write_str("?")?;
@@ -356,6 +356,17 @@ impl Display for InitFeatures {
 }
 
 impl InitFeatures {
+    /// Measures minimally-encoded byte length for the feature vector
+    pub fn byte_len(&self) -> u16 {
+        let max_known = Feature::all()
+            .iter()
+            .map(|f| f.bit(false).or_else(|| f.bit(true)).unwrap_or(0))
+            .max()
+            .unwrap_or(0);
+        let max_unknown = Iterator::max(self.unknown.iter()).unwrap_or(0);
+        max_known.max(max_unknown)
+    }
+
     pub fn check(&self) -> Result<(), Error> {
         self.check_consistency()?;
         self.check_unknown_even()
@@ -386,7 +397,7 @@ impl InitFeatures {
         Ok(())
     }
 
-    pub fn known_features(&self) -> BTreeMap<Feature, bool> {
+    pub fn known_set_features(&self) -> BTreeMap<Feature, bool> {
         let mut map = bmap! {};
         if let Some(required) = self.option_data_loss_protect {
             map.insert(Feature::OptionDataLossProtect, required);
@@ -477,7 +488,7 @@ impl TryFrom<FlagVec> for InitFeatures {
 impl From<InitFeatures> for FlagVec {
     fn from(features: InitFeatures) -> Self {
         let flags = features.unknown.shrunk();
-        features.known_features().into_iter().fold(
+        features.known_set_features().into_iter().fold(
             flags,
             |mut flags, (feature, required)| {
                 flags.set(feature.bit(required).expect(
@@ -494,7 +505,34 @@ impl LightningEncode for InitFeatures {
         &self,
         e: E,
     ) -> Result<usize, lightning_encoding::Error> {
-        FlagVec::from(self.clone()).lightning_encode(e)
+        let flag_vec = FlagVec::from(self.clone());
+        let vec: Vec<u8> = flag_vec.as_inner().iter().rev().copied().collect();
+        vec.lightning_encode(e)
+
+        /* Previous implementation:
+        let len = self.byte_len();
+        let mut vec = vec![len];
+
+        let set_bit = |bit: u16| {
+            let byte_no = len - bit / 8 - 1;
+            let bit_no = bit % 8;
+            vec[byte_no] |= 1 << bit_no;
+        };
+
+        for (feature, required) in self.known_set_features() {
+            let bit = feature
+                .bit(required)
+                .expect("feature with unknown bit is set in feature vector");
+            if !bit {
+                continue;
+            }
+            set_bit(bit)
+        }
+        for bit in &self.unknown {
+            set_bit(bit)
+        }
+        vec.lightning_encode(e)
+         */
     }
 }
 
@@ -502,10 +540,12 @@ impl LightningDecode for InitFeatures {
     fn lightning_decode<D: io::Read>(
         d: D,
     ) -> Result<Self, lightning_encoding::Error> {
-        let vec = FlagVec::lightning_decode(d)?;
-        Ok(InitFeatures::try_from(vec).map_err(|e| {
+        let vec = Vec::<u8>::lightning_decode(d)?;
+
+        let flag_vec = FlagVec::from_inner(vec.into_iter().rev().collect());
+        InitFeatures::try_from(flag_vec).map_err(|e| {
             lightning_encoding::Error::DataIntegrityError(e.to_string())
-        })?)
+        })
     }
 }
 
@@ -525,8 +565,29 @@ impl strict_encoding::StrictDecode for InitFeatures {
         d: D,
     ) -> Result<Self, strict_encoding::Error> {
         let vec = FlagVec::strict_decode(d)?;
-        Ok(InitFeatures::try_from(vec).map_err(|e| {
+        InitFeatures::try_from(vec).map_err(|e| {
             strict_encoding::Error::DataIntegrityError(e.to_string())
-        })?)
+        })
     }
 }
+
+/*
+/// Lightning-specific big endian convertor of flag vector bit positions
+trait FlagVecLightning {
+    fn ln_test(&self, flag_no: FlagNo) -> bool;
+    fn ln_set(&mut self, flag_no: FlagNo) -> bool;
+    fn ln_unset(&mut self, flag_no: FlagNo) -> bool;
+}
+
+impl FlagVecLightning for FlagVec {
+    fn ln_test(&self, flag_no: FlagNo) -> bool {
+        let byte = flag_no
+    }
+
+    fn ln_set(&mut self, flag_no: FlagNo) -> bool {
+    }
+
+    fn ln_unset(&mut self, flag_no: FlagNo) -> bool {
+    }
+}
+*/
