@@ -39,6 +39,8 @@ lazy_static! {
         Messages::create_unmarshaller();
 }
 
+// TODO: Add unknown TLVs to all of the messages
+
 #[derive(Clone, Debug, Display, Api)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[api(encoding = "lightning")]

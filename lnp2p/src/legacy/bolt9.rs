@@ -163,6 +163,7 @@ pub enum Feature {
     /// Anchor outputs
     #[display("option_anchor_outputs", alt = "20/21")]
     OptionAnchorOutputs = 20,
+    // NB: When adding new feature INCLUDE it into Feature::all
 }
 
 impl Feature {
@@ -570,24 +571,3 @@ impl strict_encoding::StrictDecode for InitFeatures {
         })
     }
 }
-
-/*
-/// Lightning-specific big endian convertor of flag vector bit positions
-trait FlagVecLightning {
-    fn ln_test(&self, flag_no: FlagNo) -> bool;
-    fn ln_set(&mut self, flag_no: FlagNo) -> bool;
-    fn ln_unset(&mut self, flag_no: FlagNo) -> bool;
-}
-
-impl FlagVecLightning for FlagVec {
-    fn ln_test(&self, flag_no: FlagNo) -> bool {
-        let byte = flag_no
-    }
-
-    fn ln_set(&mut self, flag_no: FlagNo) -> bool {
-    }
-
-    fn ln_unset(&mut self, flag_no: FlagNo) -> bool {
-    }
-}
-*/

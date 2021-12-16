@@ -170,9 +170,20 @@ mod test {
     fn real_clightning_testvec() {
         // Real init message sent by c-lightning
         let init_recv = [
-            0u8, 16, 0, 2, 34, 0, 0, 3, 2, 170, 162, 1, 32, 111, 226, 140, 10,
-            182, 241, 179, 114, 193, 166, 162, 70, 174, 99, 247, 79, 147, 30,
-            131, 101, 225, 90, 8, 156, 104, 214, 25, 0, 0, 0, 0, 0,
+            // msg type
+            0u8, 16, //
+            // global features - 2 bytes
+            0, 2, 34, 0, //
+            // local features - 3 bytes
+            0, 3, 2, 170, 162, //
+            // TLV type = 1 (networks / assets)
+            1, //
+            // len
+            32, //
+            // network value
+            111, 226, 140, 10, 182, 241, 179, 114, 193, 166, 162, 70, 174, 99,
+            247, 79, 147, 30, 131, 101, 225, 90, 8, 156, 104, 214, 25, 0, 0, 0,
+            0, 0,
         ];
         let msg = Messages::lightning_deserialize(init_recv).unwrap();
         println!("{}", msg);

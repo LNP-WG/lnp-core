@@ -32,7 +32,7 @@ pub struct AnnouncementSignatures {
     pub channel_id: ChannelId,
 
     /// Short channel Id
-    pub short_channel_id: ShortChannelId, //TODO
+    pub short_channel_id: ShortChannelId,
 
     /// Node Signature
     pub node_signature: Signature,
@@ -157,9 +157,6 @@ pub struct QueryShortChannelIds {
 
     /// short ids to query
     pub short_ids: Vec<ShortChannelId>,
-    /*short id tlv stream
-     * TODO: uncomment once tlv implementation is complete
-     * pub short_id_tlvs: BTreeMap<u8, Vec<u8>>, */
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Display)]
@@ -190,9 +187,11 @@ pub struct QueryChannelRange {
 
     /// number of blocks
     pub number_of_blocks: u32,
-    /*channel range queries
-    TODO: Implement channel range data types
-     * pub query_channel_range_tlvs: BTreeMap<u8, Vec<u8>>, */
+    /* TODO: define custom type
+    #[lightning_encoding(tlv = 1)]
+    #[cfg_attr(feature = "strict_encoding", strict_encoding(tlv = 1))]
+    pub query_short_channel_ids_tlvs: (),
+     */
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Display)]
