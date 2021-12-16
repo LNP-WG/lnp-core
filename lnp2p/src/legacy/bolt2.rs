@@ -257,7 +257,7 @@ pub struct OpenChannel {
     /// Optionally, a request to pre-set the to-sender output's scriptPubkey
     /// for when we collaboratively close
     #[lightning_encoding(tlv = 0)]
-    #[network_encoding(tlv = 0)]
+    #[cfg_attr(feature = "strict_encoding", network_encoding(tlv = 0))]
     pub shutdown_scriptpubkey: Option<PubkeyScript>,
 
     /// Channel types are an explicit enumeration: for convenience of future
@@ -265,12 +265,12 @@ pub struct OpenChannel {
     /// combination (they represent the persistent features which affect the
     /// channel operation).
     #[lightning_encoding(tlv = 1)]
-    #[network_encoding(tlv = 1)]
+    #[cfg_attr(feature = "strict_encoding", network_encoding(tlv = 1))]
     pub channel_type: Option<ChannelType>,
 
     /// The rest of TLVs with unknown odd type ids
     #[lightning_encoding(unknown_tlvs)]
-    #[network_encoding(unknown_tlvs)]
+    #[cfg_attr(feature = "strict_encoding", network_encoding(unknown_tlvs))]
     pub unknown_tlvs: tlv::Stream,
 }
 
@@ -368,7 +368,7 @@ pub struct AcceptChannel {
     /// Optionally, a request to pre-set the to-sender output's scriptPubkey
     /// for when we collaboratively close
     #[lightning_encoding(tlv = 0)]
-    #[network_encoding(tlv = 0)]
+    #[cfg_attr(feature = "strict_encoding", network_encoding(tlv = 0))]
     pub shutdown_scriptpubkey: Option<PubkeyScript>,
 
     /// Channel types are an explicit enumeration: for convenience of future
@@ -376,12 +376,12 @@ pub struct AcceptChannel {
     /// combination (they represent the persistent features which affect the
     /// channel operation).
     #[lightning_encoding(tlv = 1)]
-    #[network_encoding(tlv = 1)]
+    #[cfg_attr(feature = "strict_encoding", network_encoding(tlv = 1))]
     pub channel_type: Option<ChannelType>,
 
     /// The rest of TLVs with unknown odd type ids
     #[lightning_encoding(unknown_tlvs)]
-    #[network_encoding(unknown_tlvs)]
+    #[cfg_attr(feature = "strict_encoding", network_encoding(unknown_tlvs))]
     pub unknown_tlvs: tlv::Stream,
 }
 
@@ -529,12 +529,12 @@ pub struct UpdateAddHtlc {
 
     /// RGB Extension: TLV
     #[lightning_encoding(tlv = 1)]
-    #[network_encoding(tlv = 1)]
+    #[cfg_attr(feature = "strict_encoding", network_encoding(tlv = 1))]
     pub asset_id: Option<AssetId>,
 
     /// The rest of TLVs with unknown odd type ids
     #[lightning_encoding(unknown_tlvs)]
-    #[network_encoding(unknown_tlvs)]
+    #[cfg_attr(feature = "strict_encoding", network_encoding(unknown_tlvs))]
     pub unknown_tlvs: tlv::Stream,
 }
 

@@ -41,11 +41,11 @@ pub struct Init {
     pub local_features: InitFeatures,
 
     #[lightning_encoding(tlv = 1)]
-    #[network_encoding(tlv = 1)]
+    #[cfg_attr(feature = "strict_encoding", network_encoding(tlv = 1))]
     pub assets: HashSet<AssetId>,
 
     #[lightning_encoding(unknown_tlvs)]
-    #[network_encoding(unknown_tlvs)]
+    #[cfg_attr(feature = "strict_encoding", network_encoding(unknown_tlvs))]
     pub unknown_tlvs: tlv::Stream,
 }
 
