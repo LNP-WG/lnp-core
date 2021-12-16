@@ -166,6 +166,22 @@ pub enum Feature {
 }
 
 impl Feature {
+    pub fn all() -> &'static [Feature] {
+        &[
+            Feature::OptionDataLossProtect,
+            Feature::InitialRoutingSync,
+            Feature::OptionUpfrontShutdownScript,
+            Feature::GossipQueries,
+            Feature::VarOnionOptin,
+            Feature::GossipQueriesEx,
+            Feature::OptionStaticRemotekey,
+            Feature::PaymentSecret,
+            Feature::BasicMpp,
+            Feature::OptionSupportLargeChannel,
+            Feature::OptionAnchorOutputs,
+        ]
+    }
+
     /// Returns number of bit that is set by the flag
     ///
     /// # Arguments
@@ -174,7 +190,7 @@ impl Feature {
     /// - `true` for odd (required) bit variant
     ///
     /// # Returns
-    /// Bit number in feature verctor if the feature is allowed for the provided
+    /// Bit number in feature vector if the feature is allowed for the provided
     /// `required` condition; `None` otherwise.
     pub fn bit(self, required: bool) -> Option<u16> {
         if self == Feature::InitialRoutingSync && required {
