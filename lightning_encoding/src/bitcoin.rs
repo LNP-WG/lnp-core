@@ -11,13 +11,14 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
-use crate::{Error, LightningDecode, LightningEncode};
+use std::io::{Read, Write};
+
 use bitcoin::consensus::deserialize;
 use bitcoin::{hashes, secp256k1, Script};
-use std::io::{Read, Write};
 use wallet::scripts::PubkeyScript;
 
 use super::{strategies, Strategy};
+use crate::{Error, LightningDecode, LightningEncode};
 
 // TODO: Verify byte order for lightnin encoded types
 

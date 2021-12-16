@@ -12,12 +12,15 @@
 // If not, see <https://opensource.org/licenses/MIT>.
 
 use amplify::{DumbDefault, Slice32, Wrapper};
-use bitcoin::blockdata::{opcodes::all::*, script};
+use bitcoin::blockdata::opcodes::all::*;
+use bitcoin::blockdata::script;
 use bitcoin::hashes::Hash;
 use bitcoin::secp256k1::PublicKey;
 use bitcoin::{Network, OutPoint, TxOut, Txid};
-use lnp2p::legacy::{AcceptChannel, Messages, OpenChannel};
-use lnp2p::legacy::{ActiveChannelId, ChannelId, TempChannelId};
+use lnp2p::legacy::{
+    AcceptChannel, ActiveChannelId, ChannelId, Messages, OpenChannel,
+    TempChannelId,
+};
 use lnpbp::chain::Chain;
 use secp256k1::Signature;
 use wallet::address::AddressCompat;
@@ -46,7 +49,7 @@ use crate::{channel, Channel, ChannelExtension, Extension};
     Debug,
     Display,
     StrictEncode,
-    StrictDecode,
+    StrictDecode
 )]
 pub enum Direction {
     /// Inbound channels accepted by the local node.

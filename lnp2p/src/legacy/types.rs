@@ -13,8 +13,6 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
-#[cfg(feature = "serde")]
-use serde_with::{As, DisplayFromStr};
 use std::io;
 use std::str::FromStr;
 
@@ -24,7 +22,8 @@ use bitcoin::hashes::Hash;
 use bitcoin::Txid;
 use chrono::{DateTime, Local, TimeZone, Utc};
 use lightning_encoding::{self, LightningDecode, LightningEncode};
-
+#[cfg(feature = "serde")]
+use serde_with::{As, DisplayFromStr};
 #[cfg(feature = "strict_encoding")]
 use strict_encoding::net::{
     AddrFormat, DecodeError, RawAddr, Transport, Uniform, UniformAddr, ADDR_LEN,
@@ -50,7 +49,7 @@ use strict_encoding::{self, StrictDecode, StrictEncode};
     Display,
     From,
     LightningEncode,
-    LightningDecode,
+    LightningDecode
 )]
 #[cfg_attr(feature = "strict_encoding", derive(StrictEncode, StrictDecode))]
 #[display(inner)]
@@ -130,7 +129,7 @@ impl ActiveChannelId {
     Default,
     From,
     LightningEncode,
-    LightningDecode,
+    LightningDecode
 )]
 #[cfg_attr(feature = "strict_encoding", derive(StrictEncode, StrictDecode))]
 #[display(LowerHex)]
@@ -188,7 +187,7 @@ impl ChannelId {
     Display,
     From,
     LightningEncode,
-    LightningDecode,
+    LightningDecode
 )]
 #[cfg_attr(feature = "strict_encoding", derive(StrictEncode, StrictDecode))]
 #[display(LowerHex)]
@@ -308,7 +307,7 @@ impl StrictDecode for NodeColor {
     Display,
     From,
     LightningEncode,
-    LightningDecode,
+    LightningDecode
 )]
 #[cfg_attr(feature = "strict_encoding", derive(StrictEncode, StrictDecode))]
 #[display(LowerHex)]
@@ -320,18 +319,8 @@ pub struct Alias(
 
 /// Lightning network short channel Id as per BOLT7
 #[derive(
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Debug,
-    Display,
-    Default,
-    From,
-    Getters,
+    Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display, Default,
+    From
 )]
 #[display("{block_height}x{tx_index}x{output_index}")]
 pub struct ShortChannelId {
@@ -359,7 +348,7 @@ impl ShortChannelId {
 }
 
 #[derive(
-    Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display, Error,
+    Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display, Error
 )]
 #[display(doc_comments)]
 pub enum ShortChannelIdParseError {
@@ -494,15 +483,11 @@ impl StrictDecode for ShortChannelId {
             ((output_index[0] as u16) << 8) + (output_index[1] as u16);
 
         Ok(Self {
-            block_height: block_height,
+            block_height,
             tx_index: transaction_index,
-            output_index: output_index,
+            output_index,
         })
     }
-}
-
-impl lightning_encoding::Strategy for ShortChannelId {
-    type Strategy = lightning_encoding::strategies::AsStrict;
 }
 
 #[derive(Clone, Debug, From, PartialEq, Eq, Hash, PartialOrd, Ord, Copy)]
@@ -753,10 +738,7 @@ impl LightningDecode for AnnouncedNodeAddr {
                 d.read_exact(&mut port[..])?;
                 let port = u16::from_be_bytes(port);
 
-                Ok(AnnouncedNodeAddr::IpV4 {
-                    addr: addr,
-                    port: port,
-                })
+                Ok(AnnouncedNodeAddr::IpV4 { addr, port })
             }
 
             2u8 => {
@@ -766,10 +748,7 @@ impl LightningDecode for AnnouncedNodeAddr {
                 d.read_exact(&mut port[..])?;
                 let port = u16::from_be_bytes(port);
 
-                Ok(AnnouncedNodeAddr::IpV6 {
-                    addr: addr,
-                    port: port,
-                })
+                Ok(AnnouncedNodeAddr::IpV6 { addr, port })
             }
 
             3u8 => {
@@ -779,10 +758,7 @@ impl LightningDecode for AnnouncedNodeAddr {
                 d.read_exact(&mut port[..])?;
                 let port = u16::from_be_bytes(port);
 
-                Ok(AnnouncedNodeAddr::OnionV2 {
-                    addr: addr,
-                    port: port,
-                })
+                Ok(AnnouncedNodeAddr::OnionV2 { addr, port })
             }
 
             4u8 => {
@@ -802,7 +778,7 @@ impl LightningDecode for AnnouncedNodeAddr {
                     ed25519_pubkey: ed2559_pubkey,
                     checksum: Some(checksum),
                     version: Some(version),
-                    port: port,
+                    port,
                 })
             }
 
@@ -813,12 +789,12 @@ impl LightningDecode for AnnouncedNodeAddr {
     }
 }
 
+#[cfg(feature = "strict_encoding")]
 impl strict_encoding::Strategy for AnnouncedNodeAddr {
     type Strategy = strict_encoding::strategies::UsingUniformAddr;
 }
-#[derive(
-    Wrapper, Clone, Debug, Display, Hash, Default, From, PartialEq, Eq,
-)]
+
+#[derive(Wrapper, Clone, Debug, Display, Hash, Default, From, PartialEq, Eq)]
 #[cfg_attr(feature = "strict_encoding", derive(StrictEncode, StrictDecode))]
 #[display(Debug)]
 pub struct AddressList(Vec<AnnouncedNodeAddr>);
@@ -854,7 +830,7 @@ impl LightningDecode for AddressList {
 }
 
 #[derive(
-    Display, Copy, Clone, Debug, PartialEq, Hash, Eq, PartialOrd, Ord, Wrapper,
+    Display, Copy, Clone, Debug, PartialEq, Hash, Eq, PartialOrd, Ord, Wrapper
 )]
 #[display("{0} sec")]
 pub struct Timestamp(u32);
@@ -904,12 +880,14 @@ impl Timestamp {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use bitcoin::hashes::hex::FromHex;
-    use lightning_encoding::{LightningDecode, LightningEncode};
-
     #[test]
+    #[cfg(feature = "strict_encoding")]
     fn test_address_encodings() {
+        use bitcoin::hashes::hex::FromHex;
+        use lightning_encoding::{LightningDecode, LightningEncode};
+
+        use super::*;
+
         // Test vectors taken from https://github.com/rust-bitcoin/rust-lightning/blob/main/lightning/src/ln/msgs.rs
         let ipv4 = AnnouncedNodeAddr::IpV4 {
             addr: [255, 254, 253, 252],

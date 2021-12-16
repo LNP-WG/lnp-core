@@ -11,12 +11,12 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
-use bitcoin::blockdata::{opcodes::all::*, script};
+use bitcoin::blockdata::opcodes::all::*;
+use bitcoin::blockdata::script;
 use bitcoin::secp256k1::PublicKey;
 use bitcoin::util::psbt::PartiallySignedTransaction as Psbt;
 use bitcoin::{OutPoint, Transaction, TxIn, TxOut};
-use lnp2p::legacy::ChannelId;
-use lnp2p::legacy::Messages;
+use lnp2p::legacy::{ChannelId, Messages};
 use lnpbp::chain::AssetId;
 use p2p::legacy::ChannelType;
 use wallet::hlc::{HashLock, HashPreimage};
@@ -36,7 +36,7 @@ use crate::{channel, ChannelExtension, Extension};
     Hash,
     Debug,
     StrictEncode,
-    StrictDecode,
+    StrictDecode
 )]
 pub struct HtlcKnown {
     pub amount: u64,
@@ -56,7 +56,7 @@ pub struct HtlcKnown {
     Hash,
     Debug,
     StrictEncode,
-    StrictDecode,
+    StrictDecode
 )]
 pub struct HtlcSecret {
     pub amount: u64,
@@ -76,7 +76,7 @@ pub struct HtlcSecret {
     Hash,
     Debug,
     StrictEncode,
-    StrictDecode,
+    StrictDecode
 )]
 pub struct Htlc {
     initialized: bool,

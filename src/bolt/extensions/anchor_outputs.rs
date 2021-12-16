@@ -11,9 +11,10 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
+use p2p::legacy::Messages;
+
 use crate::bolt::ExtensionId;
 use crate::{channel, ChannelExtension, Extension};
-use p2p::legacy::Messages;
 
 #[derive(Debug, Default)]
 pub struct AnchorOutputs;

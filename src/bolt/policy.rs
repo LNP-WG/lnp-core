@@ -11,6 +11,9 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
+use std::fmt::Debug;
+use std::ops::Range;
+
 use amplify::DumbDefault;
 #[cfg(feature = "serde")]
 use amplify::ToYamlString;
@@ -18,8 +21,6 @@ use bitcoin::secp256k1::PublicKey;
 use bitcoin::util::bip32::{ChildNumber, ExtendedPrivKey};
 use lnp2p::legacy::{AcceptChannel, ChannelType, OpenChannel};
 use secp256k1::{Secp256k1, Signing};
-use std::fmt::Debug;
-use std::ops::Range;
 use wallet::hd::HardenedIndex;
 use wallet::scripts::{Category, PubkeyScript, ToPubkeyScript};
 
@@ -43,7 +44,7 @@ pub const BOLT3_DUST_LIMIT: u64 = 354;
     Display,
     Error,
     StrictEncode,
-    StrictDecode,
+    StrictDecode
 )]
 #[display(doc_comments)]
 pub enum PolicyError {
@@ -450,9 +451,7 @@ impl Policy {
 ///
 /// This information applies for both channel peers and used in constructing
 /// both sides of asymmetric transactions.
-#[derive(
-    Clone, Copy, PartialEq, Eq, Debug, Hash, StrictEncode, StrictDecode,
-)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, StrictEncode, StrictDecode)]
 #[cfg_attr(
     feature = "serde",
     derive(Display, Serialize, Deserialize),
@@ -539,9 +538,7 @@ impl CommonParams {
 /// proposed parameters against local policy with
 /// [`Bolt3::policy`][`.validate_inbound`](Policy::validate_inbound) method and
 /// assign the return value to [`Bolt3::remote_params`].
-#[derive(
-    Clone, Copy, PartialEq, Eq, Debug, Hash, StrictEncode, StrictDecode,
-)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, StrictEncode, StrictDecode)]
 #[cfg_attr(
     feature = "serde",
     derive(Display, Serialize, Deserialize),

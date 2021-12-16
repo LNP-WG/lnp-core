@@ -16,9 +16,8 @@
 use amplify::DumbDefault;
 use bitcoin::hashes::{sha256, Hmac};
 
-#[derive(
-    Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
-)]
+#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(StrictEncode, StrictDecode))]
 #[display("onion_packet(v{version}, to: {public_key}, ...)")]
 pub struct OnionPacket {

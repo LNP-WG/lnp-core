@@ -13,6 +13,9 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
+use std::io;
+use std::str::FromStr;
+
 use amplify::flags::FlagVec;
 use amplify::{DumbDefault, Slice32};
 use bitcoin::hashes::sha256;
@@ -20,8 +23,6 @@ use bitcoin::secp256k1::{PublicKey, Signature};
 use bitcoin::Txid;
 use internet2::tlv;
 use lnpbp::chain::AssetId;
-use std::io;
-use std::str::FromStr;
 use wallet::hlc::{HashLock, HashPreimage};
 use wallet::scripts::PubkeyScript;
 
@@ -88,9 +89,7 @@ impl ChannelType {
 }
 
 /// Error parsing [`ChannelType`] from strings
-#[derive(
-    Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display, Error,
-)]
+#[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display, Error)]
 #[display("unknown channel type name `{0}`")]
 pub struct ChannelTypeParseError(String);
 
@@ -175,16 +174,18 @@ impl lightning_encoding::LightningDecode for ChannelType {
 /// This message contains information about a node and indicates its desire to
 /// set up a new channel. This is the first step toward creating the funding
 /// transaction and both versions of the commitment transaction.
-#[derive(
-    Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
-)]
+#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(
     feature = "strict_encoding",
     derive(NetworkEncode, NetworkDecode),
     network_encoding(use_tlv)
 )]
 #[lightning_encoding(use_tlv)]
-#[display("open_channel({chain_hash}, {temporary_channel_id}, {funding_satoshis}, {channel_flags}, ...)")]
+#[display(
+    "open_channel({chain_hash}, {temporary_channel_id}, {funding_satoshis}, \
+     {channel_flags}, ...)"
+)]
 pub struct OpenChannel {
     /// The genesis hash of the blockchain where the channel is to be opened
     pub chain_hash: Slice32,
@@ -304,9 +305,8 @@ impl OpenChannel {
 /// This message contains information about a node and indicates its acceptance
 /// of the new channel. This is the second step toward creating the funding
 /// transaction and both versions of the commitment transaction.
-#[derive(
-    Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
-)]
+#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(
     feature = "strict_encoding",
     derive(NetworkEncode, NetworkDecode),
@@ -410,11 +410,13 @@ impl AcceptChannel {
 /// This message describes the outpoint which the funder has created for the
 /// initial commitment transactions. After receiving the peer's signature, via
 /// `funding_signed`, it will broadcast the funding transaction.
-#[derive(
-    Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
-)]
+#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
-#[display("funding_created({temporary_channel_id}, {funding_txid}:{funding_output_index}, ...signature)")]
+#[display(
+    "funding_created({temporary_channel_id}, \
+     {funding_txid}:{funding_output_index}, ...signature)"
+)]
 pub struct FundingCreated {
     /// A temporary channel ID, until the funding is established
     pub temporary_channel_id: TempChannelId,
@@ -435,9 +437,8 @@ pub struct FundingCreated {
 /// funds can be redeemed, if need be.
 ///
 /// This message introduces the `channel_id` to identify the channel.
-#[derive(
-    Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
-)]
+#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("funding_signed({channel_id}, ...signature)")]
 pub struct FundingSigned {
@@ -451,9 +452,8 @@ pub struct FundingSigned {
 /// This message indicates that the funding transaction has reached the
 /// `minimum_depth` asked for in `accept_channel`. Once both nodes have sent
 /// this, the channel enters normal operating mode.
-#[derive(
-    Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
-)]
+#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("funding_locked({channel_id}, {next_per_commitment_point})")]
 pub struct FundingLocked {
@@ -464,9 +464,8 @@ pub struct FundingLocked {
     pub next_per_commitment_point: PublicKey,
 }
 
-#[derive(
-    Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
-)]
+#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("shutdown({channel_id}, {scriptpubkey})")]
 pub struct Shutdown {
@@ -478,9 +477,8 @@ pub struct Shutdown {
     pub scriptpubkey: PubkeyScript,
 }
 
-#[derive(
-    Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
-)]
+#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("closing_signed({channel_id}, ...)")]
 pub struct ClosingSigned {
@@ -494,16 +492,18 @@ pub struct ClosingSigned {
     pub signature: Signature,
 }
 
-#[derive(
-    Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
-)]
+#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(
     feature = "strict_encoding",
     derive(NetworkEncode, NetworkDecode),
     network_encoding(use_tlv)
 )]
 #[lightning_encoding(use_tlv)]
-#[display("update_add_htlc({channel_id}, {htlc_id}, {amount_msat}, {payment_hash}, ...)")]
+#[display(
+    "update_add_htlc({channel_id}, {htlc_id}, {amount_msat}, {payment_hash}, \
+     ...)"
+)]
 pub struct UpdateAddHtlc {
     /// The channel ID
     pub channel_id: ChannelId,
@@ -538,9 +538,8 @@ pub struct UpdateAddHtlc {
     pub unknown_tlvs: tlv::Stream,
 }
 
-#[derive(
-    Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
-)]
+#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("update_fullfill_htlc({channel_id}, {htlc_id}, ...preimages)")]
 pub struct UpdateFulfillHtlc {
@@ -554,9 +553,8 @@ pub struct UpdateFulfillHtlc {
     pub payment_preimage: HashPreimage,
 }
 
-#[derive(
-    Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
-)]
+#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("update_fail_htlc({channel_id}, {htlc_id}, ...reason)")]
 pub struct UpdateFailHtlc {
@@ -574,9 +572,8 @@ pub struct UpdateFailHtlc {
     pub reason: Vec<u8>,
 }
 
-#[derive(
-    Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
-)]
+#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("update_fail_malformed_htlc({channel_id}, {htlc_id}, ...onion)")]
 pub struct UpdateFailMalformedHtlc {
@@ -593,9 +590,8 @@ pub struct UpdateFailMalformedHtlc {
     pub failure_code: u16,
 }
 
-#[derive(
-    Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
-)]
+#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("commitment_signed({channel_id}, ...signatures)")]
 pub struct CommitmentSigned {
@@ -609,11 +605,13 @@ pub struct CommitmentSigned {
     pub htlc_signatures: Vec<Signature>,
 }
 
-#[derive(
-    Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
-)]
+#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
-#[display("revoke_and_ack({channel_id}, {next_per_commitment_point}, ...per_commitment_secret)")]
+#[display(
+    "revoke_and_ack({channel_id}, {next_per_commitment_point}, \
+     ...per_commitment_secret)"
+)]
 pub struct RevokeAndAck {
     /// The channel ID
     pub channel_id: ChannelId,
@@ -625,9 +623,8 @@ pub struct RevokeAndAck {
     pub next_per_commitment_point: PublicKey,
 }
 
-#[derive(
-    Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
-)]
+#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("update_fee({channel_id}, {feerate_per_kw})")]
 pub struct UpdateFee {
@@ -638,9 +635,8 @@ pub struct UpdateFee {
     pub feerate_per_kw: u32,
 }
 
-#[derive(
-    Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
-)]
+#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("channel_reestablish({channel_id}, {next_commitment_number}, ...)")]
 pub struct ChannelReestablish {

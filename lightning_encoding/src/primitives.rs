@@ -11,9 +11,10 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
+use std::io::{Read, Write};
+
 use super::{strategies, Strategy};
 use crate::{Error, LightningDecode, LightningEncode};
-use std::io::{Read, Write};
 
 impl LightningEncode for u8 {
     fn lightning_encode<E: Write>(&self, mut e: E) -> Result<usize, Error> {

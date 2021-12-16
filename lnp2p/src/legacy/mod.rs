@@ -20,17 +20,16 @@ mod bolt7;
 mod bolt9;
 mod types;
 
+use std::io;
+
 pub use bolt1::*;
 pub use bolt2::*;
 pub use bolt4::*;
 pub use bolt7::*;
 pub use bolt9::{Feature, FeatureContext, InitFeatures, UnknownFeatureError};
-pub use types::*;
-
-use std::io;
-
 use internet2::{CreateUnmarshaller, Payload, Unmarshall, Unmarshaller};
 use lightning_encoding::{self, LightningDecode, LightningEncode};
+pub use types::*;
 
 /// Default legacy Lightning port number
 pub const LNP2P_LEGACY_PORT: u16 = 9735;

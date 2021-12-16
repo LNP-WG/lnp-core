@@ -14,10 +14,10 @@
 //! Implemented after concept by Martin Habovštiak <martin.habovstiak@gmail.com>
 
 use std::io;
+
 use strict_encoding::{self, StrictDecode, StrictEncode};
 
-use crate::BigSize;
-use crate::{Error, LightningDecode, LightningEncode};
+use crate::{BigSize, Error, LightningDecode, LightningEncode};
 
 // Defining strategies:
 pub struct AsStrict;

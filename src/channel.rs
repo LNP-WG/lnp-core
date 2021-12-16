@@ -15,13 +15,13 @@ use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::hash::Hash;
 
-use crate::bolt::{Lifecycle, PolicyError};
 use bitcoin::util::psbt::PartiallySignedTransaction as Psbt;
 use bitcoin::{OutPoint, Transaction, TxIn, TxOut};
 use lnp2p::legacy::Messages;
 use strict_encoding::{StrictDecode, StrictEncode};
 
 use super::extension::{self, ChannelExtension, Extension};
+use crate::bolt::{Lifecycle, PolicyError};
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug, Display, Error, From)]
 #[display(doc_comments)]
@@ -368,7 +368,7 @@ impl TxGraph {
         };
         Psbt::from_unsigned_tx(cmt_tx).expect(
             "PSBT construction fails only if script_sig and witness are not \
-                empty; which is not the case here",
+             empty; which is not the case here",
         )
     }
 

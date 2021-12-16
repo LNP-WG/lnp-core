@@ -13,8 +13,6 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
-#[cfg(feature = "serde")]
-use serde_with::{As, DisplayFromStr};
 use std::collections::BTreeMap;
 use std::convert::TryFrom;
 use std::fmt::{self, Debug, Display, Formatter};
@@ -24,20 +22,13 @@ use std::str::FromStr;
 
 use amplify::flags::FlagVec;
 use lightning_encoding::{self, LightningDecode, LightningEncode};
+#[cfg(feature = "serde")]
+use serde_with::{As, DisplayFromStr};
 
 /// Feature-flags-related errors
 #[derive(
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Ord,
-    PartialOrd,
-    Hash,
-    Debug,
-    Display,
-    Error,
-    From,
+    Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Debug, Display, Error,
+    From
 )]
 #[display(doc_comments)]
 pub enum Error {
@@ -52,7 +43,7 @@ pub enum Error {
 /// Errors from internal features inconsistency happening when a feature is
 /// present, but it's required feature is not specified
 #[derive(
-    Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Debug, Display, Error,
+    Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Debug, Display, Error
 )]
 #[display(doc_comments)]
 pub enum NoRequiredFeatureError {
@@ -94,7 +85,7 @@ pub trait FeatureContext:
 
 /// Type representing `init` message feature context.
 #[derive(
-    Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display, Default,
+    Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display, Default
 )]
 #[display("I", alt = "init")]
 pub struct InitContext;
@@ -102,7 +93,7 @@ impl FeatureContext for InitContext {}
 
 /// Type representing `node_announcement` message feature context.
 #[derive(
-    Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display, Default,
+    Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display, Default
 )]
 #[display("N", alt = "node_announcement")]
 pub struct NodeAnnouncementContext;
@@ -110,7 +101,7 @@ impl FeatureContext for NodeAnnouncementContext {}
 
 /// Type representing `channel_announcement` message feature context.
 #[derive(
-    Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display, Default,
+    Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display, Default
 )]
 #[display("C", alt = "channel_announcement")]
 pub struct ChannelAnnouncementContext;
@@ -118,7 +109,7 @@ impl FeatureContext for ChannelAnnouncementContext {}
 
 /// Type representing BOLT-11 invoice feature context.
 #[derive(
-    Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display, Default,
+    Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display, Default
 )]
 #[display("9", alt = "bolt11")]
 pub struct Bolt11Context;
@@ -195,7 +186,7 @@ impl Feature {
 
 /// Error reporting unrecognized feature name
 #[derive(
-    Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display, Error, From,
+    Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display, Error, From
 )]
 #[display("the provided feature name is not known: {0}")]
 pub struct UnknownFeatureError(pub String);

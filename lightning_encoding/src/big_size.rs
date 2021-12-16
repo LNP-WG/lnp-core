@@ -11,9 +11,10 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
+use std::io;
+
 use amplify::Wrapper;
 use bitcoin::consensus::ReadExt;
-use std::io;
 
 use super::{Error, LightningDecode, LightningEncode};
 
@@ -187,14 +188,12 @@ mod test {
         test_runner(65535, &[0xfd, 0xff, 0xff]);
         test_runner(65536, &[0xfe, 0x00, 0x01, 0x00, 0x00]);
         test_runner(4294967295, &[0xfe, 0xff, 0xff, 0xff, 0xff]);
-        test_runner(
-            4294967296,
-            &[0xff, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00],
-        );
-        test_runner(
-            18446744073709551615,
-            &[0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff],
-        );
+        test_runner(4294967296, &[
+            0xff, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+        ]);
+        test_runner(18446744073709551615, &[
+            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        ]);
     }
 
     #[should_panic(expected = "BigSizeNotCanonical")]

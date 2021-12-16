@@ -12,7 +12,6 @@
 // If not, see <https://opensource.org/licenses/MIT>.
 
 use amplify::IoError;
-
 use strict_encoding::TlvError;
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug, Display, Error, From)]

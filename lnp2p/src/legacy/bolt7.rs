@@ -21,9 +21,8 @@ use super::{
 };
 
 /// Bolt 7 Gossip messages
-#[derive(
-    Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
-)]
+#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display(
     "announcement_signature({channel_id}, {short_channel_id}, ...signatures)"
@@ -42,9 +41,8 @@ pub struct AnnouncementSignatures {
     pub bitcoin_signature: Signature,
 }
 
-#[derive(
-    Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
-)]
+#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("channel_announcement({chain_hash}, {short_channel_id}, ...)")]
 pub struct ChannelAnnouncements {
@@ -82,9 +80,8 @@ pub struct ChannelAnnouncements {
     pub bitcoin_key_2: PublicKey,
 }
 
-#[derive(
-    Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
-)]
+#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("node_announcement({node_id}, {alias}, {addresses}, ...)")]
 pub struct NodeAnnouncements {
@@ -110,9 +107,8 @@ pub struct NodeAnnouncements {
     pub addresses: AddressList,
 }
 
-#[derive(
-    Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
-)]
+#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("channel_id({chain_hash}, {short_channel_id}, {timestamp}, ...)")]
 pub struct ChannelUpdate {
@@ -151,9 +147,8 @@ pub struct ChannelUpdate {
 }
 
 /// Extended Gossip messages
-#[derive(
-    Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
-)]
+#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("query_short_channel_ids({chain_hash}, {short_ids:#?}, ...tlvs)")]
 pub struct QueryShortChannelIds {
@@ -167,9 +162,8 @@ pub struct QueryShortChannelIds {
      * pub short_id_tlvs: BTreeMap<u8, Vec<u8>>, */
 }
 
-#[derive(
-    Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
-)]
+#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("reply_short_channel_ids_end({chain_hash}, {full_information})")]
 pub struct ReplyShortChannelIdsEnd {
@@ -180,12 +174,12 @@ pub struct ReplyShortChannelIdsEnd {
     pub full_information: u8,
 }
 
-#[derive(
-    Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
-)]
+#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display(
-"querry_channel_range({chain_hash}, {first_blocknum}, {number_of_blocks}, ...tlvs)"
+    "querry_channel_range({chain_hash}, {first_blocknum}, {number_of_blocks}, \
+     ...tlvs)"
 )]
 pub struct QueryChannelRange {
     /// chain hash
@@ -201,12 +195,12 @@ pub struct QueryChannelRange {
      * pub query_channel_range_tlvs: BTreeMap<u8, Vec<u8>>, */
 }
 
-#[derive(
-    Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
-)]
+#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display(
-"reply_channel_range({chain_hash}, {first_blocknum}, {number_of_blocks}, ...)"
+    "reply_channel_range({chain_hash}, {first_blocknum}, {number_of_blocks}, \
+     ...)"
 )]
 pub struct ReplyChannelRange {
     /// chain hash
@@ -228,11 +222,13 @@ pub struct ReplyChannelRange {
     *pub reply_channel_range_tlvs: BTreeMap<u8, Vec<u8>>, */
 }
 
-#[derive(
-    Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
-)]
+#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
-#[display("gossip_time_stamp_filter({chain_hash}, {first_timestamp}, {timestamp_range})")]
+#[display(
+    "gossip_time_stamp_filter({chain_hash}, {first_timestamp}, \
+     {timestamp_range})"
+)]
 pub struct GossipTimestampFilter {
     /// chain hash
     pub chain_hash: AssetId,

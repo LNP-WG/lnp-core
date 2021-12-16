@@ -42,7 +42,7 @@ pub type AssetsBalance = BTreeMap<AssetId, u64>;
     Debug,
     Display,
     StrictEncode,
-    StrictDecode,
+    StrictDecode
 )]
 #[display(Debug)]
 pub enum ExtensionId {
@@ -135,7 +135,7 @@ impl extension::Nomenclature for ExtensionId {
     Debug,
     Display,
     StrictEncode,
-    StrictDecode,
+    StrictDecode
 )]
 #[display(Debug)]
 #[non_exhaustive]
@@ -184,7 +184,7 @@ impl channel::TxRole for TxType {}
     Debug,
     Display,
     StrictEncode,
-    StrictDecode,
+    StrictDecode
 )]
 #[non_exhaustive]
 #[repr(u8)]

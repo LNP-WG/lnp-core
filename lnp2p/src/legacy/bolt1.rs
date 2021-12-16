@@ -13,10 +13,10 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
-use internet2::tlv;
 use std::collections::HashSet;
 use std::fmt::{self, Display, Formatter};
 
+use internet2::tlv;
 use lnpbp::chain::AssetId;
 
 use super::{ChannelId, InitFeatures};
@@ -26,9 +26,8 @@ use super::{ChannelId, InitFeatures};
 ///
 /// # Specification
 /// <https://github.com/lightningnetwork/lightning-rfc/blob/master/01-messaging.md#the-init-message>
-#[derive(
-    Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
-)]
+#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(
     feature = "strict_encoding",
     derive(NetworkEncode, NetworkDecode),
@@ -57,9 +56,8 @@ pub struct Init {
 ///
 /// # Specification
 /// <https://github.com/lightningnetwork/lightning-rfc/blob/master/01-messaging.md#the-ping-and-pong-messages>
-#[derive(
-    Clone, PartialEq, Eq, Debug, Display, LightningEncode, LightningDecode,
-)]
+#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("ping({pong_size})")]
 pub struct Ping {
@@ -103,10 +101,12 @@ impl Display for Error {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use crate::legacy::Messages;
     use amplify::hex::FromHex;
     use internet2::TypedEnum;
+    use lightning_encoding::LightningDecode;
+
+    use super::*;
+    use crate::legacy::Messages;
 
     #[test]
     fn bolt1_testvec() {

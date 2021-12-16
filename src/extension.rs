@@ -11,10 +11,11 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
-use lnp2p::legacy::Messages;
 use std::convert::TryFrom;
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
+
+use lnp2p::legacy::Messages;
 
 use super::channel;
 use crate::channel::Channel;

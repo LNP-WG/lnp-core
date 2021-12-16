@@ -44,15 +44,13 @@ mod primitives;
 mod rgb;
 pub mod strategies;
 
+// -----------------------------------------------------------------------------
+use std::io;
+
 pub use big_size::BigSize;
 pub use error::Error;
 pub use strategies::Strategy;
-
 pub use strict_encoding::TlvError;
-
-// -----------------------------------------------------------------------------
-
-use std::io;
 
 /// Lightning-network specific encoding as defined in BOLT-1, 2, 3...
 pub trait LightningEncode {
