@@ -15,11 +15,55 @@
 
 use std::collections::HashSet;
 use std::fmt::{self, Display, Formatter};
+use std::io::{Read, Write};
 
+use bitcoin::hashes::Hash;
 use internet2::tlv;
+use lightning_encoding::{LightningDecode, LightningEncode};
 use lnpbp::chain::AssetId;
 
 use super::{ChannelId, InitFeatures};
+
+/// List of the assets for parsing as a TLV field type 1 inside [`Init`]
+/// message.
+#[derive(Wrapper, Clone, Eq, PartialEq, Default, Debug, From)]
+#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
+pub struct AssetList(HashSet<AssetId>);
+
+impl LightningEncode for AssetList {
+    fn lightning_encode<E: Write>(
+        &self,
+        mut e: E,
+    ) -> Result<usize, lightning_encoding::Error> {
+        self.0.iter().try_fold(0usize, |len, asset| {
+            Ok(len + asset.lightning_encode(&mut e)?)
+        })
+    }
+}
+
+impl LightningDecode for AssetList {
+    fn lightning_decode<D: Read>(
+        mut d: D,
+    ) -> Result<Self, lightning_encoding::Error> {
+        let mut vec = Vec::with_capacity(32);
+        let len = d.read_to_end(&mut vec)?;
+        if len % 32 != 0 {
+            return Err(lightning_encoding::Error::DataIntegrityError(
+                format!(
+                    "Init/networks length {} is not proportional to 32 bytes",
+                    len
+                ),
+            ));
+        }
+        let assets = vec
+            .chunks(32)
+            .into_iter()
+            .map(AssetId::from_slice)
+            .collect::<Result<HashSet<AssetId>, _>>()
+            .expect("AssetId must be always constructable from 32-byte slice");
+        Ok(AssetList(assets))
+    }
+}
 
 /// Once authentication is complete, the first message reveals the features
 /// supported or required by this node, even if this is a reconnection.
@@ -42,7 +86,7 @@ pub struct Init {
 
     #[lightning_encoding(tlv = 1)]
     #[cfg_attr(feature = "strict_encoding", network_encoding(tlv = 1))]
-    pub assets: HashSet<AssetId>,
+    pub assets: AssetList,
 
     #[lightning_encoding(unknown_tlvs)]
     #[cfg_attr(feature = "strict_encoding", network_encoding(unknown_tlvs))]
