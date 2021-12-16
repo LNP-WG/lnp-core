@@ -195,9 +195,7 @@ impl Default for Policy {
     /// Sets reasonable values for the local node policies
     fn default() -> Policy {
         Policy {
-            // the remote node should not be too sleepy not to be able to detect
-            // the thief within one hour
-            to_self_delay_max: 6,
+            to_self_delay_max: 250,
             // normal operational range for the fees in bitcoin network - it
             // really never went above 100 to get tx mined within an hour or two
             feerate_per_kw_range: 1..100,
@@ -212,7 +210,7 @@ impl Default for Policy {
             // we need to earn commissions on routing, so limiting HTLCs too
             // much does not make sense
             max_htlc_value_in_flight_msat_min: Some(10000),
-            max_accepted_htlcs_min: Some(100),
+            max_accepted_htlcs_min: Some(10),
             // we do not want to over-collateralize on our channels in regard to
             // the size of the channel: it should not exceed 10% of funds in the
             // channel.
