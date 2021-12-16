@@ -123,7 +123,7 @@ impl LightningEncode for BigSize {
 
 impl LightningDecode for BigSize {
     fn lightning_decode<D: io::Read>(mut d: D) -> Result<Self, Error> {
-        match d.read_u8().map_err(|_| Error::BigSizeEof)? {
+        match d.read_u8().map_err(|_| Error::BigSizeNoValue)? {
             0xFFu8 => {
                 let mut x = [0u8; 8];
                 d.read_exact(&mut x).map_err(|_| Error::BigSizeEof)?;

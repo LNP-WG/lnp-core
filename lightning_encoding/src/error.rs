@@ -29,6 +29,10 @@ pub enum Error {
     /// unexpected EOF while decoding BigSize value
     BigSizeEof,
 
+    /// Indicates absence of BigSize value. Used in TLV stream reading
+    #[display("unexpected EOF while decoding BigSize value")]
+    BigSizeNoValue,
+
     /// not all provided data were consumed during decoding process
     DataNotEntirelyConsumed,
 
