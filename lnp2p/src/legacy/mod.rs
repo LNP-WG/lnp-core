@@ -193,9 +193,10 @@ impl LightningDecode for Messages {
     ) -> Result<Self, lightning_encoding::Error> {
         let message = &*LNP2P_LEGACY_UNMARSHALLER
             .unmarshall(&Vec::<u8>::lightning_decode(d)?)
-            .map_err(|_| {
-                lightning_encoding::Error::DataIntegrityError(s!(
-                    "can't unmarshall legacy LNP2P message"
+            .map_err(|err| {
+                lightning_encoding::Error::DataIntegrityError(format!(
+                    "can't unmarshall legacy LNP2P message. Details: {}",
+                    err
                 ))
             })?;
         Ok(message.clone())
