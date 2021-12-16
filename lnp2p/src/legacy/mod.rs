@@ -190,9 +190,8 @@ impl LightningDecode for Messages {
     fn lightning_decode<D: io::Read>(
         d: D,
     ) -> Result<Self, lightning_encoding::Error> {
-        let message = &*LNP2P_LEGACY_UNMARSHALLER
-            .unmarshall(&Vec::<u8>::lightning_decode(d)?)
-            .map_err(|err| {
+        let message =
+            &*LNP2P_LEGACY_UNMARSHALLER.unmarshall(d).map_err(|err| {
                 lightning_encoding::Error::DataIntegrityError(format!(
                     "can't unmarshall legacy LNP2P message. Details: {}",
                     err

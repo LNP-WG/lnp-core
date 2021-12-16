@@ -22,10 +22,10 @@ amplify = { version = "3.9.1", features = ["hex", "rand"] }
 lnpbp = "0.5.0"
 bp-core = "0.5.0"
 strict_encoding = { version = "1.7.4", optional = true, features = ["chrono"] }
-lightning_encoding = { version = "0.5.2", optional = true }
+lightning_encoding = { version = ">=0.5.6", optional = true }
 descriptor-wallet = "0.5.0"
 bitcoin = "0.27.1"
-internet2 = { version = ">=0.5.4", default-features = false, features = ["derive"] }
+internet2 = { version = ">=0.5.4", default-features = false, features = ["derive"], git = "https://github.com/internet2-org/rust-internet2" }
 serde_crate = { package = "serde", version = "1", features = ["derive"], optional = true }
 serde_with = { version = "1.5", features = ["hex"], optional = true }
 lazy_static = "1.4"
