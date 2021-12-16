@@ -40,8 +40,6 @@ mod collections;
 mod error;
 // mod net; - no need in encoding network addresses for lightning p2p protocol
 mod primitives;
-#[cfg(feature = "rgb")]
-mod rgb;
 pub mod strategies;
 
 // -----------------------------------------------------------------------------
