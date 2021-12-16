@@ -85,6 +85,7 @@ impl Channel<ExtensionId> {
     /// for constructing `open_channel` (for outbound channels) and
     /// `accept_channel` (for inbound channels) request sent to the remote node.
     pub fn with(
+        temp_channel_id: TempChannelId,
         chain_hash: Slice32,
         policy: Policy,
         common_params: CommonParams,
@@ -102,6 +103,7 @@ impl Channel<ExtensionId> {
         }
 
         let core = channel.constructor_mut();
+        core.set_temp_channel_id(temp_channel_id);
         core.set_chain_hash(chain_hash);
         core.set_policy(policy);
         core.set_common_params(common_params);
@@ -476,6 +478,12 @@ impl Core {
     #[inline]
     pub fn temp_channel_id(&self) -> Option<TempChannelId> {
         self.active_channel_id.temp_channel_id()
+    }
+
+    /// Assigns channel a temporary id
+    #[inline]
+    pub fn set_temp_channel_id(&mut self, temp_channel_id: TempChannelId) {
+        self.active_channel_id = ActiveChannelId::Temporary(temp_channel_id)
     }
 
     /// Marks the channel as an inbound
