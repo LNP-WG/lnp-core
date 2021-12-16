@@ -23,7 +23,7 @@ use amplify::{Display, DumbDefault, Slice32, Wrapper};
 use bitcoin::hashes::Hash;
 use bitcoin::Txid;
 use chrono::{DateTime, Local, TimeZone, Utc};
-use lightning_encoding::{LightningDecode, LightningEncode};
+use lightning_encoding::{self, LightningDecode, LightningEncode};
 
 #[cfg(feature = "strict_encoding")]
 use strict_encoding::net::{
@@ -335,9 +335,9 @@ pub struct Alias(
 )]
 #[display("{block_height}x{tx_index}x{output_index}")]
 pub struct ShortChannelId {
-    block_height: u32,
-    tx_index: u32,
-    output_index: u16,
+    pub block_height: u32,
+    pub tx_index: u32,
+    pub output_index: u16,
 }
 
 impl ShortChannelId {
@@ -350,9 +350,9 @@ impl ShortChannelId {
             return None;
         } else {
             return Some(Self {
-                block_height: block_height,
-                tx_index: tx_index,
-                output_index: output_index,
+                block_height,
+                tx_index,
+                output_index,
             });
         }
     }
@@ -395,6 +395,38 @@ impl FromStr for ShortChannelId {
             }
             _ => Err(ShortChannelIdParseError::ExessiveComponents),
         }
+    }
+}
+
+impl LightningEncode for ShortChannelId {
+    fn lightning_encode<E: io::Write>(
+        &self,
+        mut e: E,
+    ) -> Result<usize, lightning_encoding::Error> {
+        let height = self.block_height.to_be_bytes();
+        e.write_all(&height)?;
+        let index = self.tx_index.to_be_bytes();
+        e.write_all(&index)?;
+        self.output_index.lightning_encode(&mut e)?;
+        Ok(8)
+    }
+}
+
+impl LightningDecode for ShortChannelId {
+    fn lightning_decode<D: io::Read>(
+        mut d: D,
+    ) -> Result<Self, lightning_encoding::Error> {
+        let mut buf = [0u8; 4];
+        d.read_exact(&mut buf[1..])?;
+        let block_height = u32::from_be_bytes(buf);
+        d.read_exact(&mut buf[1..])?;
+        let tx_index = u32::from_be_bytes(buf);
+        let output_index = u16::lightning_decode(&mut d)?;
+        Ok(ShortChannelId {
+            block_height,
+            tx_index,
+            output_index,
+        })
     }
 }
 
