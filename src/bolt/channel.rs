@@ -36,19 +36,8 @@ use super::{ExtensionId, Lifecycle};
 use crate::{channel, Channel, ChannelExtension, Extension};
 
 /// Channel direction
-#[derive(
-    Copy,
-    Clone,
-    Ord,
-    PartialOrd,
-    Eq,
-    PartialEq,
-    Hash,
-    Debug,
-    Display,
-    StrictEncode,
-    StrictDecode
-)]
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display)]
+#[derive(StrictEncode, StrictDecode)]
 pub enum Direction {
     /// Inbound channels accepted by the local node.
     ///
@@ -332,6 +321,8 @@ pub struct Core {
     #[getter(as_copy)]
     stage: Lifecycle,
 
+    // TOO: Consider storing information about used chain at generic channel
+    // level
     /// The chain_hash value denotes the exact blockchain that the opened
     /// channel will reside within. This is usually the genesis hash of the
     /// respective blockchain. The existence of the chain_hash allows nodes to

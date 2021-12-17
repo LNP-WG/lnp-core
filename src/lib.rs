@@ -58,4 +58,4 @@ pub use channel::Channel;
 pub use extension::{
     ChannelExtension, Extension, GossipExtension, RoutingExtension,
 };
-pub use funding::{Funding, PsbtLnpFunding};
+pub use funding::{Error as FundingError, Funding, PsbtLnpFunding};
