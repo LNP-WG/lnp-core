@@ -58,7 +58,7 @@ impl ChannelExtension for Bip96 {
 
     #[inline]
     fn apply(
-        &mut self,
+        &self,
         tx_graph: &mut channel::TxGraph,
     ) -> Result<(), channel::Error> {
         tx_graph.cmt_outs.lex_order();

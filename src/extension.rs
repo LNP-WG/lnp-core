@@ -99,7 +99,7 @@ pub trait ChannelExtension: Extension {
 
     /// Applies state to the channel transaction graph
     fn apply(
-        &mut self,
+        &self,
         tx_graph: &mut channel::TxGraph,
     ) -> Result<(), channel::Error>;
 }

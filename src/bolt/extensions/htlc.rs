@@ -316,7 +316,7 @@ impl ChannelExtension for Htlc {
     }
 
     fn apply(
-        &mut self,
+        &self,
         tx_graph: &mut channel::TxGraph,
     ) -> Result<(), channel::Error> {
         // Process offered HTLCs

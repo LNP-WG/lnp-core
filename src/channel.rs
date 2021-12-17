@@ -235,7 +235,8 @@ where
 }
 
 /// Channel is the extension to itself :) so it receives the same input as any
-/// other extension and just forwards it to them
+/// other extension and just forwards it to them. This is required for channel
+/// composebility.
 impl<N> ChannelExtension for Channel<N>
 where
     N: 'static + extension::Nomenclature,
@@ -255,13 +256,13 @@ where
         Box::new(data)
     }
 
-    fn apply(&mut self, tx_graph: &mut TxGraph) -> Result<(), Error> {
+    fn apply(&self, tx_graph: &mut TxGraph) -> Result<(), Error> {
         self.constructor.apply(tx_graph)?;
         self.extenders
-            .iter_mut()
+            .iter()
             .try_for_each(|(_, e)| e.apply(tx_graph))?;
         self.modifiers
-            .iter_mut()
+            .iter()
             .try_for_each(|(_, e)| e.apply(tx_graph))?;
         Ok(())
     }

@@ -672,7 +672,7 @@ impl ChannelExtension for Core {
     }
 
     fn apply(
-        &mut self,
+        &self,
         tx_graph: &mut channel::TxGraph,
     ) -> Result<(), channel::Error> {
         // The 48-bit commitment number is obscured by XOR with the lower

@@ -55,7 +55,7 @@ impl ChannelExtension for AnchorOutputs {
 
     #[inline]
     fn apply(
-        &mut self,
+        &self,
         _tx_graph: &mut channel::TxGraph,
     ) -> Result<(), channel::Error> {
         todo!("implement anchor outputs")
