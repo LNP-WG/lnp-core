@@ -25,7 +25,6 @@ use lnpbp::chain::Chain;
 use secp256k1::Signature;
 use wallet::address::AddressCompat;
 use wallet::lex_order::LexOrder;
-use wallet::psbt::Psbt;
 use wallet::scripts::{
     Category, LockScript, PubkeyScript, ToPubkeyScript, WitnessScript,
 };
@@ -34,7 +33,6 @@ use wallet::IntoPk;
 use super::extensions::AnchorOutputs;
 use super::policy::{CommonParams, Keyset, PeerParams, Policy};
 use super::{ExtensionId, Lifecycle};
-use crate::channel::TxGraph;
 use crate::{channel, Channel, ChannelExtension, Extension};
 
 /// Channel direction
@@ -161,25 +159,6 @@ impl Channel<ExtensionId> {
         self.active_channel_id().temp_channel_id()
     }
 
-    /// Constructs current version of commitment transaction
-    pub fn commitment_tx(&mut self) -> Result<Psbt, channel::Error> {
-        let mut tx_graph = TxGraph::default();
-        self.apply(&mut tx_graph)?;
-        Ok(tx_graph.render_cmt())
-    }
-
-    /// Constructs the first commitment transaction (called "refund
-    /// transaction") taking given funding outpoint.
-    #[inline]
-    pub fn refund_tx(
-        &mut self,
-        funding_txid: Txid,
-        funding_output: u16,
-    ) -> Result<Psbt, channel::Error> {
-        self.set_funding(funding_txid, funding_output);
-        self.commitment_tx()
-    }
-
     /// Composes `open_channel` message used for proposing channel opening to a
     /// remote peer. The message is composed basing on the local channel
     /// parameters set with [`Channel::with`] or [`Channel::set_local_params`]
@@ -297,26 +276,9 @@ impl Channel<ExtensionId> {
     }
 
     #[inline]
-    pub fn set_funding(&mut self, funding_txid: Txid, funding_output: u16) {
-        self.constructor_mut()
-            .set_funding(funding_txid, funding_output);
-    }
-    #[inline]
     pub fn funding_pubkey(&self) -> PublicKey {
         let core = self.constructor();
         core.local_keys().funding_pubkey
-    }
-
-    #[inline]
-    pub fn funding_txid(&self) -> Txid {
-        let core = self.constructor();
-        core.funding_outpoint().txid
-    }
-
-    #[inline]
-    pub fn funding_output(&self) -> u16 {
-        let core = self.constructor();
-        core.funding_outpoint().vout as u16
     }
 
     /// Tries to identify bitcoin network which channel is based on. Returns

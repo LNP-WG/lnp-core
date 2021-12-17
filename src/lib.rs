@@ -47,6 +47,7 @@ macro_rules! dumb_pubkey {
 
 pub mod channel;
 pub mod extension;
+mod funding;
 pub mod shared_ext;
 
 pub mod bolt;
@@ -57,3 +58,4 @@ pub use channel::Channel;
 pub use extension::{
     ChannelExtension, Extension, GossipExtension, RoutingExtension,
 };
+pub use funding::{Funding, PsbtLnpFunding};

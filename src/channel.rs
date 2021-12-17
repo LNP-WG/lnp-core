@@ -16,16 +16,20 @@ use std::fmt::Debug;
 use std::hash::Hash;
 
 use bitcoin::util::psbt::PartiallySignedTransaction as Psbt;
-use bitcoin::{OutPoint, Transaction, TxIn, TxOut};
+use bitcoin::{Transaction, TxIn, TxOut};
 use lnp2p::legacy::Messages;
-use strict_encoding::{StrictDecode, StrictEncode};
 
 use super::extension::{self, ChannelExtension, Extension};
 use crate::bolt::{Lifecycle, PolicyError};
+use crate::{funding, Funding};
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug, Display, Error, From)]
 #[display(doc_comments)]
 pub enum Error {
+    /// Error in channel funding: {0}
+    #[from]
+    Funding(funding::Error),
+
     /// Extension-specific error: {0}
     Extension(String),
 
@@ -71,7 +75,20 @@ pub struct Channel<N>
 where
     N: extension::Nomenclature,
 {
-    // TODO: Use associated type here
+    /* TODO: Add channel graph cache.
+             For this we need to track each state mutation and reset the cached data
+    /// The most recent version of rendered [`TxGraph`] corresponding to the
+    /// current channel state. Reset with each state update.
+    #[getter(skip)]
+    tx_graph: Option<TxGraph>,
+     */
+    /// This is a state that is shared / can be accessed by all channel
+    /// extensions.
+    ///
+    /// It is not a part of the core extension since it must be always present
+    /// in all channel types / under different channel cores
+    funding: Funding,
+
     /// Constructor extensions constructs base transaction graph. There could
     /// be only a single extension of this type
     #[getter(as_mut)]
@@ -90,7 +107,7 @@ where
 
 impl<N> Channel<N>
 where
-    N: extension::Nomenclature,
+    N: 'static + extension::Nomenclature,
 {
     /// Constructs channel with all used extensions
     pub fn new(
@@ -99,6 +116,7 @@ where
         modifiers: impl IntoIterator<Item = Box<dyn ChannelExtension<Identity = N>>>,
     ) -> Self {
         Self {
+            funding: Funding::new(),
             constructor,
             extenders: extenders.into_iter().fold(
                 ExtensionQueue::<N>::new(),
@@ -174,11 +192,33 @@ where
     ) {
         self.modifiers.insert(modifier.identity(), modifier);
     }
+
+    // Move to TxGraph
+    /// Constructs current version of commitment transaction
+    pub fn commitment_tx(&mut self) -> Result<Psbt, Error> {
+        let mut tx_graph = TxGraph::from_funding(&self.funding);
+        self.apply(&mut tx_graph)?;
+        Ok(tx_graph.render_cmt())
+    }
+
+    /// Constructs the first commitment transaction (called "refund
+    /// transaction") taking given funding outpoint.
+    #[inline]
+    pub fn refund_tx(&mut self, funding_psbt: Psbt) -> Result<Psbt, Error> {
+        self.set_funding(funding_psbt)?;
+        self.commitment_tx()
+    }
+
+    #[inline]
+    pub fn set_funding(&mut self, psbt: Psbt) -> Result<(), Error> {
+        self.funding = Funding::with(psbt)?;
+        Ok(())
+    }
 }
 
 impl<N> Default for Channel<N>
 where
-    N: extension::Nomenclature + Default,
+    N: 'static + extension::Nomenclature + Default,
 {
     fn default() -> Self {
         Channel::new(
@@ -274,19 +314,10 @@ pub trait TxIndex: Clone + From<u64> + Into<u64> {}
 impl TxRole for u16 {}
 impl TxIndex for u64 {}
 
-#[derive(Getters, Clone, PartialEq, StrictEncode, StrictDecode)]
-#[cfg_attr(
-    feature = "serde",
-    derive(Serialize, Deserialize),
-    serde(crate = "serde_crate")
-)]
-pub struct TxGraph {
-    funding_parties: u8,
-    funding_threshold: u8,
-    funding_tx: Psbt,
-    funding_outpoint: OutPoint,
-    commitment_outpoint: OutPoint, /* We should have a commitment outpoint
-                                    * for HTLC success and timeout Tx */
+#[derive(Getters, Clone, PartialEq)]
+pub struct TxGraph<'channel> {
+    /// Read-only data for extensions on the number of channel parties
+    funding: &'channel Funding,
     pub cmt_version: i32,
     pub cmt_locktime: u32,
     pub cmt_sequence: u32,
@@ -294,7 +325,22 @@ pub struct TxGraph {
     graph: BTreeMap<u16, BTreeMap<u64, Psbt>>,
 }
 
-impl TxGraph {
+impl<'channel> TxGraph<'channel>
+where
+    Self: 'channel,
+{
+    pub fn from_funding(funding: &'channel Funding) -> TxGraph<'channel> {
+        TxGraph {
+            funding,
+            // TODO: Check that we have commitment version set correctly
+            cmt_version: 0,
+            cmt_locktime: 0,
+            cmt_sequence: 0,
+            cmt_outs: vec![],
+            graph: bmap! {},
+        }
+    }
+
     pub fn tx<R, I>(&self, role: R, index: I) -> Option<&Psbt>
     where
         R: TxRole,
@@ -360,7 +406,7 @@ impl TxGraph {
             version: self.cmt_version,
             lock_time: self.cmt_locktime,
             input: vec![TxIn {
-                previous_output: self.funding_outpoint,
+                previous_output: self.funding.outpoint(),
                 script_sig: empty!(),
                 sequence: self.cmt_sequence,
                 witness: empty!(),
@@ -389,37 +435,14 @@ impl TxGraph {
     }
 }
 
-impl Default for TxGraph {
-    fn default() -> Self {
-        Self {
-            funding_parties: 0,
-            funding_threshold: 0,
-            funding_tx: Psbt::from_unsigned_tx(Transaction {
-                version: 2,
-                lock_time: 0,
-                input: none!(),
-                output: none!(),
-            })
-            .expect(""),
-            funding_outpoint: none!(),
-            commitment_outpoint: none!(),
-            cmt_version: 2,
-            cmt_locktime: 0,
-            cmt_sequence: 0,
-            cmt_outs: none!(),
-            graph: empty!(),
-        }
-    }
-}
-
-pub struct GraphIter<'a> {
-    graph: &'a TxGraph,
+pub struct GraphIter<'iter, 'channel> {
+    graph: &'iter TxGraph<'channel>,
     curr_role: u16,
     curr_index: u64,
 }
 
-impl<'a> GraphIter<'a> {
-    fn with(graph: &'a TxGraph) -> Self {
+impl<'iter, 'channel> GraphIter<'iter, 'channel> {
+    fn with(graph: &'iter TxGraph<'channel>) -> Self {
         Self {
             graph,
             curr_role: 0,
@@ -428,8 +451,8 @@ impl<'a> GraphIter<'a> {
     }
 }
 
-impl<'a> Iterator for GraphIter<'a> {
-    type Item = (u16, u64, &'a Psbt);
+impl<'iter, 'channel> Iterator for GraphIter<'iter, 'channel> {
+    type Item = (u16, u64, &'iter Psbt);
 
     fn next(&mut self) -> Option<Self::Item> {
         let tx = self.graph.tx(self.curr_role, self.curr_index).or_else(|| {
