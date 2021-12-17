@@ -413,10 +413,16 @@ where
             }],
             output: self.cmt_outs.clone(),
         };
-        Psbt::from_unsigned_tx(cmt_tx).expect(
+        let mut psbt = Psbt::from_unsigned_tx(cmt_tx).expect(
             "PSBT construction fails only if script_sig and witness are not \
              empty; which is not the case here",
-        )
+        );
+        psbt.inputs[0].witness_utxo = Some(
+            self.funding.psbt().global.unsigned_tx.output
+                [self.funding.output() as usize]
+                .clone(),
+        );
+        psbt
     }
 
     pub fn iter(&self) -> GraphIter {
