@@ -19,6 +19,6 @@ mod channel;
 pub mod extensions;
 
 pub use channel::{Core, ScriptGenerators};
-pub use keyset::RemoteKeyset;
+pub use keyset::{LocalKeyset, LocalPubkey, RemoteKeyset};
 pub use policy::{CommonParams, PeerParams, Policy, PolicyError};
 pub use util::{AssetsBalance, ExtensionId, Lifecycle, TxType};
