@@ -445,7 +445,8 @@ impl Extension for Core {
                 self.active_channel_id =
                     ActiveChannelId::from(open_channel.temporary_channel_id);
                 self.remote_amount = open_channel.funding_satoshis * 1000
-                    - open_channel.push_msat;
+                    - open_channel.push_msat
+                    - self.refund_fee() * 1000;
                 self.local_amount = open_channel.push_msat;
 
                 // Policies
@@ -566,6 +567,10 @@ impl Extension for Core {
 }
 
 impl Core {
+    fn refund_fee(&self) -> u64 {
+        724 * self.common_params.feerate_per_kw as u64 / 1000
+    }
+
     fn compose_open_channel(
         &mut self,
         funding_sat: u64,
@@ -589,7 +594,8 @@ impl Core {
         self.common_params = common_params;
         self.local_params = local_params;
         self.local_keys = local_keyset.clone();
-        self.local_amount = funding_sat * 1000 - push_msat;
+        self.local_amount =
+            funding_sat * 1000 - push_msat - self.refund_fee() * 1000;
         self.remote_amount = push_msat;
 
         Ok(OpenChannel {
