@@ -473,11 +473,16 @@ impl Extension for Core {
                 //    receiver does not support `option_support_large_channel`.
 
                 // Keys
+                self.remote_keys.funding_pubkey = open_channel.funding_pubkey;
                 self.remote_keys.payment_basepoint = open_channel.payment_point;
                 self.remote_keys.revocation_basepoint =
                     open_channel.revocation_basepoint;
                 self.remote_keys.delayed_payment_basepoint =
                     open_channel.delayed_payment_basepoint;
+                self.remote_keys.first_per_commitment_point =
+                    open_channel.first_per_commitment_point;
+                self.remote_per_commitment_point =
+                    open_channel.first_per_commitment_point;
             }
             Messages::AcceptChannel(accept_channel) => {
                 self.stage = Lifecycle::Accepted;
@@ -496,12 +501,17 @@ impl Extension for Core {
                 //    in the `open_channel`.
 
                 // Keys
+                self.remote_keys.funding_pubkey = accept_channel.funding_pubkey;
                 self.remote_keys.payment_basepoint =
                     accept_channel.payment_point;
                 self.remote_keys.revocation_basepoint =
                     accept_channel.revocation_basepoint;
                 self.remote_keys.delayed_payment_basepoint =
                     accept_channel.delayed_payment_basepoint;
+                self.remote_keys.first_per_commitment_point =
+                    accept_channel.first_per_commitment_point;
+                self.remote_per_commitment_point =
+                    accept_channel.first_per_commitment_point;
             }
             Messages::FundingCreated(funding_created) => {
                 self.stage = Lifecycle::Funding;
