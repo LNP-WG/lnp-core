@@ -21,7 +21,7 @@ use lnp2p::legacy::Messages;
 use super::extension::{self, ChannelExtension, Extension};
 use crate::bolt::{Lifecycle, PolicyError};
 pub(crate) use crate::tx_graph::{TxGraph, TxRole};
-use crate::{funding, Funding};
+use crate::{funding, ChannelConstructor, Funding};
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug, Display, Error, From)]
 #[display(doc_comments)]
@@ -209,7 +209,8 @@ where
     }
 
     #[inline]
-    pub fn set_funding(&mut self, psbt: Psbt) -> Result<(), Error> {
+    pub fn set_funding(&mut self, mut psbt: Psbt) -> Result<(), Error> {
+        self.constructor.enrich_funding(&mut psbt)?;
         self.funding = Funding::with(psbt)?;
         Ok(())
     }

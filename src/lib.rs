@@ -57,6 +57,7 @@ pub mod storm;
 
 pub use channel::Channel;
 pub use extension::{
-    ChannelExtension, Extension, GossipExtension, RoutingExtension,
+    ChannelConstructor, ChannelExtension, Extension, GossipExtension,
+    RoutingExtension,
 };
 pub use funding::{Error as FundingError, Funding, PsbtLnpFunding};

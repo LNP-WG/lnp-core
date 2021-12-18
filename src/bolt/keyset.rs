@@ -11,6 +11,8 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
+use std::collections::BTreeMap;
+
 use amplify::{DumbDefault, ToYamlString};
 use bitcoin::util::bip32::{
     ChildNumber, DerivationPath, ExtendedPrivKey, KeySource,
@@ -31,6 +33,15 @@ use wallet::scripts::{Category, PubkeyScript, ToPubkeyScript};
 pub struct LocalPubkey {
     pub key: PublicKey,
     pub source: KeySource,
+}
+
+impl LocalPubkey {
+    #[inline]
+    pub fn to_bip32_derivation_map(
+        &self,
+    ) -> BTreeMap<bitcoin::PublicKey, KeySource> {
+        bmap! { bitcoin::PublicKey::new(self.key) => self.source.clone() }
+    }
 }
 
 /// Set of keys used by the core of the channel (in fact, [`Bolt3`]). It does

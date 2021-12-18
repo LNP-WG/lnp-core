@@ -16,7 +16,7 @@ use bitcoin::blockdata::opcodes::all::*;
 use bitcoin::blockdata::script;
 use bitcoin::hashes::{sha256, Hash, HashEngine};
 use bitcoin::secp256k1::PublicKey;
-use bitcoin::{Network, OutPoint, TxOut, Txid};
+use bitcoin::{Network, OutPoint, TxOut};
 use lnp2p::legacy::{
     AcceptChannel, ActiveChannelId, ChannelId, Messages, OpenChannel,
     TempChannelId,
@@ -24,6 +24,7 @@ use lnp2p::legacy::{
 use lnpbp::chain::Chain;
 use secp256k1::{Secp256k1, Signature};
 use wallet::lex_order::LexOrder;
+use wallet::psbt::Psbt;
 use wallet::scripts::{LockScript, PubkeyScript, WitnessScript};
 use wallet::{psbt, IntoPk};
 
@@ -31,7 +32,9 @@ use super::extensions::AnchorOutputs;
 use super::policy::{CommonParams, PeerParams, Policy};
 use super::{ExtensionId, Lifecycle, RemoteKeyset};
 use crate::bolt::keyset::{LocalKeyset, LocalPubkey};
-use crate::{channel, Channel, ChannelExtension, Extension};
+use crate::extension::ChannelConstructor;
+use crate::funding::PsbtLnpFunding;
+use crate::{channel, funding, Channel, ChannelExtension, Extension};
 
 /// Channel direction
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display)]
@@ -200,10 +203,10 @@ impl Channel<ExtensionId> {
     }
 
     #[inline]
-    pub fn funding_output(&self) -> (TxOut, psbt::Output) {
+    pub fn funding_script_pubkey(&self) -> PubkeyScript {
         let funding = self.funding();
         let core = self.constructor();
-        ScriptGenerators::ln_funding(
+        PubkeyScript::ln_funding(
             funding.amount(),
             &core.local_keys().funding_pubkey,
             core.remote_keys().funding_pubkey,
@@ -376,13 +379,6 @@ impl Core {
     #[inline]
     pub fn set_chain_hash(&mut self, chain_hash: Slice32) {
         self.chain_hash = chain_hash
-    }
-
-    /// Sets channel funding outpoint
-    #[inline]
-    pub fn set_funding(&mut self, funding_txid: Txid, funding_output: u16) {
-        self.funding_outpoint =
-            OutPoint::new(funding_txid, funding_output as u32)
     }
 
     /// Sets channel policy
@@ -725,6 +721,17 @@ impl ChannelExtension for Core {
     }
 }
 
+impl ChannelConstructor for Core {
+    fn enrich_funding(&self, psbt: &mut Psbt) -> Result<(), channel::Error> {
+        let vout = psbt
+            .channel_funding_output()
+            .ok_or(funding::Error::NoFundingOutput)?;
+        psbt.outputs[vout].bip32_derivation =
+            self.local_keys.funding_pubkey.to_bip32_derivation_map();
+        Ok(())
+    }
+}
+
 pub trait ScriptGenerators {
     fn ln_funding(
         amount: u64,
@@ -906,9 +913,7 @@ impl ScriptGenerators for (TxOut, psbt::Output) {
         };
         let output = psbt::Output {
             witness_script: Some(witness_script),
-            bip32_derivation: bmap! {
-                bitcoin::PublicKey::new(local_pubkey.key) => local_pubkey.source.clone()
-            },
+            bip32_derivation: local_pubkey.to_bip32_derivation_map(),
             ..Default::default()
         };
         (txout, output)

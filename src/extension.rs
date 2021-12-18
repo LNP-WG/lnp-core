@@ -16,6 +16,7 @@ use std::fmt::{Debug, Display};
 use std::hash::Hash;
 
 use lnp2p::legacy::Messages;
+use wallet::psbt::Psbt;
 
 use super::{channel, Channel};
 
@@ -39,7 +40,7 @@ where
         + TryFrom<u16, Error = strict_encoding::Error>
         + Into<u16>,
 {
-    type Constructor: ChannelExtension<Identity = Self> + Default;
+    type Constructor: ChannelConstructor<Identity = Self>;
 
     /// Returns set of default channel extenders
     fn default_extenders() -> Vec<Box<dyn ChannelExtension<Identity = Self>>> {
@@ -101,4 +102,9 @@ pub trait ChannelExtension: Extension {
         &self,
         tx_graph: &mut channel::TxGraph,
     ) -> Result<(), channel::Error>;
+}
+
+/// Channel constructor specific methods
+pub trait ChannelConstructor: ChannelExtension + Default {
+    fn enrich_funding(&self, psbt: &mut Psbt) -> Result<(), channel::Error>;
 }

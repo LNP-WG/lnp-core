@@ -13,7 +13,6 @@
 
 use bitcoin::util::psbt::raw::ProprietaryKey;
 use bitcoin::{OutPoint, Transaction, TxOut, Txid};
-use wallet::psbt;
 use wallet::psbt::Psbt;
 
 pub const PSBT_LNP_PROPRIETARY_PREFIX: &[u8] = b"LNP";
@@ -108,26 +107,23 @@ fn lnp_out_channel_funding_key() -> ProprietaryKey {
     }
 }
 
-fn psbt_funding_output_info(
-    psbt: &Psbt,
-) -> Result<(u16, &psbt::Output, &TxOut), Error> {
-    let funding_key = lnp_out_channel_funding_key();
-    psbt.outputs
-        .iter()
-        .zip(&psbt.global.unsigned_tx.output)
-        .enumerate()
-        .find(|(_, (output, _))| output.proprietary.get(&funding_key).is_some())
-        .ok_or(Error::NoFundingOutput)
-        .map(|(vout, (out, txout))| (vout as u16, out, txout))
-}
-
 pub trait PsbtLnpFunding {
+    fn channel_funding_output(&self) -> Option<usize>;
     fn set_channel_funding_output(&mut self, vout: u16) -> Result<(), Error>;
     fn channel_funding_outpoint(&self) -> Result<OutPoint, Error>;
     fn extract_channel_funding(self) -> Result<Funding, Error>;
 }
 
 impl PsbtLnpFunding for Psbt {
+    fn channel_funding_output(&self) -> Option<usize> {
+        let funding_key = lnp_out_channel_funding_key();
+        self.outputs
+            .iter()
+            .enumerate()
+            .find(|(_, output)| output.proprietary.get(&funding_key).is_some())
+            .map(|(index, _)| index)
+    }
+
     fn set_channel_funding_output(&mut self, vout: u16) -> Result<(), Error> {
         self.outputs
             .get_mut(vout as usize)
@@ -139,13 +135,17 @@ impl PsbtLnpFunding for Psbt {
     }
 
     fn channel_funding_outpoint(&self) -> Result<OutPoint, Error> {
-        let (vout, _, _) = psbt_funding_output_info(&self)?;
+        let vout = self
+            .channel_funding_output()
+            .ok_or(Error::NoFundingOutput)?;
         Ok(OutPoint::new(self.global.unsigned_tx.txid(), vout as u32))
     }
 
     fn extract_channel_funding(self) -> Result<Funding, Error> {
-        let (vout, _out, txout) = psbt_funding_output_info(&self)?;
-        let amount = txout.value;
+        let vout = self
+            .channel_funding_output()
+            .ok_or(Error::NoFundingOutput)?;
+        let amount = self.global.unsigned_tx.output[vout].value;
         let txid = self.global.unsigned_tx.txid();
         // TODO: Parse number of signing parties and signing threshold from
         //       witness script attached to the funding output
