@@ -94,6 +94,13 @@ impl Funding {
     }
 
     #[inline]
+    pub(super) fn preliminary(funding_amount: u64) -> Funding {
+        let mut funding = Funding::new();
+        funding.amount = funding_amount;
+        funding
+    }
+
+    #[inline]
     pub fn outpoint(&self) -> OutPoint {
         OutPoint::new(self.txid, self.output as u32)
     }

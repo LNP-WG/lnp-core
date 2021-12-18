@@ -165,6 +165,7 @@ impl Channel<ExtensionId> {
         local_params: PeerParams,
         local_keys: LocalKeyset,
     ) -> Result<OpenChannel, channel::Error> {
+        self.set_funding_amount(funding_sat);
         self.constructor_mut().compose_open_channel(
             funding_sat,
             push_msat,

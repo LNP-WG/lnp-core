@@ -214,6 +214,11 @@ where
         self.funding = Funding::with(psbt)?;
         Ok(())
     }
+
+    #[inline]
+    pub fn set_funding_amount(&mut self, amount: u64) {
+        self.funding = Funding::preliminary(amount)
+    }
 }
 
 impl<N> Default for Channel<N>
