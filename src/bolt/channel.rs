@@ -475,6 +475,12 @@ impl Extension for Core {
                     open_channel.first_per_commitment_point;
                 self.remote_per_commitment_point =
                     open_channel.first_per_commitment_point;
+
+                self.obscuring_factor = compute_obscuring_factor(
+                    self.direction,
+                    self.remote_keys.payment_basepoint,
+                    self.local_keys.payment_basepoint.key,
+                );
             }
             Messages::AcceptChannel(accept_channel) => {
                 self.stage = Lifecycle::Accepted;
@@ -504,6 +510,12 @@ impl Extension for Core {
                     accept_channel.first_per_commitment_point;
                 self.remote_per_commitment_point =
                     accept_channel.first_per_commitment_point;
+
+                self.obscuring_factor = compute_obscuring_factor(
+                    self.direction,
+                    self.remote_keys.payment_basepoint,
+                    self.local_keys.payment_basepoint.key,
+                );
             }
             Messages::FundingCreated(funding_created) => {
                 self.stage = Lifecycle::Funding;
