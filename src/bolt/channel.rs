@@ -34,7 +34,7 @@ use super::{ExtensionId, Lifecycle, RemoteKeyset};
 use crate::bolt::keyset::{LocalKeyset, LocalPubkey};
 use crate::extension::ChannelConstructor;
 use crate::funding::PsbtLnpFunding;
-use crate::{channel, funding, Channel, ChannelExtension, Extension};
+use crate::{channel, funding, Channel, ChannelExtension, Extension, Funding};
 
 /// Channel direction
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display)]
@@ -727,10 +727,22 @@ impl ChannelExtension for Core {
 }
 
 impl ChannelConstructor for Core {
-    fn enrich_funding(&self, psbt: &mut Psbt) -> Result<(), channel::Error> {
+    fn enrich_funding(
+        &self,
+        psbt: &mut Psbt,
+        funding: &Funding,
+    ) -> Result<(), channel::Error> {
         let vout = psbt
             .channel_funding_output()
             .ok_or(funding::Error::NoFundingOutput)?;
+        psbt.outputs[vout].witness_script = Some(
+            WitnessScript::ln_funding(
+                funding.amount(),
+                &self.local_keys.funding_pubkey,
+                self.remote_keys.funding_pubkey,
+            )
+            .into_inner(),
+        );
         psbt.outputs[vout].bip32_derivation =
             self.local_keys.funding_pubkey.to_bip32_derivation_map();
         Ok(())

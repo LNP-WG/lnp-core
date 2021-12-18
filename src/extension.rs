@@ -19,6 +19,7 @@ use lnp2p::legacy::Messages;
 use wallet::psbt::Psbt;
 
 use super::{channel, Channel};
+use crate::Funding;
 
 /// Marker trait for creating extension nomenclatures, defining order in which
 /// extensions are applied to the channel transaction structure.
@@ -106,5 +107,9 @@ pub trait ChannelExtension: Extension {
 
 /// Channel constructor specific methods
 pub trait ChannelConstructor: ChannelExtension + Default {
-    fn enrich_funding(&self, psbt: &mut Psbt) -> Result<(), channel::Error>;
+    fn enrich_funding(
+        &self,
+        psbt: &mut Psbt,
+        funding: &Funding,
+    ) -> Result<(), channel::Error>;
 }

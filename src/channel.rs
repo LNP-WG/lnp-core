@@ -210,7 +210,7 @@ where
 
     #[inline]
     pub fn set_funding(&mut self, mut psbt: Psbt) -> Result<(), Error> {
-        self.constructor.enrich_funding(&mut psbt)?;
+        self.constructor.enrich_funding(&mut psbt, &self.funding)?;
         self.funding = Funding::with(psbt)?;
         Ok(())
     }
