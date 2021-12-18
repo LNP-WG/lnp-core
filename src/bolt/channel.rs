@@ -709,19 +709,21 @@ impl ChannelExtension for Core {
         tx_graph.cmt_locktime = lock_time;
         tx_graph.cmt_sequence = sequence;
         // We are doing counterparty's transaction!
-        tx_graph.cmt_outs = vec![
-            ScriptGenerators::ln_to_local(
+        tx_graph.cmt_outs = Vec::with_capacity(2);
+        if self.remote_amount > 0 {
+            tx_graph.cmt_outs.push(ScriptGenerators::ln_to_local(
                 self.remote_amount,
-                // TODO: Generate proper revocation
                 revocationpubkey,
                 self.remote_keys.delayed_payment_basepoint,
                 self.remote_params.to_self_delay,
-            ),
-            ScriptGenerators::ln_to_remote_v1(
+            ));
+        }
+        if self.local_amount > 0 {
+            tx_graph.cmt_outs.push(ScriptGenerators::ln_to_remote_v1(
                 self.local_amount,
                 self.local_keys.payment_basepoint.key,
-            ),
-        ];
+            ));
+        }
 
         Ok(())
     }
