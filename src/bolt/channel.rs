@@ -23,11 +23,8 @@ use lnp2p::legacy::{
 };
 use lnpbp::chain::Chain;
 use secp256k1::{Secp256k1, Signature};
-use wallet::address::AddressCompat;
 use wallet::lex_order::LexOrder;
-use wallet::scripts::{
-    Category, LockScript, PubkeyScript, ToPubkeyScript, WitnessScript,
-};
+use wallet::scripts::{LockScript, PubkeyScript, WitnessScript};
 use wallet::{psbt, IntoPk};
 
 use super::extensions::AnchorOutputs;
@@ -189,12 +186,6 @@ impl Channel<ExtensionId> {
         self.constructor_mut().compose_accept_channel()
     }
 
-    #[inline]
-    pub fn funding_pubkey(&self) -> PublicKey {
-        let core = self.constructor();
-        core.local_keys().funding_pubkey.key
-    }
-
     /// Tries to identify bitcoin network which channel is based on. Returns
     /// `None` if the channel is using non-bitcoin chain.
     #[inline]
@@ -208,17 +199,15 @@ impl Channel<ExtensionId> {
         None
     }
 
-    /// Constructs address which was used to fund the transaction.
-    ///
-    /// Returns result only for standard chain types (see
-    /// [`Chain::all_standard`]); for other chain types returns `None`.
     #[inline]
-    pub fn funding_address(&self) -> Option<AddressCompat> {
-        let script_pubkey =
-            self.funding_pubkey().to_pubkey_script(Category::SegWit);
-        self.network().and_then(|network| {
-            AddressCompat::from_script(script_pubkey.as_inner(), network)
-        })
+    pub fn funding_output(&self) -> (TxOut, psbt::Output) {
+        let funding = self.funding();
+        let core = self.constructor();
+        ScriptGenerators::ln_funding(
+            funding.amount(),
+            &core.local_keys().funding_pubkey,
+            core.remote_keys().funding_pubkey,
+        )
     }
 
     #[inline]
