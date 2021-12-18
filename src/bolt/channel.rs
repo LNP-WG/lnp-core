@@ -165,57 +165,14 @@ impl Channel<ExtensionId> {
         local_params: PeerParams,
         local_keys: LocalKeyset,
     ) -> Result<OpenChannel, channel::Error> {
-        let stage = self.constructor().stage();
-        if stage != Lifecycle::Initial && stage != Lifecycle::Reestablishing {
-            return Err(channel::Error::LifecycleMismatch {
-                current: stage,
-                required: &[Lifecycle::Initial, Lifecycle::Reestablishing],
-            });
-        }
-
-        self.constructor_mut().set_outbound();
-
-        let core = self.constructor_mut();
-        core.set_policy(policy);
-        core.set_common_params(common_params);
-        core.set_local_params(local_params);
-        core.set_local_keys(local_keys);
-
-        let core = self.constructor();
-        let common_params: CommonParams = core.common_params();
-        let local_params: PeerParams = core.local_params();
-        let local_keyset: &LocalKeyset = core.local_keys();
-
-        Ok(OpenChannel {
-            chain_hash: core.chain_hash(),
-            temporary_channel_id: core.temp_channel_id().expect(
-                "initial channel state must always have a temporary channel id",
-            ),
-            funding_satoshis: funding_sat,
+        self.constructor_mut().compose_open_channel(
+            funding_sat,
             push_msat,
-            dust_limit_satoshis: local_params.dust_limit_satoshis,
-            max_htlc_value_in_flight_msat: local_params
-                .max_htlc_value_in_flight_msat,
-            channel_reserve_satoshis: local_params.channel_reserve_satoshis,
-            htlc_minimum_msat: local_params.htlc_minimum_msat,
-            feerate_per_kw: common_params.feerate_per_kw,
-            to_self_delay: local_params.to_self_delay,
-            max_accepted_htlcs: local_params.max_accepted_htlcs,
-            funding_pubkey: local_keyset.funding_pubkey.key,
-            revocation_basepoint: local_keyset.revocation_basepoint.key,
-            payment_point: local_keyset.payment_basepoint.key,
-            delayed_payment_basepoint: local_keyset
-                .delayed_payment_basepoint
-                .key,
-            htlc_basepoint: local_keyset.htlc_basepoint.key,
-            first_per_commitment_point: local_keyset
-                .first_per_commitment_point
-                .key,
-            shutdown_scriptpubkey: local_keyset.shutdown_scriptpubkey.clone(),
-            channel_flags: if common_params.announce_channel { 1 } else { 0 },
-            channel_type: common_params.channel_type.into_option(),
-            unknown_tlvs: none!(),
-        })
+            policy,
+            common_params,
+            local_params,
+            local_keys,
+        )
     }
 
     /// Composes `accept_channel` message used for accepting channel opening
@@ -229,48 +186,7 @@ impl Channel<ExtensionId> {
     pub fn compose_accept_channel(
         &mut self,
     ) -> Result<AcceptChannel, channel::Error> {
-        let stage = self.constructor().stage();
-        if stage != Lifecycle::Initial && stage != Lifecycle::Reestablishing {
-            return Err(channel::Error::LifecycleMismatch {
-                current: stage,
-                required: &[Lifecycle::Initial, Lifecycle::Reestablishing],
-            });
-        }
-
-        self.constructor_mut().set_inbound();
-
-        let core = self.constructor();
-        let policy: &Policy = core.policy();
-        let common_params: CommonParams = core.common_params();
-        let local_params: PeerParams = core.local_params();
-        let local_keyset: &LocalKeyset = core.local_keys();
-
-        Ok(AcceptChannel {
-            temporary_channel_id: core.temp_channel_id().expect(
-                "initial channel state must always have a temporary channel id",
-            ),
-            dust_limit_satoshis: local_params.dust_limit_satoshis,
-            max_htlc_value_in_flight_msat: local_params
-                .max_htlc_value_in_flight_msat,
-            channel_reserve_satoshis: local_params.channel_reserve_satoshis,
-            htlc_minimum_msat: local_params.htlc_minimum_msat,
-            minimum_depth: policy.minimum_depth,
-            to_self_delay: local_params.to_self_delay,
-            max_accepted_htlcs: local_params.max_accepted_htlcs,
-            funding_pubkey: local_keyset.funding_pubkey.key,
-            revocation_basepoint: local_keyset.revocation_basepoint.key,
-            payment_point: local_keyset.payment_basepoint.key,
-            delayed_payment_basepoint: local_keyset
-                .delayed_payment_basepoint
-                .key,
-            htlc_basepoint: local_keyset.htlc_basepoint.key,
-            first_per_commitment_point: local_keyset
-                .first_per_commitment_point
-                .key,
-            shutdown_scriptpubkey: local_keyset.shutdown_scriptpubkey.clone(),
-            channel_type: common_params.channel_type.into_option(),
-            unknown_tlvs: none!(),
-        })
+        self.constructor_mut().compose_accept_channel()
     }
 
     #[inline]
@@ -325,6 +241,7 @@ impl Channel<ExtensionId> {
 /// library, but it's made public for allowing channel state access.
 #[derive(Getters, Clone, PartialEq, Eq, Debug, StrictEncode, StrictDecode)]
 #[getter(as_copy)]
+// TODO: Make it crate-private
 pub struct Core {
     /// Current channel lifecycle stage
     #[getter(as_copy)]
@@ -393,6 +310,10 @@ pub struct Core {
     /// Set of remote-derived keys for creating channel transactions
     remote_keys: RemoteKeyset,
 
+    remote_per_commitment_point: PublicKey,
+
+    local_per_commitment_point: PublicKey,
+
     /// Keeps information about node directionality
     #[getter(as_copy)]
     direction: Direction,
@@ -423,6 +344,8 @@ impl Default for Core {
             remote_params: default!(),
             local_keys: LocalKeyset::dumb_default(),
             remote_keys: dumb_keys,
+            remote_per_commitment_point: dumb_pubkey!(),
+            local_per_commitment_point: dumb_pubkey!(),
             direction,
         }
     }
@@ -626,6 +549,113 @@ impl Extension for Core {
     fn extension_state(&self) -> Box<dyn channel::State> {
         Box::new(self.clone())
     }
+}
+
+impl Core {
+    fn compose_open_channel(
+        &mut self,
+        funding_sat: u64,
+        push_msat: u64,
+        policy: Policy,
+        common_params: CommonParams,
+        local_params: PeerParams,
+        local_keyset: LocalKeyset,
+    ) -> Result<OpenChannel, channel::Error> {
+        if self.stage != Lifecycle::Initial
+            && self.stage != Lifecycle::Reestablishing
+        {
+            return Err(channel::Error::LifecycleMismatch {
+                current: self.stage,
+                required: &[Lifecycle::Initial, Lifecycle::Reestablishing],
+            });
+        }
+
+        self.direction = Direction::Outbount;
+        self.policy = policy;
+        self.common_params = common_params;
+        self.local_params = local_params;
+        self.local_keys = local_keyset.clone();
+
+        Ok(OpenChannel {
+            chain_hash: self.chain_hash(),
+            temporary_channel_id: self.temp_channel_id().expect(
+                "initial channel state must always have a temporary channel id",
+            ),
+            funding_satoshis: funding_sat,
+            push_msat,
+            dust_limit_satoshis: local_params.dust_limit_satoshis,
+            max_htlc_value_in_flight_msat: local_params
+                .max_htlc_value_in_flight_msat,
+            channel_reserve_satoshis: local_params.channel_reserve_satoshis,
+            htlc_minimum_msat: local_params.htlc_minimum_msat,
+            feerate_per_kw: common_params.feerate_per_kw,
+            to_self_delay: local_params.to_self_delay,
+            max_accepted_htlcs: local_params.max_accepted_htlcs,
+            funding_pubkey: local_keyset.funding_pubkey.key,
+            revocation_basepoint: local_keyset.revocation_basepoint.key,
+            payment_point: local_keyset.payment_basepoint.key,
+            delayed_payment_basepoint: local_keyset
+                .delayed_payment_basepoint
+                .key,
+            htlc_basepoint: local_keyset.htlc_basepoint.key,
+            first_per_commitment_point: local_keyset
+                .first_per_commitment_point
+                .key,
+            shutdown_scriptpubkey: local_keyset.shutdown_scriptpubkey.clone(),
+            channel_flags: if common_params.announce_channel { 1 } else { 0 },
+            channel_type: common_params.channel_type.into_option(),
+            unknown_tlvs: none!(),
+        })
+    }
+
+    fn compose_accept_channel(
+        &mut self,
+    ) -> Result<AcceptChannel, channel::Error> {
+        if self.stage != Lifecycle::Initial
+            && self.stage != Lifecycle::Reestablishing
+        {
+            return Err(channel::Error::LifecycleMismatch {
+                current: self.stage,
+                required: &[Lifecycle::Initial, Lifecycle::Reestablishing],
+            });
+        }
+
+        Ok(AcceptChannel {
+            temporary_channel_id: self.temp_channel_id().expect(
+                "initial channel state must always have a temporary channel id",
+            ),
+            dust_limit_satoshis: self.local_params.dust_limit_satoshis,
+            max_htlc_value_in_flight_msat: self
+                .local_params
+                .max_htlc_value_in_flight_msat,
+            channel_reserve_satoshis: self
+                .local_params
+                .channel_reserve_satoshis,
+            htlc_minimum_msat: self.local_params.htlc_minimum_msat,
+            minimum_depth: self.policy.minimum_depth,
+            to_self_delay: self.local_params.to_self_delay,
+            max_accepted_htlcs: self.local_params.max_accepted_htlcs,
+            funding_pubkey: self.local_keys.funding_pubkey.key,
+            revocation_basepoint: self.local_keys.revocation_basepoint.key,
+            payment_point: self.local_keys.payment_basepoint.key,
+            delayed_payment_basepoint: self
+                .local_keys
+                .delayed_payment_basepoint
+                .key,
+            htlc_basepoint: self.local_keys.htlc_basepoint.key,
+            first_per_commitment_point: self
+                .local_keys
+                .first_per_commitment_point
+                .key,
+            shutdown_scriptpubkey: self
+                .local_keys
+                .shutdown_scriptpubkey
+                .clone(),
+            channel_type: self.common_params.channel_type.into_option(),
+            unknown_tlvs: none!(),
+        })
+    }
+
 }
 
 impl ChannelExtension for Core {
