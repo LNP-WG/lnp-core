@@ -12,11 +12,26 @@
 // If not, see <https://opensource.org/licenses/MIT>.
 
 use amplify::{DumbDefault, ToYamlString};
-use bitcoin::util::bip32::{ChildNumber, ExtendedPrivKey};
+use bitcoin::util::bip32::{
+    ChildNumber, DerivationPath, ExtendedPrivKey, KeySource,
+};
 use p2p::legacy::{AcceptChannel, ChannelType, OpenChannel};
 use secp256k1::{PublicKey, Secp256k1};
 use wallet::hd::HardenedIndex;
 use wallet::scripts::{Category, PubkeyScript, ToPubkeyScript};
+
+/// Key + information about its derivation
+#[derive(Clone, PartialEq, Eq, Debug, StrictEncode, StrictDecode)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Display, Serialize, Deserialize),
+    serde(crate = "serde_crate"),
+    display(LocalPubkey::to_yaml_string)
+)]
+pub struct LocalPubkey {
+    pub key: PublicKey,
+    pub source: KeySource,
+}
 
 /// Set of keys used by the core of the channel (in fact, [`Bolt3`]). It does
 /// not include HTLC basepoint which is managed separately by
@@ -26,9 +41,42 @@ use wallet::scripts::{Category, PubkeyScript, ToPubkeyScript};
     feature = "serde",
     derive(Display, Serialize, Deserialize),
     serde(crate = "serde_crate"),
-    display(Keyset::to_yaml_string)
+    display(LocalKeyset::to_yaml_string)
 )]
-pub struct Keyset {
+pub struct LocalKeyset {
+    /// Public key used in the funding outpoint multisig
+    pub funding_pubkey: LocalPubkey,
+    /// Base point for deriving keys used for penalty spending paths
+    pub revocation_basepoint: LocalPubkey,
+    /// Base point for deriving keys in `to_remote`
+    pub payment_basepoint: LocalPubkey,
+    /// Base point for deriving keys in `to_local` time-locked spending paths
+    pub delayed_payment_basepoint: LocalPubkey,
+    /// Base point for deriving HTLC-related keys
+    pub htlc_basepoint: LocalPubkey,
+    /// Base point for deriving keys used for penalty spending paths
+    pub first_per_commitment_point: LocalPubkey,
+    /// Allows the sending node to commit to where funds will go on mutual
+    /// close, which the remote node should enforce even if a node is
+    /// compromised later.
+    pub shutdown_scriptpubkey: Option<PubkeyScript>,
+    /// If `option_static_remotekey` or `option_anchors` is negotiated, the
+    /// remotepubkey is simply the remote node's payment_basepoint, otherwise
+    /// it is calculated as above using the remote node's payment_basepoint.
+    pub static_remotekey: bool,
+}
+
+/// Set of keys used by the core of the channel (in fact, [`Bolt3`]). It does
+/// not include HTLC basepoint which is managed separately by
+/// [`self::htlc::Htlc`] extension.
+#[derive(Clone, PartialEq, Eq, Debug, StrictEncode, StrictDecode)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Display, Serialize, Deserialize),
+    serde(crate = "serde_crate"),
+    display(RemoteKeyset::to_yaml_string)
+)]
+pub struct RemoteKeyset {
     /// Public key used in the funding outpoint multisig
     pub funding_pubkey: PublicKey,
     /// Base point for deriving keys used for penalty spending paths
@@ -52,9 +100,15 @@ pub struct Keyset {
 }
 
 #[cfg(feature = "serde")]
-impl ToYamlString for Keyset {}
+impl ToYamlString for LocalPubkey {}
 
-impl From<&OpenChannel> for Keyset {
+#[cfg(feature = "serde")]
+impl ToYamlString for LocalKeyset {}
+
+#[cfg(feature = "serde")]
+impl ToYamlString for RemoteKeyset {}
+
+impl From<&OpenChannel> for RemoteKeyset {
     fn from(open_channel: &OpenChannel) -> Self {
         Self {
             funding_pubkey: open_channel.funding_pubkey,
@@ -69,7 +123,7 @@ impl From<&OpenChannel> for Keyset {
     }
 }
 
-impl From<&AcceptChannel> for Keyset {
+impl From<&AcceptChannel> for RemoteKeyset {
     fn from(accept_channel: &AcceptChannel) -> Self {
         Self {
             funding_pubkey: accept_channel.funding_pubkey,
@@ -88,7 +142,31 @@ impl From<&AcceptChannel> for Keyset {
     }
 }
 
-impl DumbDefault for Keyset {
+impl DumbDefault for LocalPubkey {
+    fn dumb_default() -> Self {
+        LocalPubkey {
+            key: dumb_pubkey!(),
+            source: KeySource::default(),
+        }
+    }
+}
+
+impl DumbDefault for LocalKeyset {
+    fn dumb_default() -> Self {
+        Self {
+            funding_pubkey: DumbDefault::dumb_default(),
+            revocation_basepoint: DumbDefault::dumb_default(),
+            payment_basepoint: DumbDefault::dumb_default(),
+            delayed_payment_basepoint: DumbDefault::dumb_default(),
+            htlc_basepoint: DumbDefault::dumb_default(),
+            first_per_commitment_point: DumbDefault::dumb_default(),
+            shutdown_scriptpubkey: None,
+            static_remotekey: false,
+        }
+    }
+}
+
+impl DumbDefault for RemoteKeyset {
     fn dumb_default() -> Self {
         Self {
             funding_pubkey: dumb_pubkey!(),
@@ -103,37 +181,43 @@ impl DumbDefault for Keyset {
     }
 }
 
-impl Keyset {
+impl LocalKeyset {
     /// Derives keyset from a *channel extended key* using LNPBP-46 standard
     pub fn with<C: secp256k1::Signing>(
         secp: &Secp256k1<C>,
         channel_xpriv: ExtendedPrivKey,
         commit_to_shutdown_scriptpubkey: bool,
     ) -> Self {
+        let fingerpint = channel_xpriv.fingerprint(secp);
+
         let keys = (0u16..=7)
             .into_iter()
             .map(HardenedIndex::from)
             .map(ChildNumber::from)
             .map(|index| [index])
             .map(|path| {
-                channel_xpriv
+                let derivation_path = DerivationPath::from(&path[..]);
+                let seckey = channel_xpriv
                     .derive_priv(&secp, &path)
                     .expect("negligible probability")
                     .private_key
-                    .key
+                    .key;
+                LocalPubkey {
+                    key: PublicKey::from_secret_key(&secp, &seckey),
+                    source: (fingerpint, derivation_path),
+                }
             })
-            .map(|seckey| PublicKey::from_secret_key(&secp, &seckey))
             .collect::<Vec<_>>();
 
         Self {
-            funding_pubkey: keys[0],
-            revocation_basepoint: keys[2],
-            payment_basepoint: keys[0],
-            delayed_payment_basepoint: keys[1],
-            htlc_basepoint: keys[5],
-            first_per_commitment_point: keys[4],
+            funding_pubkey: keys[0].clone(),
+            revocation_basepoint: keys[2].clone(),
+            payment_basepoint: keys[0].clone(),
+            delayed_payment_basepoint: keys[1].clone(),
+            htlc_basepoint: keys[5].clone(),
+            first_per_commitment_point: keys[4].clone(),
             shutdown_scriptpubkey: if commit_to_shutdown_scriptpubkey {
-                Some(keys[7].to_pubkey_script(Category::SegWit))
+                Some(keys[7].key.to_pubkey_script(Category::SegWit))
             } else {
                 None
             },

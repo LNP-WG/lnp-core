@@ -32,7 +32,8 @@ use wallet::{psbt, IntoPk};
 
 use super::extensions::AnchorOutputs;
 use super::policy::{CommonParams, PeerParams, Policy};
-use super::{ExtensionId, Keyset, Lifecycle};
+use super::{ExtensionId, Lifecycle, RemoteKeyset};
+use crate::bolt::keyset::{LocalKeyset, LocalPubkey};
 use crate::{channel, Channel, ChannelExtension, Extension};
 
 /// Channel direction
@@ -77,7 +78,7 @@ impl Channel<ExtensionId> {
         policy: Policy,
         common_params: CommonParams,
         local_params: PeerParams,
-        mut local_keys: Keyset,
+        mut local_keys: LocalKeyset,
     ) -> Self {
         let mut channel = Self::default();
 
@@ -162,7 +163,7 @@ impl Channel<ExtensionId> {
         policy: Policy,
         common_params: CommonParams,
         local_params: PeerParams,
-        local_keys: Keyset,
+        local_keys: LocalKeyset,
     ) -> Result<OpenChannel, channel::Error> {
         let stage = self.constructor().stage();
         if stage != Lifecycle::Initial && stage != Lifecycle::Reestablishing {
@@ -183,7 +184,7 @@ impl Channel<ExtensionId> {
         let core = self.constructor();
         let common_params: CommonParams = core.common_params();
         let local_params: PeerParams = core.local_params();
-        let local_keyset: &Keyset = core.local_keys();
+        let local_keyset: &LocalKeyset = core.local_keys();
 
         Ok(OpenChannel {
             chain_hash: core.chain_hash(),
@@ -200,12 +201,16 @@ impl Channel<ExtensionId> {
             feerate_per_kw: common_params.feerate_per_kw,
             to_self_delay: local_params.to_self_delay,
             max_accepted_htlcs: local_params.max_accepted_htlcs,
-            funding_pubkey: local_keyset.funding_pubkey,
-            revocation_basepoint: local_keyset.revocation_basepoint,
-            payment_point: local_keyset.payment_basepoint,
-            delayed_payment_basepoint: local_keyset.delayed_payment_basepoint,
-            htlc_basepoint: local_keyset.htlc_basepoint,
-            first_per_commitment_point: local_keyset.first_per_commitment_point,
+            funding_pubkey: local_keyset.funding_pubkey.key,
+            revocation_basepoint: local_keyset.revocation_basepoint.key,
+            payment_point: local_keyset.payment_basepoint.key,
+            delayed_payment_basepoint: local_keyset
+                .delayed_payment_basepoint
+                .key,
+            htlc_basepoint: local_keyset.htlc_basepoint.key,
+            first_per_commitment_point: local_keyset
+                .first_per_commitment_point
+                .key,
             shutdown_scriptpubkey: local_keyset.shutdown_scriptpubkey.clone(),
             channel_flags: if common_params.announce_channel { 1 } else { 0 },
             channel_type: common_params.channel_type.into_option(),
@@ -238,7 +243,7 @@ impl Channel<ExtensionId> {
         let policy: &Policy = core.policy();
         let common_params: CommonParams = core.common_params();
         let local_params: PeerParams = core.local_params();
-        let local_keyset: &Keyset = core.local_keys();
+        let local_keyset: &LocalKeyset = core.local_keys();
 
         Ok(AcceptChannel {
             temporary_channel_id: core.temp_channel_id().expect(
@@ -252,12 +257,16 @@ impl Channel<ExtensionId> {
             minimum_depth: policy.minimum_depth,
             to_self_delay: local_params.to_self_delay,
             max_accepted_htlcs: local_params.max_accepted_htlcs,
-            funding_pubkey: local_keyset.funding_pubkey,
-            revocation_basepoint: local_keyset.revocation_basepoint,
-            payment_point: local_keyset.payment_basepoint,
-            delayed_payment_basepoint: local_keyset.delayed_payment_basepoint,
-            htlc_basepoint: local_keyset.htlc_basepoint,
-            first_per_commitment_point: local_keyset.first_per_commitment_point,
+            funding_pubkey: local_keyset.funding_pubkey.key,
+            revocation_basepoint: local_keyset.revocation_basepoint.key,
+            payment_point: local_keyset.payment_basepoint.key,
+            delayed_payment_basepoint: local_keyset
+                .delayed_payment_basepoint
+                .key,
+            htlc_basepoint: local_keyset.htlc_basepoint.key,
+            first_per_commitment_point: local_keyset
+                .first_per_commitment_point
+                .key,
             shutdown_scriptpubkey: local_keyset.shutdown_scriptpubkey.clone(),
             channel_type: common_params.channel_type.into_option(),
             unknown_tlvs: none!(),
@@ -267,7 +276,7 @@ impl Channel<ExtensionId> {
     #[inline]
     pub fn funding_pubkey(&self) -> PublicKey {
         let core = self.constructor();
-        core.local_keys().funding_pubkey
+        core.local_keys().funding_pubkey.key
     }
 
     /// Tries to identify bitcoin network which channel is based on. Returns
@@ -379,10 +388,10 @@ pub struct Core {
     remote_params: PeerParams,
 
     /// Set of locally-derived keys for creating channel transactions
-    local_keys: Keyset,
+    local_keys: LocalKeyset,
 
     /// Set of remote-derived keys for creating channel transactions
-    remote_keys: Keyset,
+    remote_keys: RemoteKeyset,
 
     /// Keeps information about node directionality
     #[getter(as_copy)]
@@ -392,7 +401,7 @@ pub struct Core {
 impl Default for Core {
     fn default() -> Self {
         let direction = Direction::Outbount;
-        let dumb_keys = Keyset::dumb_default();
+        let dumb_keys = RemoteKeyset::dumb_default();
         let obscuring_factor = compute_obscuring_factor(
             direction,
             dumb_keys.payment_basepoint,
@@ -412,7 +421,7 @@ impl Default for Core {
             common_params: default!(),
             local_params: default!(),
             remote_params: default!(),
-            local_keys: dumb_keys.clone(),
+            local_keys: LocalKeyset::dumb_default(),
             remote_keys: dumb_keys,
             direction,
         }
@@ -484,7 +493,7 @@ impl Core {
 
     /// Sets local keys for the channel
     #[inline]
-    pub fn set_local_keys(&mut self, keys: Keyset) {
+    pub fn set_local_keys(&mut self, keys: LocalKeyset) {
         self.local_keys = keys
     }
 
@@ -643,13 +652,14 @@ impl ChannelExtension for Core {
         tx_graph.cmt_outs = vec![
             ScriptGenerators::ln_to_local(
                 self.remote_amount,
-                self.local_keys.revocation_basepoint,
-                self.remote_keys.delayed_payment_basepoint,
+                // TODO: Generate proper revocation
+                self.local_keys.revocation_basepoint.key,
+                &self.local_keys.delayed_payment_basepoint,
                 self.remote_params.to_self_delay,
             ),
             ScriptGenerators::ln_to_remote_v1(
                 self.local_amount,
-                self.local_keys.payment_basepoint,
+                self.remote_keys.payment_basepoint,
             ),
         ];
 
@@ -663,7 +673,7 @@ pub trait ScriptGenerators {
     fn ln_to_local(
         amount: u64,
         revocationpubkey: PublicKey,
-        local_delayedpubkey: PublicKey,
+        local_delayedpubkey: &LocalPubkey,
         to_self_delay: u16,
     ) -> Self;
 
@@ -689,7 +699,7 @@ impl ScriptGenerators for LockScript {
     fn ln_to_local(
         _: u64,
         revocationpubkey: PublicKey,
-        local_delayedpubkey: PublicKey,
+        local_delayedpubkey: &LocalPubkey,
         to_self_delay: u16,
     ) -> Self {
         script::Builder::new()
@@ -699,7 +709,7 @@ impl ScriptGenerators for LockScript {
             .push_int(to_self_delay as i64)
             .push_opcode(OP_CSV)
             .push_opcode(OP_DROP)
-            .push_key(&local_delayedpubkey.into_pk())
+            .push_key(&local_delayedpubkey.key.into_pk())
             .push_opcode(OP_ENDIF)
             .push_opcode(OP_CHECKSIG)
             .into_script()
@@ -731,7 +741,7 @@ impl ScriptGenerators for WitnessScript {
     fn ln_to_local(
         amount: u64,
         revocationpubkey: PublicKey,
-        local_delayedpubkey: PublicKey,
+        local_delayedpubkey: &LocalPubkey,
         to_self_delay: u16,
     ) -> Self {
         LockScript::ln_to_local(
@@ -765,7 +775,7 @@ impl ScriptGenerators for PubkeyScript {
     fn ln_to_local(
         amount: u64,
         revocationpubkey: PublicKey,
-        local_delayedpubkey: PublicKey,
+        local_delayedpubkey: &LocalPubkey,
         to_self_delay: u16,
     ) -> Self {
         WitnessScript::ln_to_local(
@@ -814,7 +824,7 @@ impl ScriptGenerators for (TxOut, psbt::Output) {
     fn ln_to_local(
         amount: u64,
         revocationpubkey: PublicKey,
-        local_delayedpubkey: PublicKey,
+        local_delayedpubkey: &LocalPubkey,
         to_self_delay: u16,
     ) -> Self {
         let witness_script = WitnessScript::ln_to_local(
@@ -837,6 +847,9 @@ impl ScriptGenerators for (TxOut, psbt::Output) {
         };
         let output = psbt::Output {
             witness_script: Some(witness_script),
+            bip32_derivation: bmap! {
+                bitcoin::PublicKey::new(local_delayedpubkey.key) => local_delayedpubkey.source.clone()
+            },
             ..Default::default()
         };
         (txout, output)
