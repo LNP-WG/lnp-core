@@ -136,11 +136,14 @@ where
             "PSBT construction fails only if script_sig and witness are not \
              empty; which is not the case here",
         );
+        let funding_psbt = self.funding.psbt();
+        let funding_output = self.funding.output() as usize;
         psbt.inputs[0].witness_utxo = Some(
-            self.funding.psbt().global.unsigned_tx.output
-                [self.funding.output() as usize]
-                .clone(),
+            funding_psbt.global.unsigned_tx.output[funding_output].clone(),
         );
+        psbt.inputs[0].bip32_derivation = funding_psbt.outputs[funding_output]
+            .bip32_derivation
+            .clone();
         for (index, output) in psbt.outputs.iter_mut().enumerate() {
             *output = self.cmt_outs[index].1.clone();
         }

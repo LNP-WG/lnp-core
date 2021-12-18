@@ -193,7 +193,6 @@ where
         self.modifiers.insert(modifier.identity(), modifier);
     }
 
-    // Move to TxGraph
     /// Constructs current version of commitment transaction
     pub fn commitment_tx(&mut self) -> Result<Psbt, Error> {
         let mut tx_graph = TxGraph::from_funding(&self.funding);
