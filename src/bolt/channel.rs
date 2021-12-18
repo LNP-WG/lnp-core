@@ -14,7 +14,7 @@
 use amplify::{DumbDefault, Slice32, Wrapper};
 use bitcoin::blockdata::opcodes::all::*;
 use bitcoin::blockdata::script;
-use bitcoin::hashes::Hash;
+use bitcoin::hashes::{sha256, Hash, HashEngine};
 use bitcoin::secp256k1::PublicKey;
 use bitcoin::{Network, OutPoint, TxOut, Txid};
 use lnp2p::legacy::{
@@ -22,7 +22,7 @@ use lnp2p::legacy::{
     TempChannelId,
 };
 use lnpbp::chain::Chain;
-use secp256k1::Signature;
+use secp256k1::{Secp256k1, Signature};
 use wallet::address::AddressCompat;
 use wallet::lex_order::LexOrder;
 use wallet::scripts::{
@@ -656,6 +656,33 @@ impl Core {
         })
     }
 
+    fn revocationpubkey(&self) -> PublicKey {
+        // TODO: Optimize and keep Secp256k1 on a permanent basis
+        let secp = Secp256k1::verification_only();
+
+        let mut tweaked_revocation_basepoint =
+            self.remote_keys.revocation_basepoint;
+        let mut engine = sha256::Hash::engine();
+        engine.input(&self.remote_keys.revocation_basepoint.serialize());
+        engine.input(&self.remote_per_commitment_point.serialize());
+        let revocation_tweak = sha256::Hash::from_engine(engine);
+        tweaked_revocation_basepoint
+            .mul_assign(&secp, revocation_tweak.as_ref())
+            .expect("negligible probability");
+
+        let mut tweaked_per_commitment_point = self.remote_per_commitment_point;
+        let mut engine = sha256::Hash::engine();
+        engine.input(&self.remote_per_commitment_point.serialize());
+        engine.input(&self.remote_keys.revocation_basepoint.serialize());
+        let per_commitment_tweak = sha256::Hash::from_engine(engine);
+        tweaked_per_commitment_point
+            .mul_assign(&secp, per_commitment_tweak.as_ref())
+            .expect("negligible probability");
+
+        tweaked_revocation_basepoint
+            .combine(&tweaked_per_commitment_point)
+            .expect("negligible probability")
+    }
 }
 
 impl ChannelExtension for Core {
@@ -675,6 +702,8 @@ impl ChannelExtension for Core {
         let lock_time = (0x20u32 << 24) | obscured_commitment;
         let sequence = (0x80u32 << 24) | obscured_commitment;
 
+        let revocationpubkey = self.revocationpubkey();
+
         tx_graph.cmt_version = 2;
         tx_graph.cmt_locktime = lock_time;
         tx_graph.cmt_sequence = sequence;
@@ -683,7 +712,7 @@ impl ChannelExtension for Core {
             ScriptGenerators::ln_to_local(
                 self.remote_amount,
                 // TODO: Generate proper revocation
-                self.remote_keys.revocation_basepoint,
+                revocationpubkey,
                 self.remote_keys.delayed_payment_basepoint,
                 self.remote_params.to_self_delay,
             ),
@@ -951,8 +980,6 @@ fn compute_obscuring_factor(
     local_payment_basepoint: PublicKey,
     remote_payment_basepoint: PublicKey,
 ) -> u64 {
-    use bitcoin::hashes::{sha256, HashEngine};
-
     let mut engine = sha256::Hash::engine();
     if direction.is_inbound() {
         engine.input(&local_payment_basepoint.serialize());
