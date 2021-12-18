@@ -203,6 +203,11 @@ impl Channel<ExtensionId> {
     }
 
     #[inline]
+    pub fn funding_pubkey(&self) -> PublicKey {
+        self.constructor().local_keys().funding_pubkey.key
+    }
+
+    #[inline]
     pub fn funding_script_pubkey(&self) -> PubkeyScript {
         let funding = self.funding();
         let core = self.constructor();
