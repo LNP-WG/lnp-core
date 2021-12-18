@@ -226,8 +226,13 @@ impl Channel<ExtensionId> {
     }
 
     #[inline]
-    pub fn local_amount(&self) -> u64 {
-        self.constructor().local_amount()
+    pub fn local_amount_msat(&self) -> u64 {
+        self.constructor().local_amount_msat()
+    }
+
+    #[inline]
+    pub fn remote_amount_msat(&self) -> u64 {
+        self.constructor().remote_amount_msat()
     }
 }
 
@@ -271,11 +276,11 @@ pub struct Core {
 
     /// Amount in millisatoshis
     #[getter(as_copy)]
-    local_amount: u64,
+    local_amount_msat: u64,
 
     /// Amount in millisatoshis
     #[getter(as_copy)]
-    remote_amount: u64,
+    remote_amount_msat: u64,
 
     #[getter(as_copy)]
     commitment_number: u64,
@@ -331,8 +336,8 @@ impl Default for Core {
             chain_hash: default!(),
             active_channel_id: ActiveChannelId::random(),
             funding_outpoint: OutPoint::default(),
-            local_amount: 0,
-            remote_amount: 0,
+            local_amount_msat: 0,
+            remote_amount_msat: 0,
             commitment_number: 0,
             obscuring_factor,
             commitment_sigs: vec![],
@@ -444,10 +449,10 @@ impl Extension for Core {
                 self.direction = Direction::Inbound;
                 self.active_channel_id =
                     ActiveChannelId::from(open_channel.temporary_channel_id);
-                self.remote_amount = open_channel.funding_satoshis * 1000
+                self.remote_amount_msat = open_channel.funding_satoshis * 1000
                     - open_channel.push_msat
                     - self.refund_fee() * 1000;
-                self.local_amount = open_channel.push_msat;
+                self.local_amount_msat = open_channel.push_msat;
 
                 // Policies
                 self.remote_params =
@@ -594,9 +599,9 @@ impl Core {
         self.common_params = common_params;
         self.local_params = local_params;
         self.local_keys = local_keyset.clone();
-        self.local_amount =
+        self.local_amount_msat =
             funding_sat * 1000 - push_msat - self.refund_fee() * 1000;
-        self.remote_amount = push_msat;
+        self.remote_amount_msat = push_msat;
 
         Ok(OpenChannel {
             chain_hash: self.chain_hash(),
@@ -731,17 +736,17 @@ impl ChannelExtension for Core {
         tx_graph.cmt_sequence = sequence;
         // We are doing counterparty's transaction!
         tx_graph.cmt_outs = Vec::with_capacity(2);
-        if self.remote_amount > 0 {
+        if self.remote_amount_msat > 0 {
             tx_graph.cmt_outs.push(ScriptGenerators::ln_to_local(
-                self.remote_amount,
+                self.remote_amount_msat / 1000,
                 revocationpubkey,
                 self.remote_keys.delayed_payment_basepoint,
                 self.remote_params.to_self_delay,
             ));
         }
-        if self.local_amount > 0 {
+        if self.local_amount_msat > 0 {
             tx_graph.cmt_outs.push(ScriptGenerators::ln_to_remote_v1(
-                self.local_amount,
+                self.local_amount_msat / 1000,
                 self.local_keys.payment_basepoint.key,
             ));
         }
