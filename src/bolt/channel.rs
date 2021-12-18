@@ -653,13 +653,13 @@ impl ChannelExtension for Core {
             ScriptGenerators::ln_to_local(
                 self.remote_amount,
                 // TODO: Generate proper revocation
-                self.local_keys.revocation_basepoint.key,
-                &self.local_keys.delayed_payment_basepoint,
+                self.remote_keys.revocation_basepoint,
+                self.remote_keys.delayed_payment_basepoint,
                 self.remote_params.to_self_delay,
             ),
             ScriptGenerators::ln_to_remote_v1(
                 self.local_amount,
-                self.remote_keys.payment_basepoint,
+                self.local_keys.payment_basepoint.key,
             ),
         ];
 
@@ -674,15 +674,24 @@ pub trait ScriptGenerators {
         remote_pubkey: PublicKey,
     ) -> Self;
 
+    /// NB: We use argument named `local_delayedpubkey`, but in fact the source
+    /// for this key is the remote node key, since we generate a transaction
+    /// which we will sign for the remote node.
     fn ln_to_local(
         amount: u64,
         revocationpubkey: PublicKey,
-        local_delayedpubkey: &LocalPubkey,
+        local_delayedpubkey: PublicKey,
         to_self_delay: u16,
     ) -> Self;
 
+    /// NB: We use argument named `remote_pubkey`, but in fact the source
+    /// for this key is the local node key, since we generate a transaction
+    /// which we will sign for the remote node.
     fn ln_to_remote_v1(amount: u64, remote_pubkey: PublicKey) -> Self;
 
+    /// NB: We use argument named `remote_pubkey`, but in fact the source
+    /// for this key is the local node key, since we generate a transaction
+    /// which we will sign for the remote node.
     fn ln_to_remote_v2(amount: u64, remote_pubkey: PublicKey) -> Self;
 }
 
@@ -708,7 +717,7 @@ impl ScriptGenerators for LockScript {
     fn ln_to_local(
         _: u64,
         revocationpubkey: PublicKey,
-        local_delayedpubkey: &LocalPubkey,
+        local_delayedpubkey: PublicKey,
         to_self_delay: u16,
     ) -> Self {
         script::Builder::new()
@@ -718,7 +727,7 @@ impl ScriptGenerators for LockScript {
             .push_int(to_self_delay as i64)
             .push_opcode(OP_CSV)
             .push_opcode(OP_DROP)
-            .push_key(&local_delayedpubkey.key.into_pk())
+            .push_key(&local_delayedpubkey.into_pk())
             .push_opcode(OP_ENDIF)
             .push_opcode(OP_CHECKSIG)
             .into_script()
@@ -754,7 +763,7 @@ impl ScriptGenerators for WitnessScript {
     fn ln_to_local(
         amount: u64,
         revocationpubkey: PublicKey,
-        local_delayedpubkey: &LocalPubkey,
+        local_delayedpubkey: PublicKey,
         to_self_delay: u16,
     ) -> Self {
         LockScript::ln_to_local(
@@ -793,7 +802,7 @@ impl ScriptGenerators for PubkeyScript {
     fn ln_to_local(
         amount: u64,
         revocationpubkey: PublicKey,
-        local_delayedpubkey: &LocalPubkey,
+        local_delayedpubkey: PublicKey,
         to_self_delay: u16,
     ) -> Self {
         WitnessScript::ln_to_local(
@@ -851,7 +860,7 @@ impl ScriptGenerators for (TxOut, psbt::Output) {
     fn ln_to_local(
         amount: u64,
         revocationpubkey: PublicKey,
-        local_delayedpubkey: &LocalPubkey,
+        local_delayedpubkey: PublicKey,
         to_self_delay: u16,
     ) -> Self {
         let witness_script = WitnessScript::ln_to_local(
@@ -874,9 +883,6 @@ impl ScriptGenerators for (TxOut, psbt::Output) {
         };
         let output = psbt::Output {
             witness_script: Some(witness_script),
-            bip32_derivation: bmap! {
-                bitcoin::PublicKey::new(local_delayedpubkey.key) => local_delayedpubkey.source.clone()
-            },
             ..Default::default()
         };
         (txout, output)
