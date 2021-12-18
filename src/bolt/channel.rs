@@ -285,9 +285,6 @@ pub struct Core {
     #[getter(as_copy)]
     commitment_number: u64,
 
-    #[getter(as_copy)]
-    obscuring_factor: u64,
-
     commitment_sigs: Vec<Signature>,
 
     /// The policy for accepting remote node params
@@ -326,11 +323,6 @@ impl Default for Core {
     fn default() -> Self {
         let direction = Direction::Outbount;
         let dumb_keys = RemoteKeyset::dumb_default();
-        let obscuring_factor = compute_obscuring_factor(
-            direction,
-            dumb_keys.payment_basepoint,
-            dumb_keys.payment_basepoint,
-        );
         Core {
             stage: Lifecycle::Initial,
             chain_hash: default!(),
@@ -339,7 +331,6 @@ impl Default for Core {
             local_amount_msat: 0,
             remote_amount_msat: 0,
             commitment_number: 0,
-            obscuring_factor,
             commitment_sigs: vec![],
             policy: default!(),
             common_params: default!(),
@@ -481,12 +472,6 @@ impl Extension for Core {
                     open_channel.first_per_commitment_point;
                 self.remote_per_commitment_point =
                     open_channel.first_per_commitment_point;
-
-                self.obscuring_factor = compute_obscuring_factor(
-                    self.direction,
-                    self.remote_keys.payment_basepoint,
-                    self.local_keys.payment_basepoint.key,
-                );
             }
             Messages::AcceptChannel(accept_channel) => {
                 self.stage = Lifecycle::Accepted;
@@ -516,12 +501,6 @@ impl Extension for Core {
                     accept_channel.first_per_commitment_point;
                 self.remote_per_commitment_point =
                     accept_channel.first_per_commitment_point;
-
-                self.obscuring_factor = compute_obscuring_factor(
-                    self.direction,
-                    self.remote_keys.payment_basepoint,
-                    self.local_keys.payment_basepoint.key,
-                );
             }
             Messages::FundingCreated(funding_created) => {
                 self.stage = Lifecycle::Funding;
@@ -574,6 +553,28 @@ impl Extension for Core {
 impl Core {
     fn refund_fee(&self) -> u64 {
         724 * self.common_params.feerate_per_kw as u64 / 1000
+    }
+
+    fn obscured_commitment_number(&self) -> u64 {
+        const LOWER_48_BITS: u64 = 0x00_00_FF_FF_FF_FF_FF_FF;
+
+        let mut engine = sha256::Hash::engine();
+        if self.direction.is_inbound() {
+            engine.input(&self.remote_keys.payment_basepoint.serialize());
+            engine.input(&self.local_keys.payment_basepoint.key.serialize());
+        } else {
+            engine.input(&self.local_keys.payment_basepoint.key.serialize());
+            engine.input(&self.remote_keys.payment_basepoint.serialize());
+        }
+        let obscuring_hash = sha256::Hash::from_engine(engine);
+
+        let mut buf = [0u8; 8];
+        buf.copy_from_slice(&obscuring_hash[24..]);
+        let obscuring_factor = u64::from_be_bytes(buf) & LOWER_48_BITS;
+
+        // The 48-bit commitment number is obscured by XOR with the lower
+        // 48 bits of `obscuring_factor`
+        (self.commitment_number & LOWER_48_BITS) ^ obscuring_factor
     }
 
     fn compose_open_channel(
@@ -721,13 +722,9 @@ impl ChannelExtension for Core {
         &self,
         tx_graph: &mut channel::TxGraph,
     ) -> Result<(), channel::Error> {
-        // The 48-bit commitment number is obscured by XOR with the lower
-        // 48 bits of `obscuring_factor`
-        let obscured_commitment = (self.commitment_number & 0xFFFFFF)
-            ^ (self.obscuring_factor & 0xFFFFFF);
-        let obscured_commitment = obscured_commitment as u32;
-        let lock_time = (0x20u32 << 24) | obscured_commitment;
-        let sequence = (0x80u32 << 24) | obscured_commitment;
+        let obscured_commitment = self.obscured_commitment_number();
+        let lock_time = (0x20u32 << 24) | obscured_commitment as u32;
+        let sequence = (0x80u32 << 24) | obscured_commitment as u32;
 
         let revocationpubkey = self.revocationpubkey();
 
