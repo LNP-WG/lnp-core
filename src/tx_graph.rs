@@ -141,6 +141,8 @@ where
         psbt.inputs[0].witness_utxo = Some(
             funding_psbt.global.unsigned_tx.output[funding_output].clone(),
         );
+        psbt.inputs[0].witness_script =
+            funding_psbt.outputs[funding_output].witness_script.clone();
         psbt.inputs[0].bip32_derivation = funding_psbt.outputs[funding_output]
             .bip32_derivation
             .clone();
