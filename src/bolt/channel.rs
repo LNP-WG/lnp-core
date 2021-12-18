@@ -444,8 +444,9 @@ impl Extension for Core {
                 self.direction = Direction::Inbound;
                 self.active_channel_id =
                     ActiveChannelId::from(open_channel.temporary_channel_id);
-                self.local_amount = open_channel.funding_satoshis * 1000;
-                self.remote_amount = open_channel.push_msat;
+                self.remote_amount = open_channel.funding_satoshis * 1000
+                    - open_channel.push_msat;
+                self.local_amount = open_channel.push_msat;
 
                 // Policies
                 self.remote_params =
@@ -576,6 +577,8 @@ impl Core {
         self.common_params = common_params;
         self.local_params = local_params;
         self.local_keys = local_keyset.clone();
+        self.local_amount = funding_sat * 1000 - push_msat;
+        self.remote_amount = push_msat;
 
         Ok(OpenChannel {
             chain_hash: self.chain_hash(),
