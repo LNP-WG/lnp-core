@@ -22,7 +22,7 @@ crate-type = ["rlib", "staticlib"]
 amplify = "3.10.0"
 strict_encoding = "1.7.8"
 lightning_encoding = ">=0.5.4"
-descriptor-wallet = { version = "0.5.0", features = ["keygen"] }
+descriptor-wallet = { version = "0.5.1", features = ["keygen"] }
 lnp2p = { version = ">=0.5.3", path = "lnp2p", features = ["strict_encoding"] }
 lnpbp = "0.5.0"
 bitcoin = { version = "0.27.1", features = ["rand"] }

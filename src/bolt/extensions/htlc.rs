@@ -14,6 +14,7 @@
 use bitcoin::blockdata::opcodes::all::*;
 use bitcoin::blockdata::script;
 use bitcoin::secp256k1::PublicKey;
+use bitcoin::util::psbt;
 use bitcoin::util::psbt::PartiallySignedTransaction as Psbt;
 use bitcoin::{OutPoint, Transaction, TxIn, TxOut};
 use lnp2p::legacy::{ChannelId, Messages};
@@ -321,7 +322,7 @@ impl ChannelExtension for Htlc {
     ) -> Result<(), channel::Error> {
         // Process offered HTLCs
         for (index, offered) in self.offered_htlcs.iter().enumerate() {
-            let htlc_output = TxOut::ln_offered_htlc(
+            let htlc_output = ScriptGenerators::ln_offered_htlc(
                 offered.amount,
                 self.remote_revocation_basepoint,
                 self.local_basepoint,
@@ -349,7 +350,7 @@ impl ChannelExtension for Htlc {
 
         // Process received HTLCs
         for (index, recieved) in self.received_htlcs.iter().enumerate() {
-            let htlc_output = TxOut::ln_received_htlc(
+            let htlc_output = ScriptGenerators::ln_received_htlc(
                 recieved.amount,
                 self.remote_revocation_basepoint,
                 self.local_basepoint,
@@ -684,6 +685,151 @@ impl ScriptGenerators for TxOut {
     }
 }
 
+impl ScriptGenerators for psbt::Output {
+    #[inline]
+    fn ln_offered_htlc(
+        amount: u64,
+        revocationpubkey: PublicKey,
+        local_htlcpubkey: PublicKey,
+        remote_htlcpubkey: PublicKey,
+        payment_hash: HashLock,
+    ) -> Self {
+        let witness_script = WitnessScript::ln_offered_htlc(
+            amount,
+            revocationpubkey,
+            local_htlcpubkey,
+            remote_htlcpubkey,
+            payment_hash,
+        )
+        .into();
+        psbt::Output {
+            witness_script: Some(witness_script),
+            ..Default::default()
+        }
+    }
+
+    #[inline]
+    fn ln_received_htlc(
+        amount: u64,
+        revocationpubkey: PublicKey,
+        local_htlcpubkey: PublicKey,
+        remote_htlcpubkey: PublicKey,
+        cltv_expiry: u32,
+        payment_hash: HashLock,
+    ) -> Self {
+        let witness_script = WitnessScript::ln_received_htlc(
+            amount,
+            revocationpubkey,
+            local_htlcpubkey,
+            remote_htlcpubkey,
+            cltv_expiry,
+            payment_hash,
+        )
+        .into();
+        psbt::Output {
+            witness_script: Some(witness_script),
+            ..Default::default()
+        }
+    }
+
+    #[inline]
+    fn ln_htlc_output(
+        amount: u64,
+        revocationpubkey: PublicKey,
+        local_delayedpubkey: PublicKey,
+        to_self_delay: u16,
+    ) -> Self {
+        let witness_script = WitnessScript::ln_htlc_output(
+            amount,
+            revocationpubkey,
+            local_delayedpubkey,
+            to_self_delay,
+        )
+        .into();
+        psbt::Output {
+            witness_script: Some(witness_script),
+            ..Default::default()
+        }
+    }
+}
+
+impl ScriptGenerators for (TxOut, psbt::Output) {
+    fn ln_offered_htlc(
+        amount: u64,
+        revocationpubkey: PublicKey,
+        local_htlcpubkey: PublicKey,
+        remote_htlcpubkey: PublicKey,
+        payment_hash: HashLock,
+    ) -> Self {
+        (
+            TxOut::ln_offered_htlc(
+                amount,
+                revocationpubkey,
+                local_htlcpubkey,
+                remote_htlcpubkey,
+                payment_hash,
+            ),
+            psbt::Output::ln_offered_htlc(
+                amount,
+                revocationpubkey,
+                local_htlcpubkey,
+                remote_htlcpubkey,
+                payment_hash,
+            ),
+        )
+    }
+
+    fn ln_received_htlc(
+        amount: u64,
+        revocationpubkey: PublicKey,
+        local_htlcpubkey: PublicKey,
+        remote_htlcpubkey: PublicKey,
+        cltv_expiry: u32,
+        payment_hash: HashLock,
+    ) -> Self {
+        (
+            TxOut::ln_received_htlc(
+                amount,
+                revocationpubkey,
+                local_htlcpubkey,
+                remote_htlcpubkey,
+                cltv_expiry,
+                payment_hash,
+            ),
+            psbt::Output::ln_received_htlc(
+                amount,
+                revocationpubkey,
+                local_htlcpubkey,
+                remote_htlcpubkey,
+                cltv_expiry,
+                payment_hash,
+            ),
+        )
+    }
+
+    fn ln_htlc_output(
+        amount: u64,
+        revocationpubkey: PublicKey,
+        local_delayedpubkey: PublicKey,
+        to_self_delay: u16,
+    ) -> Self {
+        (
+            TxOut::ln_htlc_output(
+                amount,
+                revocationpubkey,
+                local_delayedpubkey,
+                to_self_delay,
+            ),
+            psbt::Output::ln_htlc_output(
+                amount,
+                revocationpubkey,
+                local_delayedpubkey,
+                to_self_delay,
+            ),
+        )
+    }
+}
+
 pub trait TxGenerators {
     fn ln_htlc(
         amount: u64,
@@ -706,6 +852,12 @@ impl TxGenerators for Transaction {
         local_delayedpubkey: PublicKey,
         to_self_delay: u16,
     ) -> Self {
+        let txout = TxOut::ln_htlc_output(
+            amount,
+            revocationpubkey,
+            local_delayedpubkey,
+            to_self_delay,
+        );
         Transaction {
             version: 2,
             lock_time: cltv_expiry,
@@ -715,12 +867,7 @@ impl TxGenerators for Transaction {
                 sequence: 0,
                 witness: empty!(),
             }],
-            output: vec![TxOut::ln_htlc_output(
-                amount,
-                revocationpubkey,
-                local_delayedpubkey,
-                to_self_delay,
-            )],
+            output: vec![txout],
         }
     }
 }
@@ -734,7 +881,14 @@ impl TxGenerators for Psbt {
         local_delayedpubkey: PublicKey,
         to_self_delay: u16,
     ) -> Self {
-        Psbt::from_unsigned_tx(Transaction::ln_htlc(
+        let output = psbt::Output::ln_htlc_output(
+            amount,
+            revocationpubkey,
+            local_delayedpubkey,
+            to_self_delay,
+        );
+
+        let mut psbt = Psbt::from_unsigned_tx(Transaction::ln_htlc(
             amount,
             outpoint,
             cltv_expiry,
@@ -742,6 +896,8 @@ impl TxGenerators for Psbt {
             local_delayedpubkey,
             to_self_delay,
         ))
-        .expect("Tx has empty sigs so PSBT creation does not faile")
+        .expect("Tx has empty sigs so PSBT creation does not fail");
+        psbt.outputs[0] = output;
+        psbt
     }
 }

@@ -28,7 +28,7 @@ use wallet::lex_order::LexOrder;
 use wallet::scripts::{
     Category, LockScript, PubkeyScript, ToPubkeyScript, WitnessScript,
 };
-use wallet::IntoPk;
+use wallet::{psbt, IntoPk};
 
 use super::extensions::AnchorOutputs;
 use super::policy::{CommonParams, Keyset, PeerParams, Policy};
@@ -641,13 +641,13 @@ impl ChannelExtension for Core {
         tx_graph.cmt_sequence = sequence;
         // We are doing counterparty's transaction!
         tx_graph.cmt_outs = vec![
-            TxOut::ln_to_local(
+            ScriptGenerators::ln_to_local(
                 self.remote_amount,
                 self.local_keys.revocation_basepoint,
                 self.remote_keys.delayed_payment_basepoint,
                 self.remote_params.to_self_delay,
             ),
-            TxOut::ln_to_remote_v1(
+            ScriptGenerators::ln_to_remote_v1(
                 self.local_amount,
                 self.local_keys.payment_basepoint,
             ),
@@ -792,14 +792,22 @@ impl ScriptGenerators for PubkeyScript {
     }
 }
 
-impl ScriptGenerators for TxOut {
+impl ScriptGenerators for (TxOut, psbt::Output) {
     #[inline]
     fn ln_funding(amount: u64, pubkey1: PublicKey, pubkey2: PublicKey) -> Self {
-        TxOut {
+        let witness_script =
+            WitnessScript::ln_funding(amount, pubkey1, pubkey2).into();
+        let script_pubkey =
+            PubkeyScript::ln_funding(amount, pubkey1, pubkey2).into();
+        let txout = TxOut {
             value: amount,
-            script_pubkey: PubkeyScript::ln_funding(amount, pubkey1, pubkey2)
-                .into(),
-        }
+            script_pubkey,
+        };
+        let output = psbt::Output {
+            witness_script: Some(witness_script),
+            ..Default::default()
+        };
+        (txout, output)
     }
 
     #[inline]
@@ -809,34 +817,56 @@ impl ScriptGenerators for TxOut {
         local_delayedpubkey: PublicKey,
         to_self_delay: u16,
     ) -> Self {
-        TxOut {
+        let witness_script = WitnessScript::ln_to_local(
+            amount,
+            revocationpubkey,
+            local_delayedpubkey,
+            to_self_delay,
+        )
+        .into();
+        let script_pubkey = PubkeyScript::ln_to_local(
+            amount,
+            revocationpubkey,
+            local_delayedpubkey,
+            to_self_delay,
+        )
+        .into();
+        let txout = TxOut {
             value: amount,
-            script_pubkey: PubkeyScript::ln_to_local(
-                amount,
-                revocationpubkey,
-                local_delayedpubkey,
-                to_self_delay,
-            )
-            .into(),
-        }
+            script_pubkey,
+        };
+        let output = psbt::Output {
+            witness_script: Some(witness_script),
+            ..Default::default()
+        };
+        (txout, output)
     }
 
     #[inline]
     fn ln_to_remote_v1(amount: u64, remote_pubkey: PublicKey) -> Self {
-        TxOut {
+        let txout = TxOut {
             value: amount,
             script_pubkey: PubkeyScript::ln_to_remote_v1(amount, remote_pubkey)
                 .into(),
-        }
+        };
+        (txout, psbt::Output::default())
     }
 
     #[inline]
     fn ln_to_remote_v2(amount: u64, remote_pubkey: PublicKey) -> Self {
-        TxOut {
+        let witness_script =
+            WitnessScript::ln_to_remote_v2(amount, remote_pubkey).into();
+        let script_pubkey =
+            PubkeyScript::ln_to_remote_v2(amount, remote_pubkey).into();
+        let txout = TxOut {
             value: amount,
-            script_pubkey: PubkeyScript::ln_to_remote_v2(amount, remote_pubkey)
-                .into(),
-        }
+            script_pubkey,
+        };
+        let output = psbt::Output {
+            witness_script: Some(witness_script),
+            ..Default::default()
+        };
+        (txout, output)
     }
 }
 

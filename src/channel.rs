@@ -18,6 +18,7 @@ use std::hash::Hash;
 use bitcoin::util::psbt::PartiallySignedTransaction as Psbt;
 use bitcoin::{Transaction, TxIn, TxOut};
 use lnp2p::legacy::Messages;
+use wallet::psbt;
 
 use super::extension::{self, ChannelExtension, Extension};
 use crate::bolt::{Lifecycle, PolicyError};
@@ -321,7 +322,7 @@ pub struct TxGraph<'channel> {
     pub cmt_version: i32,
     pub cmt_locktime: u32,
     pub cmt_sequence: u32,
-    pub cmt_outs: Vec<TxOut>,
+    pub cmt_outs: Vec<(TxOut, psbt::Output)>,
     graph: BTreeMap<u16, BTreeMap<u64, Psbt>>,
 }
 
@@ -402,6 +403,12 @@ where
     }
 
     pub fn render_cmt(&self) -> Psbt {
+        let outputs = self
+            .cmt_outs
+            .clone()
+            .into_iter()
+            .map(|(txout, _)| txout)
+            .collect();
         let cmt_tx = Transaction {
             version: self.cmt_version,
             lock_time: self.cmt_locktime,
@@ -411,7 +418,7 @@ where
                 sequence: self.cmt_sequence,
                 witness: empty!(),
             }],
-            output: self.cmt_outs.clone(),
+            output: outputs,
         };
         let mut psbt = Psbt::from_unsigned_tx(cmt_tx).expect(
             "PSBT construction fails only if script_sig and witness are not \
@@ -422,6 +429,9 @@ where
                 [self.funding.output() as usize]
                 .clone(),
         );
+        for (index, output) in psbt.outputs.iter_mut().enumerate() {
+            *output = self.cmt_outs[index].1.clone();
+        }
         psbt
     }
 
