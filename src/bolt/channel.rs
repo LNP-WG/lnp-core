@@ -668,7 +668,11 @@ impl ChannelExtension for Core {
 }
 
 pub trait ScriptGenerators {
-    fn ln_funding(amount: u64, pubkey1: PublicKey, pubkey2: PublicKey) -> Self;
+    fn ln_funding(
+        amount: u64,
+        local_pubkey: &LocalPubkey,
+        remote_pubkey: PublicKey,
+    ) -> Self;
 
     fn ln_to_local(
         amount: u64,
@@ -683,8 +687,13 @@ pub trait ScriptGenerators {
 }
 
 impl ScriptGenerators for LockScript {
-    fn ln_funding(_: u64, pubkey1: PublicKey, pubkey2: PublicKey) -> Self {
-        let pk = vec![pubkey1.into_pk(), pubkey2.into_pk()].lex_ordered();
+    fn ln_funding(
+        _: u64,
+        local_pubkey: &LocalPubkey,
+        remote_pubkey: PublicKey,
+    ) -> Self {
+        let pk = vec![local_pubkey.key.into_pk(), remote_pubkey.into_pk()]
+            .lex_ordered();
 
         script::Builder::new()
             .push_int(2)
@@ -733,8 +742,12 @@ impl ScriptGenerators for LockScript {
 
 impl ScriptGenerators for WitnessScript {
     #[inline]
-    fn ln_funding(amount: u64, pubkey1: PublicKey, pubkey2: PublicKey) -> Self {
-        LockScript::ln_funding(amount, pubkey1, pubkey2).into()
+    fn ln_funding(
+        amount: u64,
+        local_pubkey: &LocalPubkey,
+        remote_pubkey: PublicKey,
+    ) -> Self {
+        LockScript::ln_funding(amount, local_pubkey, remote_pubkey).into()
     }
 
     #[inline]
@@ -767,8 +780,13 @@ impl ScriptGenerators for WitnessScript {
 
 impl ScriptGenerators for PubkeyScript {
     #[inline]
-    fn ln_funding(amount: u64, pubkey1: PublicKey, pubkey2: PublicKey) -> Self {
-        WitnessScript::ln_funding(amount, pubkey1, pubkey2).to_p2wsh()
+    fn ln_funding(
+        amount: u64,
+        local_pubkey: &LocalPubkey,
+        remote_pubkey: PublicKey,
+    ) -> Self {
+        WitnessScript::ln_funding(amount, local_pubkey, remote_pubkey)
+            .to_p2wsh()
     }
 
     #[inline]
@@ -804,17 +822,26 @@ impl ScriptGenerators for PubkeyScript {
 
 impl ScriptGenerators for (TxOut, psbt::Output) {
     #[inline]
-    fn ln_funding(amount: u64, pubkey1: PublicKey, pubkey2: PublicKey) -> Self {
+    fn ln_funding(
+        amount: u64,
+        local_pubkey: &LocalPubkey,
+        remote_pubkey: PublicKey,
+    ) -> Self {
         let witness_script =
-            WitnessScript::ln_funding(amount, pubkey1, pubkey2).into();
+            WitnessScript::ln_funding(amount, local_pubkey, remote_pubkey)
+                .into();
         let script_pubkey =
-            PubkeyScript::ln_funding(amount, pubkey1, pubkey2).into();
+            PubkeyScript::ln_funding(amount, local_pubkey, remote_pubkey)
+                .into();
         let txout = TxOut {
             value: amount,
             script_pubkey,
         };
         let output = psbt::Output {
             witness_script: Some(witness_script),
+            bip32_derivation: bmap! {
+                bitcoin::PublicKey::new(local_pubkey.key) => local_pubkey.source.clone()
+            },
             ..Default::default()
         };
         (txout, output)
