@@ -196,6 +196,7 @@ impl LocalKeyset {
     /// Derives keyset from a *channel extended key* using LNPBP-46 standard
     pub fn with<C: secp256k1::Signing>(
         secp: &Secp256k1<C>,
+        channel_derivation: DerivationPath,
         channel_xpriv: ExtendedPrivKey,
         commit_to_shutdown_scriptpubkey: bool,
     ) -> Self {
@@ -207,7 +208,7 @@ impl LocalKeyset {
             .map(ChildNumber::from)
             .map(|index| [index])
             .map(|path| {
-                let derivation_path = DerivationPath::from(&path[..]);
+                let derivation_path = channel_derivation.clone().extend(path);
                 let seckey = channel_xpriv
                     .derive_priv(&secp, &path)
                     .expect("negligible probability")
