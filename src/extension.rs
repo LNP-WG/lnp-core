@@ -17,8 +17,7 @@ use std::hash::Hash;
 
 use lnp2p::legacy::Messages;
 
-use super::channel;
-use crate::channel::Channel;
+use super::{channel, Channel};
 
 /// Marker trait for creating extension nomenclatures, defining order in which
 /// extensions are applied to the channel transaction structure.

@@ -49,6 +49,7 @@ pub mod channel;
 pub mod extension;
 mod funding;
 pub mod shared_ext;
+pub mod tx_graph;
 
 pub mod bolt;
 pub mod prometheus;
