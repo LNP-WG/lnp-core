@@ -11,6 +11,7 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
+mod keyset;
 mod policy;
 mod util;
 
@@ -18,5 +19,6 @@ mod channel;
 pub mod extensions;
 
 pub use channel::{Core, ScriptGenerators};
-pub use policy::{CommonParams, Keyset, PeerParams, Policy, PolicyError};
+pub use keyset::Keyset;
+pub use policy::{CommonParams, PeerParams, Policy, PolicyError};
 pub use util::{AssetsBalance, ExtensionId, Lifecycle, TxType};

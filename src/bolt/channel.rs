@@ -31,8 +31,8 @@ use wallet::scripts::{
 use wallet::{psbt, IntoPk};
 
 use super::extensions::AnchorOutputs;
-use super::policy::{CommonParams, Keyset, PeerParams, Policy};
-use super::{ExtensionId, Lifecycle};
+use super::policy::{CommonParams, PeerParams, Policy};
+use super::{ExtensionId, Keyset, Lifecycle};
 use crate::{channel, Channel, ChannelExtension, Extension};
 
 /// Channel direction
