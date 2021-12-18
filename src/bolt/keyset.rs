@@ -14,9 +14,7 @@
 use std::collections::BTreeMap;
 
 use amplify::{DumbDefault, ToYamlString};
-use bitcoin::util::bip32::{
-    ChildNumber, DerivationPath, ExtendedPrivKey, KeySource,
-};
+use bitcoin::util::bip32::{ChildNumber, ExtendedPrivKey, KeySource};
 use p2p::legacy::{AcceptChannel, ChannelType, OpenChannel};
 use secp256k1::{PublicKey, Secp256k1};
 use wallet::hd::HardenedIndex;
@@ -196,11 +194,11 @@ impl LocalKeyset {
     /// Derives keyset from a *channel extended key* using LNPBP-46 standard
     pub fn with<C: secp256k1::Signing>(
         secp: &Secp256k1<C>,
-        channel_derivation: DerivationPath,
+        channel_source: KeySource,
         channel_xpriv: ExtendedPrivKey,
         commit_to_shutdown_scriptpubkey: bool,
     ) -> Self {
-        let fingerpint = channel_xpriv.fingerprint(secp);
+        let fingerpint = channel_source.0;
 
         let keys = (0u16..=7)
             .into_iter()
@@ -208,7 +206,7 @@ impl LocalKeyset {
             .map(ChildNumber::from)
             .map(|index| [index])
             .map(|path| {
-                let derivation_path = channel_derivation.clone().extend(path);
+                let derivation_path = channel_source.1.clone().extend(path);
                 let seckey = channel_xpriv
                     .derive_priv(&secp, &path)
                     .expect("negligible probability")
