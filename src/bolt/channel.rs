@@ -702,11 +702,11 @@ impl Core {
         engine.input(&payment_basepoint.serialize());
         let tweak = sha256::Hash::from_engine(engine);
 
-        let mut localkey = payment_basepoint.clone();
-        localkey
+        let mut payment_pubkey = payment_basepoint.clone();
+        payment_pubkey
             .add_exp_assign(&secp, tweak.as_ref())
             .expect("negligible probability");
-        localkey
+        payment_pubkey
     }
 
     fn local_delayedpubkey(&self, as_remote_node: bool) -> PublicKey {
@@ -729,11 +729,11 @@ impl Core {
         engine.input(&delayed_payment_basepoint.serialize());
         let tweak = sha256::Hash::from_engine(engine);
 
-        let mut remote = delayed_payment_basepoint.clone();
-        remote
+        let mut delayed_pubkey = delayed_payment_basepoint.clone();
+        delayed_pubkey
             .add_exp_assign(&secp, tweak.as_ref())
             .expect("negligible probability");
-        remote
+        delayed_pubkey
     }
 
     fn remote_revocationpubkey(&self, as_remote_node: bool) -> PublicKey {

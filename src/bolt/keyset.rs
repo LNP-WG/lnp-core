@@ -221,9 +221,9 @@ impl LocalKeyset {
 
         Self {
             funding_pubkey: keys[0].clone(),
-            revocation_basepoint: keys[2].clone(),
-            payment_basepoint: keys[0].clone(),
-            delayed_payment_basepoint: keys[1].clone(),
+            revocation_basepoint: keys[3].clone(),
+            payment_basepoint: keys[1].clone(),
+            delayed_payment_basepoint: keys[2].clone(),
             htlc_basepoint: keys[5].clone(),
             first_per_commitment_point: keys[4].clone(),
             shutdown_scriptpubkey: if commit_to_shutdown_scriptpubkey {
