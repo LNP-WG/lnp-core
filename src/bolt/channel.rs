@@ -687,9 +687,9 @@ impl Core {
         let secp = Secp256k1::verification_only();
 
         let per_commitment_point = if as_remote_node {
-            self.local_per_commitment_point
-        } else {
             self.remote_per_commitment_point
+        } else {
+            self.local_per_commitment_point
         };
         let payment_basepoint = if as_remote_node {
             self.local_keys.payment_basepoint.key
@@ -714,9 +714,9 @@ impl Core {
         let secp = Secp256k1::verification_only();
 
         let per_commitment_point = if as_remote_node {
-            self.remote_per_commitment_point
-        } else {
             self.local_per_commitment_point
+        } else {
+            self.remote_per_commitment_point
         };
         let delayed_payment_basepoint = if as_remote_node {
             self.remote_keys.delayed_payment_basepoint
@@ -1279,19 +1279,19 @@ mod test {
         let per_commitment_point = pk!("025f7117a78150fe2ef97db7cfc83bd57b2e2c0d0dd25eaf467a4a1c2a45ce1486");
         let mut core = core_for_tests();
         core.remote_keys.payment_basepoint = base_point;
-        core.remote_per_commitment_point = per_commitment_point;
+        core.local_per_commitment_point = per_commitment_point;
         assert_eq!(core.remote_paymentpubkey(false), pk!("0235f2dbfaa89b57ec7b055afe29849ef7ddfeb1cefdb9ebdc43f5494984db29e5"));
 
         core.local_keys.payment_basepoint = lk!(base_point);
-        core.local_per_commitment_point = per_commitment_point;
+        core.remote_per_commitment_point = per_commitment_point;
         assert_eq!(core.remote_paymentpubkey(true), pk!("0235f2dbfaa89b57ec7b055afe29849ef7ddfeb1cefdb9ebdc43f5494984db29e5"));
 
         core.local_keys.delayed_payment_basepoint = lk!(base_point);
-        core.local_per_commitment_point = per_commitment_point;
+        core.remote_per_commitment_point = per_commitment_point;
         assert_eq!(core.local_delayedpubkey(false), pk!("0235f2dbfaa89b57ec7b055afe29849ef7ddfeb1cefdb9ebdc43f5494984db29e5"));
 
         core.remote_keys.delayed_payment_basepoint = base_point;
-        core.remote_per_commitment_point = per_commitment_point;
+        core.local_per_commitment_point = per_commitment_point;
         assert_eq!(core.local_delayedpubkey(true), pk!("0235f2dbfaa89b57ec7b055afe29849ef7ddfeb1cefdb9ebdc43f5494984db29e5"));
     }
 
