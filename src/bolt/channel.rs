@@ -716,6 +716,7 @@ impl Core {
         localkey
     }
 
+    #[allow(dead_code)]
     fn remote_revocationpubkey(&self) -> PublicKey {
         // TODO: Optimize and keep Secp256k1 on a permanent basis
         let secp = Secp256k1::verification_only();
@@ -734,6 +735,34 @@ impl Core {
         let mut engine = sha256::Hash::engine();
         engine.input(&self.remote_per_commitment_point.serialize());
         engine.input(&self.local_keys.revocation_basepoint.key.serialize());
+        let per_commitment_tweak = sha256::Hash::from_engine(engine);
+        tweaked_per_commitment_point
+            .mul_assign(&secp, per_commitment_tweak.as_ref())
+            .expect("negligible probability");
+
+        tweaked_revocation_basepoint
+            .combine(&tweaked_per_commitment_point)
+            .expect("negligible probability")
+    }
+
+    fn local_revocationpubkey(&self) -> PublicKey {
+        // TODO: Optimize and keep Secp256k1 on a permanent basis
+        let secp = Secp256k1::verification_only();
+
+        let mut tweaked_revocation_basepoint =
+            self.remote_keys.revocation_basepoint;
+        let mut engine = sha256::Hash::engine();
+        engine.input(&self.remote_keys.revocation_basepoint.serialize());
+        engine.input(&self.local_per_commitment_point.serialize());
+        let revocation_tweak = sha256::Hash::from_engine(engine);
+        tweaked_revocation_basepoint
+            .mul_assign(&secp, revocation_tweak.as_ref())
+            .expect("negligible probability");
+
+        let mut tweaked_per_commitment_point = self.local_per_commitment_point;
+        let mut engine = sha256::Hash::engine();
+        engine.input(&self.local_per_commitment_point.serialize());
+        engine.input(&self.remote_keys.revocation_basepoint.serialize());
         let per_commitment_tweak = sha256::Hash::from_engine(engine);
         tweaked_per_commitment_point
             .mul_assign(&secp, per_commitment_tweak.as_ref())
@@ -774,7 +803,7 @@ impl ChannelExtension for Core {
         if self.remote_amount_msat > 0 {
             tx_graph.cmt_outs.push(ScriptGenerators::ln_to_local(
                 self.remote_amount_msat / 1000 - remote_fee,
-                self.remote_revocationpubkey(),
+                self.local_revocationpubkey(),
                 self.local_delayedpubkey(),
                 self.remote_params.to_self_delay,
             ));
