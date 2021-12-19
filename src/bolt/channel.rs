@@ -601,6 +601,8 @@ impl Core {
         self.local_keys = local_keyset.clone();
         self.local_amount_msat = funding_sat * 1000 - push_msat;
         self.remote_amount_msat = push_msat;
+        self.local_per_commitment_point =
+            local_keyset.first_per_commitment_point.key;
 
         Ok(OpenChannel {
             chain_hash: self.chain_hash(),
