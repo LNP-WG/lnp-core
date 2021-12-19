@@ -723,8 +723,7 @@ impl ChannelExtension for Core {
         let obscured_commitment = self.obscured_commitment_number();
         let lock_time =
             (0x20u32 << 24) | (obscured_commitment as u32 & 0x00_FF_FF_FF);
-        let sequence =
-            (0x80u32 << 24) | (obscured_commitment as u32 & 0x00_FF_FF_FF);
+        let sequence = (0x80u32 << 24) | (obscured_commitment >> 24) as u32;
 
         let revocationpubkey = self.revocationpubkey();
 
