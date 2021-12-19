@@ -698,16 +698,18 @@ impl Core {
         localkey
     }
 
-    fn remote_delayedpubkey(&self) -> PublicKey {
+    fn local_delayedpubkey(&self) -> PublicKey {
         // TODO: Optimize and keep Secp256k1 on a permanent basis
         let secp = Secp256k1::verification_only();
 
         let mut engine = sha256::Hash::engine();
-        engine.input(&self.remote_per_commitment_point.serialize());
-        engine.input(&self.remote_keys.delayed_payment_basepoint.serialize());
+        engine.input(&self.local_per_commitment_point.serialize());
+        engine
+            .input(&self.local_keys.delayed_payment_basepoint.key.serialize());
         let tweak = sha256::Hash::from_engine(engine);
 
-        let mut localkey = self.local_keys.payment_basepoint.key.clone();
+        let mut localkey =
+            self.local_keys.delayed_payment_basepoint.key.clone();
         localkey
             .add_exp_assign(&secp, tweak.as_ref())
             .expect("negligible probability");
@@ -773,7 +775,7 @@ impl ChannelExtension for Core {
             tx_graph.cmt_outs.push(ScriptGenerators::ln_to_local(
                 self.remote_amount_msat / 1000 - remote_fee,
                 self.remote_revocationpubkey(),
-                self.remote_delayedpubkey(),
+                self.local_delayedpubkey(),
                 self.remote_params.to_self_delay,
             ));
         }
@@ -1231,6 +1233,9 @@ mod test {
         core.local_keys.payment_basepoint = lk!(base_point);
         core.local_per_commitment_point = per_commitment_point;
         assert_eq!(core.local_pubkey(), pk!("0235f2dbfaa89b57ec7b055afe29849ef7ddfeb1cefdb9ebdc43f5494984db29e5"));
+
+        core.local_keys.delayed_payment_basepoint = lk!(base_point);
+        assert_eq!(core.local_delayedpubkey(), pk!("0235f2dbfaa89b57ec7b055afe29849ef7ddfeb1cefdb9ebdc43f5494984db29e5"));
     }
 
     #[test]
