@@ -316,9 +316,10 @@ impl ChannelExtension for Htlc {
         Box::new(self.clone())
     }
 
-    fn apply(
+    fn build_graph(
         &self,
         tx_graph: &mut channel::TxGraph,
+        _as_remote_node: bool,
     ) -> Result<(), channel::Error> {
         // Process offered HTLCs
         for (index, offered) in self.offered_htlcs.iter().enumerate() {

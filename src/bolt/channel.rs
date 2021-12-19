@@ -550,7 +550,7 @@ impl Extension for Core {
 }
 
 impl Core {
-    fn refund_fee(&self) -> u64 {
+    fn commitment_fee(&self) -> u64 {
         724 * self.common_params.feerate_per_kw as u64 / 1000
     }
 
@@ -626,9 +626,7 @@ impl Core {
                 .delayed_payment_basepoint
                 .key,
             htlc_basepoint: local_keyset.htlc_basepoint.key,
-            first_per_commitment_point: local_keyset
-                .first_per_commitment_point
-                .key,
+            first_per_commitment_point: self.local_per_commitment_point,
             shutdown_scriptpubkey: local_keyset.shutdown_scriptpubkey.clone(),
             channel_flags: if common_params.announce_channel { 1 } else { 0 },
             channel_type: common_params.channel_type.into_option(),
@@ -684,47 +682,79 @@ impl Core {
         })
     }
 
-    fn local_pubkey(&self) -> PublicKey {
+    fn remote_paymentpubkey(&self, as_remote_node: bool) -> PublicKey {
         // TODO: Optimize and keep Secp256k1 on a permanent basis
         let secp = Secp256k1::verification_only();
 
+        let per_commitment_point = if as_remote_node {
+            self.local_per_commitment_point
+        } else {
+            self.remote_per_commitment_point
+        };
+        let payment_basepoint = if as_remote_node {
+            self.local_keys.payment_basepoint.key
+        } else {
+            self.remote_keys.payment_basepoint
+        };
+
         let mut engine = sha256::Hash::engine();
-        engine.input(&self.local_per_commitment_point.serialize());
-        engine.input(&self.local_keys.payment_basepoint.key.serialize());
+        engine.input(&per_commitment_point.serialize());
+        engine.input(&payment_basepoint.serialize());
         let tweak = sha256::Hash::from_engine(engine);
 
-        let mut localkey = self.local_keys.payment_basepoint.key.clone();
+        let mut localkey = payment_basepoint.clone();
         localkey
             .add_exp_assign(&secp, tweak.as_ref())
             .expect("negligible probability");
         localkey
     }
 
-    fn remote_delayedpubkey(&self) -> PublicKey {
+    fn local_delayedpubkey(&self, as_remote_node: bool) -> PublicKey {
         // TODO: Optimize and keep Secp256k1 on a permanent basis
         let secp = Secp256k1::verification_only();
 
+        let per_commitment_point = if as_remote_node {
+            self.remote_per_commitment_point
+        } else {
+            self.local_per_commitment_point
+        };
+        let delayed_payment_basepoint = if as_remote_node {
+            self.remote_keys.delayed_payment_basepoint
+        } else {
+            self.local_keys.delayed_payment_basepoint.key
+        };
+
         let mut engine = sha256::Hash::engine();
-        engine.input(&self.remote_per_commitment_point.serialize());
-        engine.input(&self.remote_keys.delayed_payment_basepoint.serialize());
+        engine.input(&per_commitment_point.serialize());
+        engine.input(&delayed_payment_basepoint.serialize());
         let tweak = sha256::Hash::from_engine(engine);
 
-        let mut remote = self.remote_keys.delayed_payment_basepoint.clone();
+        let mut remote = delayed_payment_basepoint.clone();
         remote
             .add_exp_assign(&secp, tweak.as_ref())
             .expect("negligible probability");
         remote
     }
 
-    fn remote_revocationpubkey(&self) -> PublicKey {
+    fn remote_revocationpubkey(&self, as_remote_node: bool) -> PublicKey {
         // TODO: Optimize and keep Secp256k1 on a permanent basis
         let secp = Secp256k1::verification_only();
 
-        let mut tweaked_revocation_basepoint =
-            self.local_keys.revocation_basepoint.key;
+        let revocation_basepoint = if as_remote_node {
+            self.local_keys.revocation_basepoint.key
+        } else {
+            self.remote_keys.revocation_basepoint
+        };
+        let per_commitment_point = if as_remote_node {
+            self.remote_per_commitment_point
+        } else {
+            self.local_per_commitment_point
+        };
+
+        let mut tweaked_revocation_basepoint = revocation_basepoint;
         let mut engine = sha256::Hash::engine();
-        engine.input(&self.local_keys.revocation_basepoint.key.serialize());
-        engine.input(&self.remote_per_commitment_point.serialize());
+        engine.input(&revocation_basepoint.serialize());
+        engine.input(&per_commitment_point.serialize());
         let revocation_tweak = sha256::Hash::from_engine(engine);
         tweaked_revocation_basepoint
             .mul_assign(&secp, revocation_tweak.as_ref())
@@ -732,37 +762,8 @@ impl Core {
 
         let mut tweaked_per_commitment_point = self.remote_per_commitment_point;
         let mut engine = sha256::Hash::engine();
-        engine.input(&self.remote_per_commitment_point.serialize());
-        engine.input(&self.local_keys.revocation_basepoint.key.serialize());
-        let per_commitment_tweak = sha256::Hash::from_engine(engine);
-        tweaked_per_commitment_point
-            .mul_assign(&secp, per_commitment_tweak.as_ref())
-            .expect("negligible probability");
-
-        tweaked_revocation_basepoint
-            .combine(&tweaked_per_commitment_point)
-            .expect("negligible probability")
-    }
-
-    #[allow(dead_code)]
-    fn local_revocationpubkey(&self) -> PublicKey {
-        // TODO: Optimize and keep Secp256k1 on a permanent basis
-        let secp = Secp256k1::verification_only();
-
-        let mut tweaked_revocation_basepoint =
-            self.remote_keys.revocation_basepoint;
-        let mut engine = sha256::Hash::engine();
-        engine.input(&self.remote_keys.revocation_basepoint.serialize());
-        engine.input(&self.local_per_commitment_point.serialize());
-        let revocation_tweak = sha256::Hash::from_engine(engine);
-        tweaked_revocation_basepoint
-            .mul_assign(&secp, revocation_tweak.as_ref())
-            .expect("negligible probability");
-
-        let mut tweaked_per_commitment_point = self.local_per_commitment_point;
-        let mut engine = sha256::Hash::engine();
-        engine.input(&self.local_per_commitment_point.serialize());
-        engine.input(&self.remote_keys.revocation_basepoint.serialize());
+        engine.input(&per_commitment_point.serialize());
+        engine.input(&revocation_basepoint.serialize());
         let per_commitment_tweak = sha256::Hash::from_engine(engine);
         tweaked_per_commitment_point
             .mul_assign(&secp, per_commitment_tweak.as_ref())
@@ -779,39 +780,57 @@ impl ChannelExtension for Core {
         Box::new(self.clone())
     }
 
-    fn apply(
+    fn build_graph(
         &self,
         tx_graph: &mut channel::TxGraph,
+        as_remote_node: bool,
     ) -> Result<(), channel::Error> {
         let obscured_commitment = self.obscured_commitment_number();
         let lock_time =
             (0x20u32 << 24) | (obscured_commitment as u32 & 0x00_FF_FF_FF);
         let sequence = (0x80u32 << 24) | (obscured_commitment >> 24) as u32;
 
-        let fee = self.refund_fee();
-        let (local_fee, remote_fee) = if self.direction == Direction::Outbount {
-            (fee, 0)
-        } else {
-            (0, fee)
-        };
+        let fee = self.commitment_fee();
+        let (to_remote_fee, to_local_fee) =
+            if self.direction == Direction::Outbount {
+                (fee, 0)
+            } else {
+                (0, fee)
+            };
 
         tx_graph.cmt_version = 2;
         tx_graph.cmt_locktime = lock_time;
         tx_graph.cmt_sequence = sequence;
         // We are doing counterparty's transaction!
         tx_graph.cmt_outs = Vec::with_capacity(2);
-        if self.remote_amount_msat > 0 {
+
+        let to_local_amount = if as_remote_node {
+            self.remote_amount_msat
+        } else {
+            self.local_amount_msat
+        };
+        let to_remote_amount = if as_remote_node {
+            self.local_amount_msat
+        } else {
+            self.remote_amount_msat
+        };
+        let to_self_delay = if as_remote_node {
+            self.remote_params.to_self_delay
+        } else {
+            self.local_params.to_self_delay
+        };
+        if to_local_amount > 0 {
             tx_graph.cmt_outs.push(ScriptGenerators::ln_to_local(
-                self.remote_amount_msat / 1000 - remote_fee,
-                self.remote_revocationpubkey(),
-                self.remote_delayedpubkey(),
-                self.remote_params.to_self_delay,
+                to_local_amount / 1000 - to_local_fee,
+                self.remote_revocationpubkey(as_remote_node),
+                self.local_delayedpubkey(as_remote_node),
+                to_self_delay,
             ));
         }
-        if self.local_amount_msat > 0 {
+        if to_remote_amount > 0 {
             tx_graph.cmt_outs.push(ScriptGenerators::ln_to_remote_v1(
-                self.local_amount_msat / 1000 - local_fee,
-                self.local_pubkey(),
+                to_remote_amount / 1000 - to_remote_fee,
+                self.remote_paymentpubkey(as_remote_node),
             ));
         }
 
@@ -1220,7 +1239,7 @@ mod test {
 
         let mut channel =
             Channel::<ExtensionId>::new(core.clone(), [], [Bip96::new()]);
-        let psbt = channel.refund_tx(funding_psbt).unwrap();
+        let psbt = channel.refund_tx(funding_psbt, true).unwrap();
         let mut tx = psbt.global.unsigned_tx;
 
         let mut testvec_tx: Transaction = bitcoin::consensus::deserialize(&Vec::from_hex(
@@ -1259,13 +1278,21 @@ mod test {
         let base_point = pk!("036d6caac248af96f6afa7f904f550253a0f3ef3f5aa2fe6838a95b216691468e2");
         let per_commitment_point = pk!("025f7117a78150fe2ef97db7cfc83bd57b2e2c0d0dd25eaf467a4a1c2a45ce1486");
         let mut core = core_for_tests();
+        core.remote_keys.payment_basepoint = base_point;
+        core.remote_per_commitment_point = per_commitment_point;
+        assert_eq!(core.remote_paymentpubkey(false), pk!("0235f2dbfaa89b57ec7b055afe29849ef7ddfeb1cefdb9ebdc43f5494984db29e5"));
+
         core.local_keys.payment_basepoint = lk!(base_point);
         core.local_per_commitment_point = per_commitment_point;
-        assert_eq!(core.local_pubkey(), pk!("0235f2dbfaa89b57ec7b055afe29849ef7ddfeb1cefdb9ebdc43f5494984db29e5"));
+        assert_eq!(core.remote_paymentpubkey(true), pk!("0235f2dbfaa89b57ec7b055afe29849ef7ddfeb1cefdb9ebdc43f5494984db29e5"));
+
+        core.local_keys.delayed_payment_basepoint = lk!(base_point);
+        core.local_per_commitment_point = per_commitment_point;
+        assert_eq!(core.local_delayedpubkey(false), pk!("0235f2dbfaa89b57ec7b055afe29849ef7ddfeb1cefdb9ebdc43f5494984db29e5"));
 
         core.remote_keys.delayed_payment_basepoint = base_point;
         core.remote_per_commitment_point = per_commitment_point;
-        assert_eq!(core.remote_delayedpubkey(), pk!("0235f2dbfaa89b57ec7b055afe29849ef7ddfeb1cefdb9ebdc43f5494984db29e5"));
+        assert_eq!(core.local_delayedpubkey(true), pk!("0235f2dbfaa89b57ec7b055afe29849ef7ddfeb1cefdb9ebdc43f5494984db29e5"));
     }
 
     #[test]
@@ -1276,10 +1303,10 @@ mod test {
 
         core.local_keys.revocation_basepoint = lk!(base_point);
         core.remote_per_commitment_point = per_commitment_point;
-        assert_eq!(core.remote_revocationpubkey(), pk!("02916e326636d19c33f13e8c0c3a03dd157f332f3e99c317c141dd865eb01f8ff0"));
+        assert_eq!(core.remote_revocationpubkey(true), pk!("02916e326636d19c33f13e8c0c3a03dd157f332f3e99c317c141dd865eb01f8ff0"));
 
         core.remote_keys.revocation_basepoint = base_point;
         core.local_per_commitment_point = per_commitment_point;
-        assert_eq!(core.local_revocationpubkey(), pk!("02916e326636d19c33f13e8c0c3a03dd157f332f3e99c317c141dd865eb01f8ff0"));
+        assert_eq!(core.remote_revocationpubkey(false), pk!("02916e326636d19c33f13e8c0c3a03dd157f332f3e99c317c141dd865eb01f8ff0"));
     }
 }

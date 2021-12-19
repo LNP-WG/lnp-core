@@ -54,9 +54,10 @@ impl ChannelExtension for AnchorOutputs {
     }
 
     #[inline]
-    fn apply(
+    fn build_graph(
         &self,
         _tx_graph: &mut channel::TxGraph,
+        _as_remote_node: bool,
     ) -> Result<(), channel::Error> {
         todo!("implement anchor outputs")
     }

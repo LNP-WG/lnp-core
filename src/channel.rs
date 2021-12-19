@@ -194,18 +194,22 @@ where
     }
 
     /// Constructs current version of commitment transaction
-    pub fn commitment_tx(&mut self) -> Result<Psbt, Error> {
+    pub fn commitment_tx(&mut self, remote: bool) -> Result<Psbt, Error> {
         let mut tx_graph = TxGraph::from_funding(&self.funding);
-        self.apply(&mut tx_graph)?;
+        self.build_graph(&mut tx_graph, remote)?;
         Ok(tx_graph.render_cmt())
     }
 
     /// Constructs the first commitment transaction (called "refund
     /// transaction") taking given funding outpoint.
     #[inline]
-    pub fn refund_tx(&mut self, funding_psbt: Psbt) -> Result<Psbt, Error> {
+    pub fn refund_tx(
+        &mut self,
+        funding_psbt: Psbt,
+        remote: bool,
+    ) -> Result<Psbt, Error> {
         self.set_funding(funding_psbt)?;
-        self.commitment_tx()
+        self.commitment_tx(remote)
     }
 
     #[inline]
@@ -301,14 +305,18 @@ where
         Box::new(data)
     }
 
-    fn apply(&self, tx_graph: &mut TxGraph) -> Result<(), Error> {
-        self.constructor.apply(tx_graph)?;
+    fn build_graph(
+        &self,
+        tx_graph: &mut TxGraph,
+        as_remote_node: bool,
+    ) -> Result<(), Error> {
+        self.constructor.build_graph(tx_graph, as_remote_node)?;
         self.extenders
             .iter()
-            .try_for_each(|(_, e)| e.apply(tx_graph))?;
+            .try_for_each(|(_, e)| e.build_graph(tx_graph, as_remote_node))?;
         self.modifiers
             .iter()
-            .try_for_each(|(_, e)| e.apply(tx_graph))?;
+            .try_for_each(|(_, e)| e.build_graph(tx_graph, as_remote_node))?;
         Ok(())
     }
 }

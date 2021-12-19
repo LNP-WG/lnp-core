@@ -99,9 +99,10 @@ pub trait ChannelExtension: Extension {
     fn channel_state(&self) -> Box<dyn channel::State>;
 
     /// Applies state to the channel transaction graph
-    fn apply(
+    fn build_graph(
         &self,
         tx_graph: &mut channel::TxGraph,
+        remote: bool,
     ) -> Result<(), channel::Error>;
 }
 

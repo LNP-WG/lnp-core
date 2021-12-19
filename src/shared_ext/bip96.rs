@@ -57,9 +57,10 @@ impl ChannelExtension for Bip96 {
     }
 
     #[inline]
-    fn apply(
+    fn build_graph(
         &self,
         tx_graph: &mut channel::TxGraph,
+        _as_remote_node: bool,
     ) -> Result<(), channel::Error> {
         tx_graph.cmt_outs.lex_order();
         tx_graph
