@@ -682,14 +682,46 @@ impl Core {
         })
     }
 
-    fn revocationpubkey(&self) -> PublicKey {
+    fn local_pubkey(&self) -> PublicKey {
+        // TODO: Optimize and keep Secp256k1 on a permanent basis
+        let secp = Secp256k1::verification_only();
+
+        let mut engine = sha256::Hash::engine();
+        engine.input(&self.local_per_commitment_point.serialize());
+        engine.input(&self.local_keys.payment_basepoint.key.serialize());
+        let tweak = sha256::Hash::from_engine(engine);
+
+        let mut localkey = self.local_keys.payment_basepoint.key.clone();
+        localkey
+            .add_exp_assign(&secp, tweak.as_ref())
+            .expect("negligible probability");
+        localkey
+    }
+
+    fn remote_delayedpubkey(&self) -> PublicKey {
+        // TODO: Optimize and keep Secp256k1 on a permanent basis
+        let secp = Secp256k1::verification_only();
+
+        let mut engine = sha256::Hash::engine();
+        engine.input(&self.remote_per_commitment_point.serialize());
+        engine.input(&self.remote_keys.delayed_payment_basepoint.serialize());
+        let tweak = sha256::Hash::from_engine(engine);
+
+        let mut localkey = self.local_keys.payment_basepoint.key.clone();
+        localkey
+            .add_exp_assign(&secp, tweak.as_ref())
+            .expect("negligible probability");
+        localkey
+    }
+
+    fn remote_revocationpubkey(&self) -> PublicKey {
         // TODO: Optimize and keep Secp256k1 on a permanent basis
         let secp = Secp256k1::verification_only();
 
         let mut tweaked_revocation_basepoint =
-            self.remote_keys.revocation_basepoint;
+            self.local_keys.revocation_basepoint.key;
         let mut engine = sha256::Hash::engine();
-        engine.input(&self.remote_keys.revocation_basepoint.serialize());
+        engine.input(&self.local_keys.revocation_basepoint.key.serialize());
         engine.input(&self.remote_per_commitment_point.serialize());
         let revocation_tweak = sha256::Hash::from_engine(engine);
         tweaked_revocation_basepoint
@@ -699,7 +731,7 @@ impl Core {
         let mut tweaked_per_commitment_point = self.remote_per_commitment_point;
         let mut engine = sha256::Hash::engine();
         engine.input(&self.remote_per_commitment_point.serialize());
-        engine.input(&self.remote_keys.revocation_basepoint.serialize());
+        engine.input(&self.local_keys.revocation_basepoint.key.serialize());
         let per_commitment_tweak = sha256::Hash::from_engine(engine);
         tweaked_per_commitment_point
             .mul_assign(&secp, per_commitment_tweak.as_ref())
@@ -725,8 +757,6 @@ impl ChannelExtension for Core {
             (0x20u32 << 24) | (obscured_commitment as u32 & 0x00_FF_FF_FF);
         let sequence = (0x80u32 << 24) | (obscured_commitment >> 24) as u32;
 
-        let revocationpubkey = self.revocationpubkey();
-
         let fee = self.refund_fee();
         let (local_fee, remote_fee) = if self.direction == Direction::Outbount {
             (fee, 0)
@@ -742,15 +772,15 @@ impl ChannelExtension for Core {
         if self.remote_amount_msat > 0 {
             tx_graph.cmt_outs.push(ScriptGenerators::ln_to_local(
                 self.remote_amount_msat / 1000 - remote_fee,
-                revocationpubkey,
-                self.remote_keys.delayed_payment_basepoint,
+                self.remote_revocationpubkey(),
+                self.remote_delayedpubkey(),
                 self.remote_params.to_self_delay,
             ));
         }
         if self.local_amount_msat > 0 {
             tx_graph.cmt_outs.push(ScriptGenerators::ln_to_remote_v1(
                 self.local_amount_msat / 1000 - local_fee,
-                self.local_keys.payment_basepoint.key,
+                self.local_pubkey(),
             ));
         }
 
@@ -1141,9 +1171,13 @@ mod test {
         core.remote_amount_msat = 3000000000;
         core.common_params.feerate_per_kw = 15000;
 
-        let local_funding_pubkey = pk!("023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb");
-        let remote_funding_pubkey = pk!("030e9f7b623d2ccc7c9bd44d66d5ce21ce504c0acf6385a132cec6d3c39fa711c1");
-        let localpubkey = pk!("030d417a46946384f88d5f3337267c5e579765875dc4daca813e21734b140639e7");
+        // let local_funding_pubkey =
+        // pk!("023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb"
+        // ); let remote_funding_pubkey =
+        // pk!("030e9f7b623d2ccc7c9bd44d66d5ce21ce504c0acf6385a132cec6d3c39fa711c1"
+        // ); let localpubkey =
+        // pk!("030d417a46946384f88d5f3337267c5e579765875dc4daca813e21734b140639e7"
+        // );
         let remotepubkey = pk!("0394854aa6eab5b2a8122cc726e9dded053a2184d88256816826d6231c068d4a5b");
         let local_delayedpubkey = pk!("03fd5960528dc152014952efdb702a88f71e3c1653b2314431701ec77e57fde83c");
         let local_revocation_pubkey = pk!("0212a140cd0c6539d07cd08dfe09984dec3251ea808b892efeac3ede9402bf2b19");
@@ -1186,8 +1220,26 @@ mod test {
         tx.output[0].script_pubkey =
             PubkeyScript::ln_to_remote_v1(0, remotepubkey).into();
 
-        println!("{:#?}", tx);
-
         assert_eq!(tx, testvec_tx);
+    }
+
+    #[test]
+    pub fn bolt3_localkey_derivation() {
+        let base_point = pk!("036d6caac248af96f6afa7f904f550253a0f3ef3f5aa2fe6838a95b216691468e2");
+        let per_commitment_point = pk!("025f7117a78150fe2ef97db7cfc83bd57b2e2c0d0dd25eaf467a4a1c2a45ce1486");
+        let mut core = core_for_tests();
+        core.local_keys.payment_basepoint = lk!(base_point);
+        core.local_per_commitment_point = per_commitment_point;
+        assert_eq!(core.local_pubkey(), pk!("0235f2dbfaa89b57ec7b055afe29849ef7ddfeb1cefdb9ebdc43f5494984db29e5"));
+    }
+
+    #[test]
+    pub fn bolt3_revocationkey_derivation() {
+        let base_point = pk!("036d6caac248af96f6afa7f904f550253a0f3ef3f5aa2fe6838a95b216691468e2");
+        let per_commitment_point = pk!("025f7117a78150fe2ef97db7cfc83bd57b2e2c0d0dd25eaf467a4a1c2a45ce1486");
+        let mut core = core_for_tests();
+        core.local_keys.revocation_basepoint = lk!(base_point);
+        core.remote_per_commitment_point = per_commitment_point;
+        assert_eq!(core.remote_revocationpubkey(), pk!("02916e326636d19c33f13e8c0c3a03dd157f332f3e99c317c141dd865eb01f8ff0"));
     }
 }
