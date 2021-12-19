@@ -441,8 +441,7 @@ impl Extension for Core {
                 self.active_channel_id =
                     ActiveChannelId::from(open_channel.temporary_channel_id);
                 self.remote_amount_msat = open_channel.funding_satoshis * 1000
-                    - open_channel.push_msat
-                    - self.refund_fee() * 1000;
+                    - open_channel.push_msat;
                 self.local_amount_msat = open_channel.push_msat;
 
                 // Policies
@@ -600,8 +599,7 @@ impl Core {
         self.common_params = common_params;
         self.local_params = local_params;
         self.local_keys = local_keyset.clone();
-        self.local_amount_msat =
-            funding_sat * 1000 - push_msat - self.refund_fee() * 1000;
+        self.local_amount_msat = funding_sat * 1000 - push_msat;
         self.remote_amount_msat = push_msat;
 
         Ok(OpenChannel {
@@ -730,6 +728,13 @@ impl ChannelExtension for Core {
 
         let revocationpubkey = self.revocationpubkey();
 
+        let fee = self.refund_fee();
+        let (local_fee, remote_fee) = if self.direction == Direction::Outbount {
+            (fee, 0)
+        } else {
+            (0, fee)
+        };
+
         tx_graph.cmt_version = 2;
         tx_graph.cmt_locktime = lock_time;
         tx_graph.cmt_sequence = sequence;
@@ -737,7 +742,7 @@ impl ChannelExtension for Core {
         tx_graph.cmt_outs = Vec::with_capacity(2);
         if self.remote_amount_msat > 0 {
             tx_graph.cmt_outs.push(ScriptGenerators::ln_to_local(
-                self.remote_amount_msat / 1000,
+                self.remote_amount_msat / 1000 - remote_fee,
                 revocationpubkey,
                 self.remote_keys.delayed_payment_basepoint,
                 self.remote_params.to_self_delay,
@@ -745,7 +750,7 @@ impl ChannelExtension for Core {
         }
         if self.local_amount_msat > 0 {
             tx_graph.cmt_outs.push(ScriptGenerators::ln_to_remote_v1(
-                self.local_amount_msat / 1000,
+                self.local_amount_msat / 1000 - local_fee,
                 self.local_keys.payment_basepoint.key,
             ));
         }
