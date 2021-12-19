@@ -723,8 +723,10 @@ impl ChannelExtension for Core {
         tx_graph: &mut channel::TxGraph,
     ) -> Result<(), channel::Error> {
         let obscured_commitment = self.obscured_commitment_number();
-        let lock_time = (0x20u32 << 24) | obscured_commitment as u32;
-        let sequence = (0x80u32 << 24) | obscured_commitment as u32;
+        let lock_time =
+            (0x20u32 << 24) | (obscured_commitment as u32 & 0x00_FF_FF_FF);
+        let sequence =
+            (0x80u32 << 24) | (obscured_commitment as u32 & 0x00_FF_FF_FF);
 
         let revocationpubkey = self.revocationpubkey();
 
