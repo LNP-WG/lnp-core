@@ -1028,22 +1028,166 @@ impl ScriptGenerators for (TxOut, psbt::Output) {
     }
 }
 
-fn compute_obscuring_factor(
-    direction: Direction,
-    local_payment_basepoint: PublicKey,
-    remote_payment_basepoint: PublicKey,
-) -> u64 {
-    let mut engine = sha256::Hash::engine();
-    if direction.is_inbound() {
-        engine.input(&local_payment_basepoint.serialize());
-        engine.input(&remote_payment_basepoint.serialize());
-    } else {
-        engine.input(&remote_payment_basepoint.serialize());
-        engine.input(&local_payment_basepoint.serialize());
-    }
-    let obscuring_hash = sha256::Hash::from_engine(engine);
+#[cfg(test)]
+mod test {
+    use std::str::FromStr;
 
-    let mut buf = [0u8; 8];
-    buf.copy_from_slice(&obscuring_hash[24..]);
-    u64::from_be_bytes(buf)
+    use amplify::hex::ToHex;
+    use bitcoin::hashes::hex::FromHex;
+    use bitcoin::{Script, Transaction, TxIn, Txid};
+
+    use super::*;
+    use crate::shared_ext::Bip96;
+
+    macro_rules! pk {
+        ($hex:expr) => {
+            PublicKey::from_str($hex).unwrap()
+        };
+    }
+    macro_rules! lk {
+        ($pk:expr) => {
+            LocalPubkey {
+                key: $pk,
+                ..LocalPubkey::dumb_default()
+            }
+        };
+    }
+
+    fn core_for_tests() -> Core {
+        let local_payment_basepoint = pk!("034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa");
+        let remote_payment_basepoint = pk!("032c0b7cf95324a07d05398b240174dc0c2be444d96b159aa6c7f7b1e668680991");
+        let mut core = Core::default();
+
+        core.direction = Direction::Outbount;
+        core.commitment_number = 42;
+        core.local_keys.payment_basepoint = lk!(local_payment_basepoint);
+        core.remote_keys.payment_basepoint = remote_payment_basepoint;
+        core.local_params.to_self_delay = 144;
+        core.local_params.dust_limit_satoshis = 546;
+
+        core
+    }
+
+    fn tx_for_tests() -> Transaction {
+        let local_funding_pubkey = pk!("023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb");
+        let remote_funding_pubkey = pk!("030e9f7b623d2ccc7c9bd44d66d5ce21ce504c0acf6385a132cec6d3c39fa711c1");
+
+        let (txout, _) = <(TxOut, psbt::Output)>::ln_funding(
+            10000000,
+            &LocalPubkey {
+                key: local_funding_pubkey,
+                ..LocalPubkey::dumb_default()
+            },
+            remote_funding_pubkey,
+        );
+
+        Transaction {
+            version: 2,
+            lock_time: 0,
+            input: vec![TxIn {
+                previous_output: OutPoint::new(Txid::from_str("fd2105607605d2302994ffea703b09f66b6351816ee737a93e42a841ea20bbad").unwrap(), 0),
+                script_sig: Script::from_str("48304502210090587b6201e166ad6af0227d3036a9454223d49a1f11839c1a362184340ef0240220577f7cd5cca78719405cbf1de7414ac027f0239ef6e214c90fcaab0454d84b3b012103535b32d5eb0a6ed0982a0479bbadc9868d9836f6ba94dd5a63be16d875069184").unwrap(),
+                sequence: 4294967295,
+                witness: vec![],
+            }],
+            output: vec![
+                txout,
+                TxOut {
+                    value: 4989986080,
+                    script_pubkey: Script::from_str("00143ca33c2e4446f4a305f23c80df8ad1afdcf652f9").unwrap()
+                }
+            ],
+        }
+    }
+
+    #[test]
+    fn bolt3_funding_witness_script() {
+        let local_funding_pubkey = pk!("023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb");
+        let remote_funding_pubkey = pk!("030e9f7b623d2ccc7c9bd44d66d5ce21ce504c0acf6385a132cec6d3c39fa711c1");
+        let witness_script = WitnessScript::ln_funding(
+            0,
+            &LocalPubkey {
+                key: local_funding_pubkey,
+                ..LocalPubkey::dumb_default()
+            },
+            remote_funding_pubkey,
+        );
+        assert_eq!(witness_script.to_hex(), "5221023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb21030e9f7b623d2ccc7c9bd44d66d5ce21ce504c0acf6385a132cec6d3c39fa711c152ae");
+    }
+
+    #[test]
+    fn bolt3_obscured_commitment_no() {
+        let core = core_for_tests();
+        assert_eq!(0x2bb038521914 ^ 42, core.obscured_commitment_number());
+    }
+
+    #[test]
+    fn bolt3_funding() {
+        // let local_funding_privkey =
+        // pk!("30ff4956bbdd3222d44cc5e8a1261dab1e07957bdac5ae88fe3261ef321f374901"
+        // ); let local_privkey =
+        // pk!("bb13b121cdc357cd2e608b0aea294afca36e2b34cf958e2e6451a2f27469449101"
+        // );
+        let tx = tx_for_tests();
+        assert_eq!(tx.txid(), Txid::from_str("8984484a580b825b9972d7adb15050b3ab624ccd731946b3eeddb92f4e7ef6be").unwrap());
+    }
+
+    #[test]
+    fn bolt3_commitment_tx() {
+        let mut core = core_for_tests();
+
+        core.direction = Direction::Outbount;
+        core.local_amount_msat = 7000000000;
+        core.remote_amount_msat = 3000000000;
+        core.common_params.feerate_per_kw = 15000;
+
+        let local_funding_pubkey = pk!("023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb");
+        let remote_funding_pubkey = pk!("030e9f7b623d2ccc7c9bd44d66d5ce21ce504c0acf6385a132cec6d3c39fa711c1");
+        let localpubkey = pk!("030d417a46946384f88d5f3337267c5e579765875dc4daca813e21734b140639e7");
+        let remotepubkey = pk!("0394854aa6eab5b2a8122cc726e9dded053a2184d88256816826d6231c068d4a5b");
+        let local_delayedpubkey = pk!("03fd5960528dc152014952efdb702a88f71e3c1653b2314431701ec77e57fde83c");
+        let local_revocation_pubkey = pk!("0212a140cd0c6539d07cd08dfe09984dec3251ea808b892efeac3ede9402bf2b19");
+
+        let mut funding_tx = tx_for_tests();
+        funding_tx.input[0].script_sig = Script::default();
+        let mut funding_psbt = Psbt::from_unsigned_tx(funding_tx).unwrap();
+        funding_psbt.set_channel_funding_output(0).unwrap();
+
+        let mut channel =
+            Channel::<ExtensionId>::new(core.clone(), [], [Bip96::new()]);
+        let psbt = channel.refund_tx(funding_psbt).unwrap();
+        let mut tx = psbt.global.unsigned_tx;
+
+        let mut testvec_tx: Transaction = bitcoin::consensus::deserialize(&Vec::from_hex(
+            "02000000000101bef67e4e2fb9ddeeb3461973cd4c62abb35050b1add772995b\
+            820b584a488489000000000038b02b8002c0c62d0000000000160014ccf1af2f2aab\
+            ee14bb40fa3851ab2301de84311054a56a00000000002200204adb4e2f00643db396\
+            dd120d4e7dc17625f5f2c11a40d857accc862d6b7dd80e0400473044022051b75c73\
+            198c6deee1a875871c3961832909acd297c6b908d59e3319e5185a46022055c41937\
+            9c5051a78d00dbbce11b5b664a0c22815fbcc6fcef6b1937c3836939014830450221\
+            00f51d2e566a70ba740fc5d8c0f07b9b93d2ed741c3c0860c613173de7d39e796802\
+            2041376d520e9c0e1ad52248ddf4b22e12be8763007df977253ef45a4ca3bdb7c001\
+            475221023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f\
+            54eb21030e9f7b623d2ccc7c9bd44d66d5ce21ce504c0acf6385a132cec6d3c39fa7\
+            11c152ae3e195220"
+        ).unwrap()).unwrap();
+        // We can't produce proper input since we do not have funding PSBT
+        testvec_tx.input[0].witness = vec![];
+        tx.input[0].previous_output = testvec_tx.input[0].previous_output;
+        // We need to manually re-generate outputs since we do not have test
+        // basepoints and only final keys
+        tx.output[1].script_pubkey = PubkeyScript::ln_to_local(
+            0,
+            local_revocation_pubkey,
+            local_delayedpubkey,
+            core.local_params.to_self_delay,
+        )
+        .into();
+        tx.output[0].script_pubkey =
+            PubkeyScript::ln_to_remote_v1(0, remotepubkey).into();
+
+        println!("{:#?}", tx);
+
+        assert_eq!(tx, testvec_tx);
+    }
 }
