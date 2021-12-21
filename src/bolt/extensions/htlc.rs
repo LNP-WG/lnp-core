@@ -24,20 +24,15 @@ use wallet::hlc::{HashLock, HashPreimage};
 use wallet::scripts::{LockScript, PubkeyScript, WitnessScript};
 use wallet::IntoPk;
 
-use crate::bolt::{ExtensionId, TxType};
+use crate::bolt::{ChannelState, ExtensionId, TxType};
 use crate::{channel, ChannelExtension, Extension};
 
-#[derive(
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Debug,
-    StrictEncode,
-    StrictDecode
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+#[derive(StrictEncode, StrictDecode)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
 )]
 pub struct HtlcKnown {
     pub amount: u64,
@@ -47,17 +42,12 @@ pub struct HtlcKnown {
     pub asset_id: Option<AssetId>,
 }
 
-#[derive(
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Debug,
-    StrictEncode,
-    StrictDecode
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+#[derive(StrictEncode, StrictDecode)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
 )]
 pub struct HtlcSecret {
     pub amount: u64,
@@ -67,21 +57,9 @@ pub struct HtlcSecret {
     pub asset_id: Option<AssetId>,
 }
 
-#[derive(
-    Getters,
-    Clone,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Debug,
-    StrictEncode,
-    StrictDecode
-)]
+#[derive(Getters, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+#[derive(StrictEncode, StrictDecode)]
 pub struct Htlc {
-    initialized: bool,
-
     /// Set if the feature `option_anchors_zero_fee_htlc_tx` was negotiated via
     /// `channel_type`. Indicates that HTLC transactions will use zero fees and
     /// will be pushed through an anchor transaction.
@@ -102,7 +80,6 @@ pub struct Htlc {
 
     // Channel specific information
     channel_id: ChannelId,
-    commitment_outpoint: OutPoint,
 
     /// indicates the smallest value HTLC this node will accept.
     htlc_minimum_msat: u64,
@@ -116,7 +93,6 @@ pub struct Htlc {
 impl Default for Htlc {
     fn default() -> Self {
         Htlc {
-            initialized: false,
             anchors_zero_fee_htlc_tx: false,
             offered_htlcs: vec![],
             received_htlcs: vec![],
@@ -128,7 +104,6 @@ impl Default for Htlc {
             remote_basepoint: dumb_pubkey!(),
             local_delayed_basepoint: dumb_pubkey!(),
             channel_id: Default::default(),
-            commitment_outpoint: Default::default(),
             htlc_minimum_msat: 0,
             max_htlc_value_in_flight_msat: 0,
             max_accepted_htlcs: 0,
@@ -137,8 +112,6 @@ impl Default for Htlc {
         }
     }
 }
-
-impl channel::State for Htlc {}
 
 impl Extension for Htlc {
     type Identity = ExtensionId;
@@ -306,16 +279,47 @@ impl Extension for Htlc {
         Ok(())
     }
 
-    fn extension_state(&self) -> Box<dyn channel::State> {
-        Box::new(self.clone())
+    fn load_state(&mut self, state: &ChannelState) {
+        self.anchors_zero_fee_htlc_tx = state
+            .common_params
+            .channel_type
+            .has_anchors_zero_fee_htlc_tx();
+
+        self.offered_htlcs = state.offered_htlcs.clone();
+        self.received_htlcs = state.received_htlcs.clone();
+        self.resolved_htlcs = state.resolved_htlcs.clone();
+
+        self.to_self_delay = state.remote_params.to_self_delay;
+        self.local_revocation_basepoint =
+            state.local_keys.revocation_basepoint.key;
+        self.remote_revocation_basepoint =
+            state.remote_keys.revocation_basepoint;
+        self.local_basepoint = state.local_keys.payment_basepoint.key;
+        self.remote_basepoint = state.remote_keys.payment_basepoint;
+        self.local_delayed_basepoint =
+            state.local_keys.delayed_payment_basepoint.key;
+
+        self.channel_id = state.active_channel_id.as_slice32().into();
+
+        self.htlc_minimum_msat = state.remote_params.htlc_minimum_msat;
+        self.max_htlc_value_in_flight_msat =
+            state.remote_params.max_htlc_value_in_flight_msat;
+        self.max_accepted_htlcs = state.remote_params.max_accepted_htlcs;
+
+        self.last_recieved_htlc_id = state.last_recieved_htlc_id;
+        self.last_offered_htlc_id = state.last_offered_htlc_id;
+    }
+
+    fn store_state(&self, state: &mut ChannelState) {
+        state.offered_htlcs = self.offered_htlcs.clone();
+        state.received_htlcs = self.received_htlcs.clone();
+        state.resolved_htlcs = self.resolved_htlcs.clone();
+        state.last_recieved_htlc_id = self.last_recieved_htlc_id;
+        state.last_offered_htlc_id = self.last_offered_htlc_id;
     }
 }
 
 impl ChannelExtension for Htlc {
-    fn channel_state(&self) -> Box<dyn channel::State> {
-        Box::new(self.clone())
-    }
-
     fn build_graph(
         &self,
         tx_graph: &mut channel::TxGraph,
@@ -334,7 +338,8 @@ impl ChannelExtension for Htlc {
 
             let htlc_tx = Psbt::ln_htlc(
                 offered.amount,
-                self.commitment_outpoint,
+                // TODO: do a two-staged graph generation process
+                OutPoint::default(),
                 offered.cltv_expiry,
                 self.remote_revocation_basepoint,
                 self.local_delayed_basepoint,
@@ -363,7 +368,8 @@ impl ChannelExtension for Htlc {
 
             let htlc_tx = Psbt::ln_htlc(
                 recieved.amount,
-                self.commitment_outpoint,
+                // TODO: do a two-staged graph generation process
+                OutPoint::default(),
                 recieved.cltv_expiry,
                 self.remote_revocation_basepoint,
                 self.local_delayed_basepoint,

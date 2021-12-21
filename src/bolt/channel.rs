@@ -32,6 +32,7 @@ use super::extensions::AnchorOutputs;
 use super::policy::{CommonParams, PeerParams, Policy};
 use super::{ExtensionId, Lifecycle, RemoteKeyset};
 use crate::bolt::keyset::{LocalKeyset, LocalPubkey};
+use crate::bolt::ChannelState;
 use crate::extension::ChannelConstructor;
 use crate::funding::PsbtLnpFunding;
 use crate::{channel, funding, Channel, ChannelExtension, Extension, Funding};
@@ -39,6 +40,11 @@ use crate::{channel, funding, Channel, ChannelExtension, Extension, Funding};
 /// Channel direction
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display)]
 #[derive(StrictEncode, StrictDecode)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
 pub enum Direction {
     /// Inbound channels accepted by the local node.
     ///
@@ -414,8 +420,6 @@ impl Core {
     }
 }
 
-impl channel::State for Core {}
-
 impl Extension for Core {
     type Identity = ExtensionId;
 
@@ -544,8 +548,44 @@ impl Extension for Core {
         Ok(())
     }
 
-    fn extension_state(&self) -> Box<dyn channel::State> {
-        Box::new(self.clone())
+    fn load_state(&mut self, state: &ChannelState) {
+        self.stage = state.stage;
+        self.chain_hash = state.chain_hash;
+        self.active_channel_id = state.active_channel_id;
+        self.funding_outpoint = state.funding_outpoint;
+        self.local_amount_msat = state.local_amount_msat;
+        self.remote_amount_msat = state.remote_amount_msat;
+        self.commitment_number = state.commitment_number;
+        self.commitment_sigs = state.commitment_sigs.clone();
+        self.policy = state.policy.clone();
+        self.common_params = state.common_params;
+        self.local_params = state.local_params;
+        self.remote_params = state.remote_params;
+        self.local_keys = state.local_keys.clone();
+        self.remote_keys = state.remote_keys.clone();
+        self.remote_per_commitment_point = state.remote_per_commitment_point;
+        self.local_per_commitment_point = state.local_per_commitment_point;
+        self.direction = state.direction;
+    }
+
+    fn store_state(&self, state: &mut ChannelState) {
+        state.stage = self.stage;
+        state.chain_hash = self.chain_hash;
+        state.active_channel_id = self.active_channel_id;
+        state.funding_outpoint = self.funding_outpoint;
+        state.local_amount_msat = self.local_amount_msat;
+        state.remote_amount_msat = self.remote_amount_msat;
+        state.commitment_number = self.commitment_number;
+        state.commitment_sigs = self.commitment_sigs.clone();
+        state.policy = self.policy.clone();
+        state.common_params = self.common_params;
+        state.local_params = self.local_params;
+        state.remote_params = self.remote_params;
+        state.local_keys = self.local_keys.clone();
+        state.remote_keys = self.remote_keys.clone();
+        state.remote_per_commitment_point = self.remote_per_commitment_point;
+        state.local_per_commitment_point = self.local_per_commitment_point;
+        state.direction = self.direction;
     }
 }
 
@@ -776,10 +816,6 @@ impl Core {
 }
 
 impl ChannelExtension for Core {
-    fn channel_state(&self) -> Box<dyn channel::State> {
-        Box::new(self.clone())
-    }
-
     fn build_graph(
         &self,
         tx_graph: &mut channel::TxGraph,

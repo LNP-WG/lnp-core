@@ -24,6 +24,7 @@ use strict_encoding::{
 use super::extensions::AnchorOutputs;
 use super::Core;
 use crate::bolt::extensions::Htlc;
+use crate::bolt::ChannelState;
 use crate::channel::{Channel, Error};
 use crate::shared_ext::Bip96;
 use crate::{channel, extension, ChannelExtension, Extension};
@@ -96,6 +97,7 @@ impl TryFrom<u16> for ExtensionId {
 }
 
 impl extension::Nomenclature for ExtensionId {
+    type State = ChannelState;
     type Constructor = Core;
 
     #[inline]

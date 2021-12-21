@@ -14,7 +14,7 @@
 use lnp2p::legacy::Messages;
 use wallet::lex_order::LexOrder;
 
-use crate::bolt::ExtensionId;
+use crate::bolt::{ChannelState, ExtensionId};
 use crate::{channel, ChannelExtension, Extension};
 
 #[derive(Debug, Default)]
@@ -44,18 +44,16 @@ impl Extension for Bip96 {
         Ok(())
     }
 
-    #[inline]
-    fn extension_state(&self) -> Box<dyn channel::State> {
-        Box::new(())
+    fn load_state(&mut self, _state: &ChannelState) {
+        // Nothing to do here
+    }
+
+    fn store_state(&self, _state: &mut ChannelState) {
+        // Nothing to do here
     }
 }
 
 impl ChannelExtension for Bip96 {
-    #[inline]
-    fn channel_state(&self) -> Box<dyn channel::State> {
-        Box::new(())
-    }
-
     #[inline]
     fn build_graph(
         &self,

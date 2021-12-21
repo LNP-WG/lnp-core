@@ -19,6 +19,7 @@ use lnp2p::legacy::Messages;
 use wallet::psbt::Psbt;
 
 use super::{channel, Channel};
+use crate::channel::State;
 use crate::Funding;
 
 /// Marker trait for creating extension nomenclatures, defining order in which
@@ -42,6 +43,7 @@ where
         + Into<u16>,
 {
     type Constructor: ChannelConstructor<Identity = Self>;
+    type State: State;
 
     /// Returns set of default channel extenders
     fn default_extenders() -> Vec<Box<dyn ChannelExtension<Identity = Self>>> {
@@ -79,12 +81,9 @@ pub trait Extension {
         message: &Messages,
     ) -> Result<(), channel::Error>;
 
-    /// Returns extension state for persistence & backups
-    ///
-    /// These are extension configuration data, like the data that are the part
-    /// of the channel parameters negotiatied between peeers or preconfigured
-    /// parameters from the configuration file
-    fn extension_state(&self) -> Box<dyn channel::State>;
+    fn load_state(&mut self, state: &<Self::Identity as Nomenclature>::State);
+
+    fn store_state(&self, state: &mut <Self::Identity as Nomenclature>::State);
 }
 
 pub trait RoutingExtension: Extension {}
@@ -92,12 +91,6 @@ pub trait RoutingExtension: Extension {}
 pub trait GossipExtension: Extension {}
 
 pub trait ChannelExtension: Extension {
-    /// Returns channel state for persistence & backups.
-    ///
-    /// These are channel-specific data generated from channel operations,
-    /// including client-validated data
-    fn channel_state(&self) -> Box<dyn channel::State>;
-
     /// Applies state to the channel transaction graph
     fn build_graph(
         &self,

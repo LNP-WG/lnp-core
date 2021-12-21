@@ -14,12 +14,16 @@
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::hash::Hash;
+use std::io;
 
+use amplify::DumbDefault;
 use bitcoin::util::psbt::PartiallySignedTransaction as Psbt;
 use lnp2p::legacy::Messages;
+use strict_encoding::{StrictDecode, StrictEncode};
 
 use super::extension::{self, ChannelExtension, Extension};
 use crate::bolt::{Lifecycle, PolicyError};
+use crate::extension::Nomenclature;
 pub(crate) use crate::tx_graph::{TxGraph, TxRole};
 use crate::{funding, ChannelConstructor, Funding};
 
@@ -52,15 +56,11 @@ pub enum Error {
     },
 }
 
-/// Marker trait for any data that can be used as a part of the channel state
-pub trait State {}
-
-// Allow empty state
-impl State for () {}
-
-/// Channel state is a sum of the state from all its extensions
-pub type IntegralState<N> = BTreeMap<N, Box<dyn State>>;
-impl<N> State for IntegralState<N> where N: extension::Nomenclature {}
+/// Trait for any data that can be used as a part of the channel state
+pub trait State: StrictEncode + StrictDecode + DumbDefault {
+    fn to_funding(&self) -> Funding;
+    fn set_funding(&mut self, funding: &Funding);
+}
 
 pub type ExtensionQueue<N> =
     BTreeMap<N, Box<dyn ChannelExtension<Identity = N>>>;
@@ -238,6 +238,29 @@ where
     }
 }
 
+impl<N> Channel<N>
+where
+    N: 'static + extension::Nomenclature,
+{
+    pub fn read_state(
+        &mut self,
+        reader: impl io::Read,
+    ) -> Result<(), strict_encoding::Error> {
+        let state = N::State::strict_decode(reader)?;
+        self.load_state(&state);
+        Ok(())
+    }
+
+    pub fn write_state(
+        &self,
+        writer: impl io::Write,
+    ) -> Result<usize, strict_encoding::Error> {
+        let mut state = N::State::dumb_default();
+        self.store_state(&mut state);
+        state.strict_encode(writer)
+    }
+}
+
 /// Channel is the extension to itself :) so it receives the same input as any
 /// other extension and just forwards it to them
 impl<N> Extension for Channel<N>
@@ -267,19 +290,26 @@ where
         Ok(())
     }
 
-    fn extension_state(&self) -> Box<dyn State> {
-        let mut data = IntegralState::<N>::new();
-        data.insert(
-            self.constructor.identity(),
-            self.constructor.extension_state(),
-        );
-        self.extenders.iter().for_each(|(id, e)| {
-            data.insert(*id, e.extension_state());
-        });
-        self.modifiers.iter().for_each(|(id, e)| {
-            data.insert(*id, e.extension_state());
-        });
-        Box::new(data)
+    fn load_state(&mut self, state: &<Self::Identity as Nomenclature>::State) {
+        self.funding = state.to_funding();
+        self.constructor.load_state(&state);
+        for extension in self.extenders.values_mut() {
+            extension.load_state(&state);
+        }
+        for extension in self.extenders.values_mut() {
+            extension.load_state(&state);
+        }
+    }
+
+    fn store_state(&self, state: &mut <Self::Identity as Nomenclature>::State) {
+        state.set_funding(&self.funding);
+        self.constructor.store_state(state);
+        for extension in self.extenders.values() {
+            extension.store_state(state);
+        }
+        for extension in self.extenders.values() {
+            extension.store_state(state);
+        }
     }
 }
 
@@ -290,21 +320,6 @@ impl<N> ChannelExtension for Channel<N>
 where
     N: 'static + extension::Nomenclature,
 {
-    fn channel_state(&self) -> Box<dyn State> {
-        let mut data = IntegralState::<N>::new();
-        data.insert(
-            self.constructor.identity(),
-            self.constructor.extension_state(),
-        );
-        self.extenders.iter().for_each(|(id, e)| {
-            data.insert(*id, e.extension_state());
-        });
-        self.modifiers.iter().for_each(|(id, e)| {
-            data.insert(*id, e.extension_state());
-        });
-        Box::new(data)
-    }
-
     fn build_graph(
         &self,
         tx_graph: &mut TxGraph,
