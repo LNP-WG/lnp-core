@@ -17,9 +17,11 @@ use std::collections::HashSet;
 use std::fmt::{self, Display, Formatter};
 use std::io::{Read, Write};
 
+use amplify::Wrapper;
 use bitcoin::hashes::Hash;
 use internet2::tlv;
 use lightning_encoding::{LightningDecode, LightningEncode};
+use lnpbp::bech32::Blob;
 use lnpbp::chain::AssetId;
 
 use super::{ChannelId, InitFeatures};
@@ -106,7 +108,7 @@ pub struct Init {
 #[display("ping({pong_size})")]
 pub struct Ping {
     pub pong_size: u16,
-    pub ignored: Vec<u8>,
+    pub ignored: Blob,
 }
 
 /// For simplicity of diagnosis, it's often useful to tell a peer that something
@@ -122,7 +124,7 @@ pub struct Error {
     pub channel_id: ChannelId,
 
     /// Any specific error details, either as string or binary data
-    pub data: Vec<u8>,
+    pub data: Blob,
 }
 
 impl Display for Error {
@@ -136,7 +138,7 @@ impl Display for Error {
         // NB: if data is not composed solely of printable ASCII characters (For
         // reference: the printable character set includes byte values 32
         // through 126, inclusive) SHOULD NOT print out data verbatim.
-        if let Ok(msg) = String::from_utf8(self.data.clone()) {
+        if let Ok(msg) = String::from_utf8(self.data.clone().into_inner()) {
             write!(f, ": {}", msg)?;
         }
         Ok(())

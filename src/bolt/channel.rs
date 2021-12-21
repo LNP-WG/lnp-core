@@ -1274,7 +1274,7 @@ mod test {
     }
 
     #[test]
-    pub fn bolt3_localkey_derivation() {
+    fn bolt3_localkey_derivation() {
         let base_point = pk!("036d6caac248af96f6afa7f904f550253a0f3ef3f5aa2fe6838a95b216691468e2");
         let per_commitment_point = pk!("025f7117a78150fe2ef97db7cfc83bd57b2e2c0d0dd25eaf467a4a1c2a45ce1486");
         let mut core = core_for_tests();
@@ -1296,7 +1296,7 @@ mod test {
     }
 
     #[test]
-    pub fn bolt3_revocationkey_derivation() {
+    fn bolt3_revocationkey_derivation() {
         let base_point = pk!("036d6caac248af96f6afa7f904f550253a0f3ef3f5aa2fe6838a95b216691468e2");
         let per_commitment_point = pk!("025f7117a78150fe2ef97db7cfc83bd57b2e2c0d0dd25eaf467a4a1c2a45ce1486");
         let mut core = core_for_tests();

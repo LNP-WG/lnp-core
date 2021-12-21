@@ -22,6 +22,7 @@ use bitcoin::hashes::sha256;
 use bitcoin::secp256k1::{PublicKey, Signature};
 use bitcoin::Txid;
 use internet2::tlv;
+use lnpbp::bech32::Blob;
 use lnpbp::chain::AssetId;
 use wallet::hlc::{HashLock, HashPreimage};
 use wallet::scripts::PubkeyScript;
@@ -569,7 +570,7 @@ pub struct UpdateFailHtlc {
     /// special malformed failure variant for the case where the peer couldn't
     /// parse it: in this case the current node instead takes action,
     /// encrypting it into a update_fail_htlc for relaying.
-    pub reason: Vec<u8>,
+    pub reason: Blob,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Display)]

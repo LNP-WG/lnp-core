@@ -29,6 +29,7 @@ pub use bolt7::*;
 pub use bolt9::{Feature, FeatureContext, InitFeatures, UnknownFeatureError};
 use internet2::{CreateUnmarshaller, Payload, Unmarshall, Unmarshaller};
 use lightning_encoding::{self, LightningDecode, LightningEncode};
+use lnpbp::bech32::Blob;
 pub use types::*;
 
 /// Default legacy Lightning port number
@@ -73,7 +74,7 @@ pub enum Messages {
     /// bytes to be included within the data payload of the pong message.
     #[api(type = 19)]
     #[display("pong(...)")]
-    Pong(Vec<u8>),
+    Pong(Blob),
 
     // Part II: Channel management protocol (BOLT-2)
     // =============================================
