@@ -84,6 +84,10 @@ impl Strategy for lnpbp::chain::AssetId {
     type Strategy = strategies::AsStrict;
 }
 
+impl Strategy for lnpbp::bech32::Blob {
+    type Strategy = strategies::AsStrict;
+}
+
 impl LightningEncode for Script {
     #[inline]
     fn lightning_encode<E: Write>(&self, e: E) -> Result<usize, Error> {
