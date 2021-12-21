@@ -14,7 +14,7 @@
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::hash::Hash;
-use std::io;
+use std::io::{Read, Write};
 
 use amplify::DumbDefault;
 use bitcoin::util::psbt::PartiallySignedTransaction as Psbt;
@@ -238,26 +238,29 @@ where
     }
 }
 
-impl<N> Channel<N>
+impl<N> StrictEncode for Channel<N>
 where
     N: 'static + extension::Nomenclature,
 {
-    pub fn read_state(
-        &mut self,
-        reader: impl io::Read,
-    ) -> Result<(), strict_encoding::Error> {
-        let state = N::State::strict_decode(reader)?;
-        self.load_state(&state);
-        Ok(())
-    }
-
-    pub fn write_state(
+    fn strict_encode<E: Write>(
         &self,
-        writer: impl io::Write,
+        e: E,
     ) -> Result<usize, strict_encoding::Error> {
         let mut state = N::State::dumb_default();
         self.store_state(&mut state);
-        state.strict_encode(writer)
+        state.strict_encode(e)
+    }
+}
+
+impl<N> StrictDecode for Channel<N>
+where
+    N: 'static + extension::Nomenclature,
+{
+    fn strict_decode<D: Read>(d: D) -> Result<Self, strict_encoding::Error> {
+        let state = N::State::strict_decode(d)?;
+        let mut channel = Channel::default();
+        channel.load_state(&state);
+        Ok(channel)
     }
 }
 
