@@ -215,7 +215,7 @@ impl Channel<ExtensionId> {
 
     pub fn compose_reestablish_channel(
         &mut self,
-        remote_channel_reestablish: ChannelReestablish,
+        remote_channel_reestablish: &ChannelReestablish,
     ) -> Result<ChannelReestablish, channel::Error> {
         self.constructor_mut()
             .compose_reestablish_channel(remote_channel_reestablish)
@@ -750,7 +750,7 @@ impl Core {
 
     fn compose_reestablish_channel(
         &mut self,
-        remote_channel_reestablish: ChannelReestablish,
+        remote_channel_reestablish: &ChannelReestablish,
     ) -> Result<ChannelReestablish, ReestablishError> {
         let channel_id = if let Some(channel_id) = self.channel_id() {
             channel_id

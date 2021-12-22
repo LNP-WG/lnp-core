@@ -790,9 +790,9 @@ dependencies = [
 
 [[package]]
 name = "lnpbp_bech32"
-version = "0.5.2"
+version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8ba00332492e36d0723180fb54500d7efe92198640db8806fe917678a19388b"
+checksum = "8649f8010820b22ada2a616309dbe73581e7449c4b108b887e82244db71bfd02"
 dependencies = [
  "amplify",
  "bech32",

@@ -636,7 +636,7 @@ pub struct UpdateFee {
     pub feerate_per_kw: u32,
 }
 
-#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Display)]
 #[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("channel_reestablish({channel_id}, {next_commitment_number}, ...)")]
