@@ -22,6 +22,7 @@ use lnp2p::legacy::{
     TempChannelId,
 };
 use lnpbp::chain::Chain;
+use p2p::legacy::ChannelReestablish;
 use secp256k1::{Secp256k1, Signature};
 use wallet::lex_order::LexOrder;
 use wallet::psbt::Psbt;
@@ -36,6 +37,22 @@ use crate::bolt::ChannelState;
 use crate::extension::ChannelConstructor;
 use crate::funding::PsbtLnpFunding;
 use crate::{channel, funding, Channel, ChannelExtension, Extension, Funding};
+
+/// Errors during channel re-establishment
+#[derive(
+    Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display, Error
+)]
+#[display(doc_comments)]
+pub enum ReestablishError {
+    /// requested to re-establish channel, but the local channel has no
+    /// channel_id set meaning that the funding transaction was not
+    /// published; failing the channel
+    NoPermanentId,
+
+    /// local channel id {local} does not match to the one provided by
+    /// the remote peer ({remote}) during the channel reestablishment
+    ChannelIdMismatch { remote: ChannelId, local: ChannelId },
+}
 
 /// Channel direction
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display)]
@@ -194,6 +211,15 @@ impl Channel<ExtensionId> {
         &mut self,
     ) -> Result<AcceptChannel, channel::Error> {
         self.constructor_mut().compose_accept_channel()
+    }
+
+    pub fn compose_reestablish_channel(
+        &mut self,
+        remote_channel_reestablish: ChannelReestablish,
+    ) -> Result<ChannelReestablish, channel::Error> {
+        self.constructor_mut()
+            .compose_reestablish_channel(remote_channel_reestablish)
+            .map_err(|err| channel::Error::Extension(err.to_string()))
     }
 
     /// Tries to identify bitcoin network which channel is based on. Returns
@@ -722,6 +748,37 @@ impl Core {
         })
     }
 
+    fn compose_reestablish_channel(
+        &mut self,
+        remote_channel_reestablish: ChannelReestablish,
+    ) -> Result<ChannelReestablish, ReestablishError> {
+        let channel_id = if let Some(channel_id) = self.channel_id() {
+            channel_id
+        } else {
+            return Err(ReestablishError::NoPermanentId);
+        };
+
+        if remote_channel_reestablish.channel_id != channel_id {
+            return Err(ReestablishError::ChannelIdMismatch {
+                remote: remote_channel_reestablish.channel_id,
+                local: channel_id,
+            });
+        }
+
+        // TODO: Check the rest of parameters to match local parameters
+
+        Ok(ChannelReestablish {
+            channel_id,
+            next_commitment_number: remote_channel_reestablish
+                .next_commitment_number,
+            next_revocation_number: remote_channel_reestablish
+                .next_revocation_number,
+            // TODO: Set to the last per commitment secret we received, if any
+            your_last_per_commitment_secret: [0u8; 32],
+            my_current_per_commitment_point: self.local_per_commitment_point,
+        })
+    }
+
     fn remote_paymentpubkey(&self, as_remote_node: bool) -> PublicKey {
         // TODO: Optimize and keep Secp256k1 on a permanent basis
         let secp = Secp256k1::verification_only();
@@ -1201,8 +1258,15 @@ mod test {
             version: 2,
             lock_time: 0,
             input: vec![TxIn {
-                previous_output: OutPoint::new(Txid::from_str("fd2105607605d2302994ffea703b09f66b6351816ee737a93e42a841ea20bbad").unwrap(), 0),
-                script_sig: Script::from_str("48304502210090587b6201e166ad6af0227d3036a9454223d49a1f11839c1a362184340ef0240220577f7cd5cca78719405cbf1de7414ac027f0239ef6e214c90fcaab0454d84b3b012103535b32d5eb0a6ed0982a0479bbadc9868d9836f6ba94dd5a63be16d875069184").unwrap(),
+                previous_output: OutPoint::new(Txid::from_str(
+                    "fd2105607605d2302994ffea703b09f66b6351816ee737a93e42a841ea20bbad"
+                ).unwrap(), 0),
+                script_sig: Script::from_str(
+                    "48304502210090587b6201e166ad6af0227d3036a9454223d49a1f11839\
+                    c1a362184340ef0240220577f7cd5cca78719405cbf1de7414ac027f023\
+                    9ef6e214c90fcaab0454d84b3b012103535b32d5eb0a6ed0982a0479bba\
+                    dc9868d9836f6ba94dd5a63be16d875069184"
+                ).unwrap(),
                 sequence: 4294967295,
                 witness: vec![],
             }],
@@ -1228,7 +1292,12 @@ mod test {
             },
             remote_funding_pubkey,
         );
-        assert_eq!(witness_script.to_hex(), "5221023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb21030e9f7b623d2ccc7c9bd44d66d5ce21ce504c0acf6385a132cec6d3c39fa711c152ae");
+        assert_eq!(
+            witness_script.to_hex(),
+            "5221023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f\
+            54eb21030e9f7b623d2ccc7c9bd44d66d5ce21ce504c0acf6385a132cec6d3c39fa\
+            711c152ae"
+        );
     }
 
     #[test]
@@ -1316,19 +1385,31 @@ mod test {
         let mut core = core_for_tests();
         core.remote_keys.payment_basepoint = base_point;
         core.local_per_commitment_point = per_commitment_point;
-        assert_eq!(core.remote_paymentpubkey(false), pk!("0235f2dbfaa89b57ec7b055afe29849ef7ddfeb1cefdb9ebdc43f5494984db29e5"));
+        assert_eq!(
+            core.remote_paymentpubkey(false),
+            pk!("0235f2dbfaa89b57ec7b055afe29849ef7ddfeb1cefdb9ebdc43f5494984db29e5")
+        );
 
         core.local_keys.payment_basepoint = lk!(base_point);
         core.remote_per_commitment_point = per_commitment_point;
-        assert_eq!(core.remote_paymentpubkey(true), pk!("0235f2dbfaa89b57ec7b055afe29849ef7ddfeb1cefdb9ebdc43f5494984db29e5"));
+        assert_eq!(
+            core.remote_paymentpubkey(true),
+            pk!("0235f2dbfaa89b57ec7b055afe29849ef7ddfeb1cefdb9ebdc43f5494984db29e5")
+        );
 
         core.local_keys.delayed_payment_basepoint = lk!(base_point);
         core.remote_per_commitment_point = per_commitment_point;
-        assert_eq!(core.local_delayedpubkey(false), pk!("0235f2dbfaa89b57ec7b055afe29849ef7ddfeb1cefdb9ebdc43f5494984db29e5"));
+        assert_eq!(
+            core.local_delayedpubkey(false),
+            pk!("0235f2dbfaa89b57ec7b055afe29849ef7ddfeb1cefdb9ebdc43f5494984db29e5")
+        );
 
         core.remote_keys.delayed_payment_basepoint = base_point;
         core.local_per_commitment_point = per_commitment_point;
-        assert_eq!(core.local_delayedpubkey(true), pk!("0235f2dbfaa89b57ec7b055afe29849ef7ddfeb1cefdb9ebdc43f5494984db29e5"));
+        assert_eq!(
+            core.local_delayedpubkey(true),
+            pk!("0235f2dbfaa89b57ec7b055afe29849ef7ddfeb1cefdb9ebdc43f5494984db29e5")
+        );
     }
 
     #[test]
@@ -1339,10 +1420,16 @@ mod test {
 
         core.local_keys.revocation_basepoint = lk!(base_point);
         core.remote_per_commitment_point = per_commitment_point;
-        assert_eq!(core.remote_revocationpubkey(true), pk!("02916e326636d19c33f13e8c0c3a03dd157f332f3e99c317c141dd865eb01f8ff0"));
+        assert_eq!(
+            core.remote_revocationpubkey(true),
+            pk!("02916e326636d19c33f13e8c0c3a03dd157f332f3e99c317c141dd865eb01f8ff0")
+        );
 
         core.remote_keys.revocation_basepoint = base_point;
         core.local_per_commitment_point = per_commitment_point;
-        assert_eq!(core.remote_revocationpubkey(false), pk!("02916e326636d19c33f13e8c0c3a03dd157f332f3e99c317c141dd865eb01f8ff0"));
+        assert_eq!(
+            core.remote_revocationpubkey(false),
+            pk!("02916e326636d19c33f13e8c0c3a03dd157f332f3e99c317c141dd865eb01f8ff0")
+        );
     }
 }
