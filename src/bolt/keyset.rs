@@ -18,7 +18,7 @@ use bitcoin::util::bip32::{ChildNumber, ExtendedPrivKey, KeySource};
 use p2p::legacy::{AcceptChannel, ChannelType, OpenChannel};
 use secp256k1::{PublicKey, Secp256k1};
 use wallet::hd::HardenedIndex;
-use wallet::scripts::{Category, PubkeyScript, ToPubkeyScript};
+use wallet::scripts::PubkeyScript;
 
 /// Key + information about its derivation
 #[derive(Clone, PartialEq, Eq, Debug, StrictEncode, StrictDecode)]
@@ -196,11 +196,11 @@ impl LocalKeyset {
         secp: &Secp256k1<C>,
         channel_source: KeySource,
         channel_xpriv: ExtendedPrivKey,
-        commit_to_shutdown_scriptpubkey: bool,
+        shutdown_scriptpubkey: Option<PubkeyScript>,
     ) -> Self {
         let fingerpint = channel_source.0;
 
-        let keys = (0u16..=7)
+        let keys = (0u16..=6)
             .into_iter()
             .map(HardenedIndex::from)
             .map(ChildNumber::from)
@@ -226,11 +226,7 @@ impl LocalKeyset {
             delayed_payment_basepoint: keys[2].clone(),
             htlc_basepoint: keys[5].clone(),
             first_per_commitment_point: keys[4].clone(),
-            shutdown_scriptpubkey: if commit_to_shutdown_scriptpubkey {
-                Some(keys[7].key.to_pubkey_script(Category::SegWit))
-            } else {
-                None
-            },
+            shutdown_scriptpubkey,
             static_remotekey: false,
         }
     }
