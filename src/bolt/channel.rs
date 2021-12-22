@@ -22,7 +22,7 @@ use lnp2p::legacy::{
     TempChannelId,
 };
 use lnpbp::chain::Chain;
-use p2p::legacy::ChannelReestablish;
+use p2p::legacy::{ChannelReestablish, FundingLocked};
 use secp256k1::{Secp256k1, Signature};
 use wallet::lex_order::LexOrder;
 use wallet::psbt::Psbt;
@@ -211,6 +211,11 @@ impl Channel<ExtensionId> {
         &mut self,
     ) -> Result<AcceptChannel, channel::Error> {
         self.constructor_mut().compose_accept_channel()
+    }
+
+    #[inline]
+    pub fn compose_funding_locked(&mut self) -> FundingLocked {
+        self.constructor_mut().compose_funding_locked()
     }
 
     pub fn compose_reestablish_channel(
@@ -540,10 +545,12 @@ impl Extension for Core {
                 self.active_channel_id =
                     ActiveChannelId::from(funding_signed.channel_id);
                 self.commitment_sigs.push(funding_signed.signature);
-                // TODO: Verify signature agains transaction
+                // TODO: Verify signature against transaction
             }
-            Messages::FundingLocked(_) => {
+            Messages::FundingLocked(funding_locked) => {
                 self.stage = Lifecycle::Locked; // TODO: or Active
+                self.remote_per_commitment_point =
+                    funding_locked.next_per_commitment_point;
             }
             Messages::Shutdown(_) => {}
             Messages::ClosingSigned(_) => {}
@@ -770,6 +777,21 @@ impl Core {
             your_last_per_commitment_secret: Slice32::default(),
             my_current_per_commitment_point: self.local_per_commitment_point,
         })
+    }
+
+    fn compose_funding_locked(&mut self) -> FundingLocked {
+        FundingLocked {
+            channel_id: self
+                .active_channel_id
+                .channel_id()
+                .expect("channel id must be known at FUNDING_LOCKED stage"),
+            next_per_commitment_point: self.next_per_commitment_point(),
+        }
+    }
+
+    fn next_per_commitment_point(&mut self) -> PublicKey {
+        // TODO: Implement per commitment point switching
+        self.local_per_commitment_point
     }
 
     fn remote_paymentpubkey(&self, as_remote_node: bool) -> PublicKey {
