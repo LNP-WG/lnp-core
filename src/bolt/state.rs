@@ -12,7 +12,6 @@
 // If not, see <https://opensource.org/licenses/MIT>.
 
 use amplify::{DumbDefault, Slice32, ToYamlString};
-use bitcoin::OutPoint;
 use p2p::legacy::{ActiveChannelId, TempChannelId};
 use secp256k1::{PublicKey, Signature};
 
@@ -55,9 +54,6 @@ pub struct ChannelState {
     /// is replaced by the channel_id, which is derived from the funding
     /// transaction.
     pub active_channel_id: ActiveChannelId,
-
-    /// Funding transaction outpoint spent by commitment transactions input
-    pub funding_outpoint: OutPoint,
 
     /// Amount in millisatoshis
     pub local_amount_msat: u64,
@@ -124,7 +120,6 @@ impl DumbDefault for ChannelState {
             active_channel_id: ActiveChannelId::Temporary(
                 TempChannelId::dumb_default(),
             ),
-            funding_outpoint: Default::default(),
             local_amount_msat: 0,
             remote_amount_msat: 0,
             commitment_number: 0,

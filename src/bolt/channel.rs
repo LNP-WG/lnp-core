@@ -16,7 +16,7 @@ use bitcoin::blockdata::opcodes::all::*;
 use bitcoin::blockdata::script;
 use bitcoin::hashes::{sha256, Hash, HashEngine};
 use bitcoin::secp256k1::PublicKey;
-use bitcoin::{Network, OutPoint, TxOut};
+use bitcoin::{Network, TxOut};
 use lnp2p::legacy::{
     AcceptChannel, ActiveChannelId, ChannelId, Messages, OpenChannel,
     TempChannelId,
@@ -302,10 +302,6 @@ pub struct Core {
     #[getter(as_copy)]
     active_channel_id: ActiveChannelId,
 
-    /// Funding transaction outpoint spent by commitment transactions input
-    #[getter(as_copy)]
-    funding_outpoint: OutPoint,
-
     /// Amount in millisatoshis
     #[getter(as_copy)]
     local_amount_msat: u64,
@@ -359,7 +355,6 @@ impl Default for Core {
             stage: Lifecycle::Initial,
             chain_hash: default!(),
             active_channel_id: ActiveChannelId::random(),
-            funding_outpoint: OutPoint::default(),
             local_amount_msat: 0,
             remote_amount_msat: 0,
             commitment_number: 0,
@@ -578,7 +573,6 @@ impl Extension for Core {
         self.stage = state.stage;
         self.chain_hash = state.chain_hash;
         self.active_channel_id = state.active_channel_id;
-        self.funding_outpoint = state.funding_outpoint;
         self.local_amount_msat = state.local_amount_msat;
         self.remote_amount_msat = state.remote_amount_msat;
         self.commitment_number = state.commitment_number;
@@ -598,7 +592,6 @@ impl Extension for Core {
         state.stage = self.stage;
         state.chain_hash = self.chain_hash;
         state.active_channel_id = self.active_channel_id;
-        state.funding_outpoint = self.funding_outpoint;
         state.local_amount_msat = self.local_amount_msat;
         state.remote_amount_msat = self.remote_amount_msat;
         state.commitment_number = self.commitment_number;
