@@ -68,6 +68,14 @@ impl Strategy for secp256k1::PublicKey {
     type Strategy = strategies::AsStrict;
 }
 
+impl Strategy for bitcoin::PrivateKey {
+    type Strategy = strategies::AsStrict;
+}
+
+impl Strategy for secp256k1::SecretKey {
+    type Strategy = strategies::AsStrict;
+}
+
 impl Strategy for secp256k1::Signature {
     type Strategy = strategies::AsStrict;
 }
