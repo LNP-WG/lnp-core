@@ -774,7 +774,7 @@ impl Core {
             next_revocation_number: remote_channel_reestablish
                 .next_revocation_number,
             // TODO: Set to the last per commitment secret we received, if any
-            your_last_per_commitment_secret: [0u8; 32],
+            your_last_per_commitment_secret: Slice32::default(),
             my_current_per_commitment_point: self.local_per_commitment_point,
         })
     }

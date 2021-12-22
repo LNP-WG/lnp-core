@@ -19,7 +19,7 @@ use std::str::FromStr;
 use amplify::flags::FlagVec;
 use amplify::{DumbDefault, Slice32};
 use bitcoin::hashes::sha256;
-use bitcoin::secp256k1::{PublicKey, Signature};
+use bitcoin::secp256k1::{PublicKey, SecretKey, Signature};
 use bitcoin::Txid;
 use internet2::tlv;
 use lnpbp::bech32::Blob;
@@ -618,7 +618,7 @@ pub struct RevokeAndAck {
     pub channel_id: ChannelId,
 
     /// The secret corresponding to the per-commitment point
-    pub per_commitment_secret: [u8; 32],
+    pub per_commitment_secret: SecretKey,
 
     /// The next sender-broadcast commitment transaction's per-commitment point
     pub next_per_commitment_point: PublicKey,
@@ -651,8 +651,12 @@ pub struct ChannelReestablish {
     pub next_revocation_number: u64,
 
     /// Proof that the sender knows the per-commitment secret of a specific
-    /// commitment transaction belonging to the recipient
-    pub your_last_per_commitment_secret: [u8; 32],
+    /// commitment transaction belonging to the recipient.
+    ///
+    /// We use [`Slice32`] here and not [`SecretKey`] since this value might be
+    /// zero (indicating no previous per commitment secret was shared), which
+    /// will result in serialization faiure for [`SecretKey`].
+    pub your_last_per_commitment_secret: Slice32,
 
     /// The sender's per-commitment point for their current commitment
     /// transaction
