@@ -698,7 +698,7 @@ dependencies = [
 
 [[package]]
 name = "lightning_encoding"
-version = "0.5.11"
+version = "0.5.12"
 dependencies = [
  "amplify",
  "bitcoin",

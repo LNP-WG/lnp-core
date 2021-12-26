@@ -27,16 +27,16 @@ impl LightningEncode for &[u8] {
     }
 }
 
-impl LightningEncode for [u8; 32] {
+impl<const LEN: usize> LightningEncode for [u8; LEN] {
     fn lightning_encode<E: io::Write>(&self, mut e: E) -> Result<usize, Error> {
         e.write_all(self)?;
         Ok(self.len())
     }
 }
 
-impl LightningDecode for [u8; 32] {
+impl<const LEN: usize> LightningDecode for [u8; LEN] {
     fn lightning_decode<D: io::Read>(mut d: D) -> Result<Self, Error> {
-        let mut ret = [0u8; 32];
+        let mut ret = [0u8; LEN];
         d.read_exact(&mut ret)?;
         Ok(ret)
     }
