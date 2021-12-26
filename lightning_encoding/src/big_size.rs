@@ -96,6 +96,18 @@ impl From<BigSize> for usize {
     }
 }
 
+impl BigSize {
+    /// Calculates length of serialized BigSize type
+    pub fn len(self) -> usize {
+        match self.0 {
+            0..=0xFC => 1,
+            0xFD..=0xFFFF => 3,
+            0x10000..=0xFFFFFFFF => 5,
+            _ => 9,
+        }
+    }
+}
+
 impl LightningEncode for BigSize {
     fn lightning_encode<E: io::Write>(&self, mut e: E) -> Result<usize, Error> {
         let vec = match self.0 {
