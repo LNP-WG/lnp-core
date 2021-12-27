@@ -244,8 +244,19 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed8738f14471a99f0e316c327e68fc82a3611cc2895fcb604b89eedaf8f39d95"
 dependencies = [
- "cipher",
+ "cipher 0.2.5",
  "zeroize",
+]
+
+[[package]]
+name = "chacha20"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "01b72a433d0cf2aef113ba70f62634c56fddb0f244e6377185c56a7cadbd8f91"
+dependencies = [
+ "cfg-if",
+ "cipher 0.3.0",
+ "cpufeatures",
 ]
 
 [[package]]
@@ -255,8 +266,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "af1fc18e6d90c40164bf6c317476f2a98f04661e310e79830366b7e914c58a8e"
 dependencies = [
  "aead",
- "chacha20",
- "cipher",
+ "chacha20 0.6.0",
+ "cipher 0.2.5",
  "poly1305",
  "zeroize",
 ]
@@ -279,6 +290,15 @@ name = "cipher"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "12f8e7987cbd042a63249497f41aed09f8e65add917ea6566effbc56578d6801"
+dependencies = [
+ "generic-array",
+]
+
+[[package]]
+name = "cipher"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7ee52072ec15386f770805afd189a01c8841be8696bed250fa2f13c4c0d6dfb7"
 dependencies = [
  "generic-array",
 ]
@@ -639,17 +659,18 @@ dependencies = [
 
 [[package]]
 name = "internet2"
-version = "0.5.16"
+version = "0.5.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a9ce52faff91afebfa413e59d7bd7cec6cd1e0d5506bf89036e00f7a627ae0a5"
+checksum = "02fa1cf6dec7a1e9c15e4bf2a2be526576449aa5f4e0e601606e42a6ceffb22c"
 dependencies = [
  "amplify",
  "bitcoin_hashes",
+ "chacha20 0.8.1",
  "chacha20poly1305",
  "inet2_addr",
  "inet2_derive",
  "lazy_static",
- "lightning_encoding 0.5.10",
+ "lightning_encoding 0.5.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "secp256k1",
  "strict_encoding",
  "url",
@@ -683,21 +704,6 @@ checksum = "1b03d17f364a3a042d5e5d46b053bbbf82c92c9430c592dd4c064dc6ee997125"
 
 [[package]]
 name = "lightning_encoding"
-version = "0.5.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f2cede7c063fb4379625acc87b2085dd871e98acbc5f584cce6ead81b3df6c8"
-dependencies = [
- "amplify",
- "bitcoin",
- "chrono",
- "descriptor-wallet",
- "lightning_encoding_derive 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "lnpbp",
- "strict_encoding",
-]
-
-[[package]]
-name = "lightning_encoding"
 version = "0.5.12"
 dependencies = [
  "amplify",
@@ -710,6 +716,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "lightning_encoding"
+version = "0.5.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c1f759f90de091c69d83687a7e794ce986c7b830421cf18236232651ce359699"
+dependencies = [
+ "amplify",
+ "bitcoin",
+ "chrono",
+ "descriptor-wallet",
+ "lightning_encoding_derive 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lnpbp",
+ "strict_encoding",
+]
+
+[[package]]
 name = "lightning_encoding_derive"
 version = "0.5.3"
 dependencies = [
@@ -717,7 +738,7 @@ dependencies = [
  "amplify_syn",
  "encoding_derive_helpers",
  "internet2",
- "lightning_encoding 0.5.10",
+ "lightning_encoding 0.5.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "proc-macro2",
  "quote",
  "syn",
@@ -750,7 +771,7 @@ dependencies = [
  "bitcoin",
  "descriptor-wallet",
  "internet2",
- "lightning_encoding 0.5.10",
+ "lightning_encoding 0.5.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "lnp2p",
  "lnpbp",
  "secp256k1",
@@ -770,7 +791,7 @@ dependencies = [
  "descriptor-wallet",
  "internet2",
  "lazy_static",
- "lightning_encoding 0.5.10",
+ "lightning_encoding 0.5.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "lnpbp",
  "serde",
  "serde_with",
