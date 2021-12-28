@@ -18,7 +18,6 @@ use bitcoin::util::psbt;
 use bitcoin::util::psbt::PartiallySignedTransaction as Psbt;
 use bitcoin::{OutPoint, Transaction, TxIn, TxOut};
 use lnp2p::legacy::{ChannelId, Messages};
-use lnpbp::chain::AssetId;
 use p2p::legacy::ChannelType;
 use wallet::hlc::{HashLock, HashPreimage};
 use wallet::scripts::{LockScript, PubkeyScript, WitnessScript};
@@ -39,7 +38,6 @@ pub struct HtlcKnown {
     pub preimage: HashPreimage,
     pub id: u64,
     pub cltv_expiry: u32,
-    pub asset_id: Option<AssetId>,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -54,7 +52,6 @@ pub struct HtlcSecret {
     pub hashlock: HashLock,
     pub id: u64,
     pub cltv_expiry: u32,
-    pub asset_id: Option<AssetId>,
 }
 
 #[derive(Getters, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -203,10 +200,6 @@ impl Extension for Htlc {
                             hashlock: message.payment_hash,
                             id: message.htlc_id,
                             cltv_expiry: message.cltv_expiry,
-                            #[cfg(feature = "rgb")]
-                            asset_id: message.asset_id,
-                            #[cfg(not(feature = "rgb"))]
-                            asset_id: None,
                         };
                         self.received_htlcs.push(htlc);
 
@@ -241,7 +234,6 @@ impl Extension for Htlc {
                             preimage: message.payment_preimage,
                             id: message.htlc_id,
                             cltv_expiry: offered_htlc.cltv_expiry,
-                            asset_id: offered_htlc.asset_id,
                         };
 
                         self.resolved_htlcs.push(resolved_htlc);

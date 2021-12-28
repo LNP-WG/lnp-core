@@ -25,7 +25,6 @@ use bitcoin::Txid;
 use internet2::presentation::sphinx::Onion;
 use internet2::tlv;
 use lnpbp::bech32::Blob;
-use lnpbp::chain::AssetId;
 use wallet::hlc::{HashLock, HashPreimage};
 use wallet::scripts::PubkeyScript;
 
@@ -532,11 +531,6 @@ pub struct UpdateAddHtlc {
     /// prevents replay attacks that would reuse a previous
     /// onion_routing_packet with a different payment_hash.
     pub onion_routing_packet: Onion<PaymentOnion, PAYMENT_SPHINX_LEN>,
-
-    /// RGB Extension: TLV
-    #[lightning_encoding(tlv = 1)]
-    #[cfg_attr(feature = "strict_encoding", network_encoding(tlv = 1))]
-    pub asset_id: Option<AssetId>,
 
     /// The rest of TLVs with unknown odd type ids
     #[lightning_encoding(unknown_tlvs)]
