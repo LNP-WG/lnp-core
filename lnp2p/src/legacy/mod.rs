@@ -14,6 +14,7 @@
 // If not, see <https://opensource.org/licenses/MIT>.
 
 mod bolt1;
+mod bolt11;
 mod bolt2;
 mod bolt4;
 mod bolt7;
@@ -23,6 +24,7 @@ mod types;
 use std::io;
 
 pub use bolt1::*;
+pub use bolt11::*;
 pub use bolt2::*;
 pub use bolt4::*;
 pub use bolt7::*;
