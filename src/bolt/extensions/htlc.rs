@@ -19,6 +19,7 @@ use bitcoin::util::psbt::PartiallySignedTransaction as Psbt;
 use bitcoin::{OutPoint, Transaction, TxIn, TxOut};
 use lnp2p::legacy::{ChannelId, Messages};
 use p2p::legacy::ChannelType;
+use std::collections::BTreeMap;
 use wallet::hlc::{HashLock, HashPreimage};
 use wallet::scripts::{LockScript, PubkeyScript, WitnessScript};
 use wallet::IntoPk;
@@ -63,9 +64,9 @@ pub struct Htlc {
     anchors_zero_fee_htlc_tx: bool,
 
     // Sets of HTLC informations
-    offered_htlcs: Vec<HtlcSecret>,
-    received_htlcs: Vec<HtlcSecret>,
-    resolved_htlcs: Vec<HtlcKnown>,
+    offered_htlcs: BTreeMap<u64, HtlcSecret>,
+    received_htlcs: BTreeMap<u64, HtlcSecret>,
+    resolved_htlcs: BTreeMap<u64, HtlcKnown>,
 
     // Commitment round specific information
     to_self_delay: u16,
@@ -83,17 +84,17 @@ pub struct Htlc {
     max_htlc_value_in_flight_msat: u64,
     max_accepted_htlcs: u16,
 
-    last_recieved_htlc_id: u64,
-    last_offered_htlc_id: u64,
+    next_recieved_htlc_id: u64,
+    next_offered_htlc_id: u64,
 }
 
 impl Default for Htlc {
     fn default() -> Self {
         Htlc {
             anchors_zero_fee_htlc_tx: false,
-            offered_htlcs: vec![],
-            received_htlcs: vec![],
-            resolved_htlcs: vec![],
+            offered_htlcs: empty!(),
+            received_htlcs: empty!(),
+            resolved_htlcs: empty!(),
             to_self_delay: 0,
             local_revocation_basepoint: dumb_pubkey!(),
             remote_revocation_basepoint: dumb_pubkey!(),
@@ -104,8 +105,8 @@ impl Default for Htlc {
             htlc_minimum_msat: 0,
             max_htlc_value_in_flight_msat: 0,
             max_accepted_htlcs: 0,
-            last_recieved_htlc_id: 0,
-            last_offered_htlc_id: 0,
+            next_recieved_htlc_id: 0,
+            next_offered_htlc_id: 0,
         }
     }
 }
@@ -163,6 +164,8 @@ impl Extension for Htlc {
                 self.to_self_delay = accept_channel.to_self_delay;
             }
             Messages::UpdateAddHtlc(message) => {
+                // TODO: Filter messages by channel_id at channel level with
+                //       special API
                 if message.channel_id == self.channel_id {
                     // Checks
                     // 1. sending node should afford current fee rate after
@@ -190,7 +193,7 @@ impl Extension for Htlc {
                             "Leading zeros not satisfied for Bitcoin network"
                                 .to_string(),
                         ));
-                    } else if message.htlc_id <= self.last_recieved_htlc_id {
+                    } else if message.htlc_id <= self.next_recieved_htlc_id {
                         return Err(channel::Error::Htlc(
                             "HTLC id violation occurred".to_string(),
                         )); // TODO handle reconnection
@@ -201,9 +204,9 @@ impl Extension for Htlc {
                             id: message.htlc_id,
                             cltv_expiry: message.cltv_expiry,
                         };
-                        self.received_htlcs.push(htlc);
+                        self.received_htlcs.insert(htlc.id, htlc);
 
-                        self.last_recieved_htlc_id += 1;
+                        self.next_recieved_htlc_id += 1;
                     }
                 } else {
                     return Err(channel::Error::Htlc(
@@ -214,12 +217,9 @@ impl Extension for Htlc {
             Messages::UpdateFulfillHtlc(message) => {
                 if message.channel_id == self.channel_id {
                     // Get the corresponding offered htlc
-                    let (index, offered_htlc) = self
-                        .offered_htlcs
-                        .iter()
-                        .enumerate()
-                        .filter(|(_, htlc)| htlc.id == message.htlc_id)
-                        .next()
+                    let offered_htlc = self
+                        .received_htlcs
+                        .get(&message.htlc_id)
                         .ok_or(channel::Error::Htlc(
                             "HTLC id didn't match".to_string(),
                         ))?;
@@ -228,15 +228,15 @@ impl Extension for Htlc {
                     if offered_htlc.hashlock
                         == HashLock::from(message.payment_preimage)
                     {
-                        self.received_htlcs.remove(index);
+                        self.offered_htlcs.remove(&message.htlc_id);
                         let resolved_htlc = HtlcKnown {
                             amount: offered_htlc.amount,
                             preimage: message.payment_preimage,
                             id: message.htlc_id,
                             cltv_expiry: offered_htlc.cltv_expiry,
                         };
-
-                        self.resolved_htlcs.push(resolved_htlc);
+                        self.resolved_htlcs
+                            .insert(message.htlc_id, resolved_htlc);
                     }
                 } else {
                     return Err(channel::Error::Htlc(
@@ -246,18 +246,7 @@ impl Extension for Htlc {
             }
             Messages::UpdateFailHtlc(message) => {
                 if message.channel_id == self.channel_id {
-                    // get the offered HTLC to fail
-                    let (index, _) = self
-                        .offered_htlcs
-                        .iter()
-                        .enumerate()
-                        .filter(|(_, htlc)| htlc.id == message.htlc_id)
-                        .next()
-                        .ok_or(channel::Error::Htlc(
-                            "HTLC id didn't match".to_string(),
-                        ))?;
-
-                    self.offered_htlcs.remove(index);
+                    self.offered_htlcs.remove(&message.htlc_id);
 
                     // TODO the failure reason should be handled here
                 }
@@ -298,16 +287,16 @@ impl Extension for Htlc {
             state.remote_params.max_htlc_value_in_flight_msat;
         self.max_accepted_htlcs = state.remote_params.max_accepted_htlcs;
 
-        self.last_recieved_htlc_id = state.last_recieved_htlc_id;
-        self.last_offered_htlc_id = state.last_offered_htlc_id;
+        self.next_recieved_htlc_id = state.last_recieved_htlc_id;
+        self.next_offered_htlc_id = state.last_offered_htlc_id;
     }
 
     fn store_state(&self, state: &mut ChannelState) {
         state.offered_htlcs = self.offered_htlcs.clone();
         state.received_htlcs = self.received_htlcs.clone();
         state.resolved_htlcs = self.resolved_htlcs.clone();
-        state.last_recieved_htlc_id = self.last_recieved_htlc_id;
-        state.last_offered_htlc_id = self.last_offered_htlc_id;
+        state.last_recieved_htlc_id = self.next_recieved_htlc_id;
+        state.last_offered_htlc_id = self.next_offered_htlc_id;
     }
 }
 
@@ -318,7 +307,7 @@ impl ChannelExtension for Htlc {
         _as_remote_node: bool,
     ) -> Result<(), channel::Error> {
         // Process offered HTLCs
-        for (index, offered) in self.offered_htlcs.iter().enumerate() {
+        for (index, offered) in self.offered_htlcs.iter() {
             let htlc_output = ScriptGenerators::ln_offered_htlc(
                 offered.amount,
                 self.remote_revocation_basepoint,
@@ -341,13 +330,13 @@ impl ChannelExtension for Htlc {
             let last_index = tx_graph.last_index(TxType::HtlcTimeout) + 1;
             tx_graph.insert_tx(
                 TxType::HtlcTimeout,
-                (last_index + index) as u64,
+                last_index as u64 + index,
                 htlc_tx,
             );
         }
 
         // Process received HTLCs
-        for (index, recieved) in self.received_htlcs.iter().enumerate() {
+        for (index, recieved) in self.received_htlcs.iter() {
             let htlc_output = ScriptGenerators::ln_received_htlc(
                 recieved.amount,
                 self.remote_revocation_basepoint,
@@ -371,7 +360,7 @@ impl ChannelExtension for Htlc {
             let last_index = tx_graph.last_index(TxType::HtlcSuccess) + 1;
             tx_graph.insert_tx(
                 TxType::HtlcSuccess,
-                (last_index + index) as u64,
+                last_index as u64 + index,
                 htlc_tx,
             );
         }

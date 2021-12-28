@@ -14,6 +14,7 @@
 use amplify::{DumbDefault, Slice32, ToYamlString};
 use p2p::legacy::{ActiveChannelId, TempChannelId};
 use secp256k1::{PublicKey, Signature};
+use std::collections::BTreeMap;
 
 use crate::bolt::channel::Direction;
 use crate::bolt::extensions::{HtlcKnown, HtlcSecret};
@@ -91,9 +92,9 @@ pub struct ChannelState {
     /// Keeps information about node directionality
     pub direction: Direction,
 
-    pub offered_htlcs: Vec<HtlcSecret>,
-    pub received_htlcs: Vec<HtlcSecret>,
-    pub resolved_htlcs: Vec<HtlcKnown>,
+    pub offered_htlcs: BTreeMap<u64, HtlcSecret>,
+    pub received_htlcs: BTreeMap<u64, HtlcSecret>,
+    pub resolved_htlcs: BTreeMap<u64, HtlcKnown>,
     pub last_recieved_htlc_id: u64,
     pub last_offered_htlc_id: u64,
 }
