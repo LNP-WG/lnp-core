@@ -31,7 +31,6 @@ extern crate amplify;
 extern crate lazy_static;
 #[macro_use]
 extern crate internet2;
-#[cfg(feature = "lightning_encoding")]
 #[macro_use]
 extern crate lightning_encoding;
 #[cfg(feature = "serde")]

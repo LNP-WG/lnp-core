@@ -16,12 +16,13 @@
 use std::io;
 use std::str::FromStr;
 
+use crate::legacy::PaymentOnion;
 use amplify::flags::FlagVec;
 use amplify::{DumbDefault, Slice32};
 use bitcoin::hashes::sha256;
 use bitcoin::secp256k1::{PublicKey, SecretKey, Signature};
 use bitcoin::Txid;
-use internet2::presentation::sphinx::OnionPacket;
+use internet2::presentation::sphinx::Onion;
 use internet2::tlv;
 use lnpbp::bech32::Blob;
 use lnpbp::chain::AssetId;
@@ -530,7 +531,7 @@ pub struct UpdateAddHtlc {
     /// data, i.e. includes the payment_hash in the computation of HMACs. This
     /// prevents replay attacks that would reuse a previous
     /// onion_routing_packet with a different payment_hash.
-    pub onion_routing_packet: OnionPacket<PAYMENT_SPHINX_LEN>,
+    pub onion_routing_packet: Onion<PaymentOnion, PAYMENT_SPHINX_LEN>,
 
     /// RGB Extension: TLV
     #[lightning_encoding(tlv = 1)]

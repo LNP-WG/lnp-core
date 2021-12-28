@@ -25,6 +25,7 @@ use wallet::hlc::HashPreimage;
 use crate::legacy::ShortChannelId;
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug)]
+#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 pub struct PaymentOnion {
     realm: HopRealm,
     amt_to_forward: u64,
@@ -32,6 +33,7 @@ pub struct PaymentOnion {
 }
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug)]
+#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 pub enum HopRealm {
     Legacy(ShortChannelId),
     TlvIntermediary(ShortChannelId),
@@ -40,6 +42,7 @@ pub enum HopRealm {
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug)]
 #[derive(LightningEncode, LightningDecode)]
+#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 pub struct PaymentData {
     payment_secret: HashPreimage,
     total_msat: u64,
@@ -49,20 +52,30 @@ pub struct PaymentData {
 #[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug)]
 #[derive(LightningEncode, LightningDecode)]
 #[lightning_encoding(use_tlv)]
+#[cfg_attr(
+    feature = "strict_encoding",
+    derive(NetworkEncode, NetworkDecode),
+    network_encoding(use_tlv)
+)]
 struct TlvPayment {
     #[lightning_encoding(tlv = 2)]
+    #[cfg_attr(feature = "strict_encoding", network_encoding(tlv = 2))]
     amt_to_forward: Option<u64>,
 
     #[lightning_encoding(tlv = 4)]
+    #[cfg_attr(feature = "strict_encoding", network_encoding(tlv = 4))]
     outgoing_cltv_value: Option<u32>,
 
     #[lightning_encoding(tlv = 6)]
+    #[cfg_attr(feature = "strict_encoding", network_encoding(tlv = 6))]
     short_channel_id: Option<ShortChannelId>,
 
     #[lightning_encoding(tlv = 8)]
+    #[cfg_attr(feature = "strict_encoding", network_encoding(tlv = 8))]
     payment_data: Option<PaymentData>,
 
     #[lightning_encoding(unknown_tlvs)]
+    #[cfg_attr(feature = "strict_encoding", network_encoding(unknown_tlvs))]
     unknown: tlv::Stream,
 }
 
