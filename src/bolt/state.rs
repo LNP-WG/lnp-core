@@ -11,10 +11,11 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
+use std::collections::BTreeMap;
+
 use amplify::{DumbDefault, Slice32, ToYamlString};
 use p2p::legacy::{ActiveChannelId, TempChannelId};
 use secp256k1::{PublicKey, Signature};
-use std::collections::BTreeMap;
 
 use crate::bolt::channel::Direction;
 use crate::bolt::extensions::{HtlcKnown, HtlcSecret};

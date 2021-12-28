@@ -16,7 +16,6 @@
 use std::io;
 use std::str::FromStr;
 
-use crate::legacy::PaymentOnion;
 use amplify::flags::FlagVec;
 use amplify::{DumbDefault, Slice32};
 use bitcoin::hashes::sha256;
@@ -29,6 +28,7 @@ use wallet::hlc::{HashLock, HashPreimage};
 use wallet::scripts::PubkeyScript;
 
 use super::{ChannelId, TempChannelId};
+use crate::legacy::PaymentOnion;
 
 /// Total length of payment Sphinx package
 pub const PAYMENT_SPHINX_LEN: usize = 1300;

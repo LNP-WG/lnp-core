@@ -15,11 +15,12 @@
 
 //! Lightning payment data as they are decrypted from Sphinx onion packet
 
+use std::io;
+
 use amplify::Wrapper;
 use internet2::presentation::sphinx::SphinxPayload;
 use internet2::tlv;
 use lightning_encoding::{BigSize, LightningDecode, LightningEncode};
-use std::io;
 use wallet::hlc::HashPreimage;
 
 use crate::legacy::ShortChannelId;
@@ -145,20 +146,48 @@ impl LightningDecode for PaymentOnion {
             ))),
             len => {
                 let tlv = TlvPayment::lightning_decode(d.take(len.into()))?;
-                match (tlv.amt_to_forward, tlv.outgoing_cltv_value, tlv.short_channel_id, tlv.payment_data) {
-                    (None, _, _, _) => Err(lightning_encoding::Error::DataIntegrityError(s!("payment onion must contain amt_to_forward"))),
-                    (_, None, _, _) => Err(lightning_encoding::Error::DataIntegrityError(s!("payment onion must contain outgoing_cltv_value"))),
-                    (Some(_), Some(_), Some(_), Some(_)) => Err(lightning_encoding::Error::DataIntegrityError(s!("payment onion must not contain both short_channel_id and payment_data"))),
-                    (Some(amt_to_forward), Some(outgoing_cltv_value), Some(short_channel_id), None) => Ok(PaymentOnion {
+                match (
+                    tlv.amt_to_forward,
+                    tlv.outgoing_cltv_value,
+                    tlv.short_channel_id,
+                    tlv.payment_data,
+                ) {
+                    (None, _, _, _) => {
+                        Err(lightning_encoding::Error::DataIntegrityError(s!(
+                            "payment onion must contain amt_to_forward"
+                        )))
+                    }
+                    (_, None, _, _) => {
+                        Err(lightning_encoding::Error::DataIntegrityError(s!(
+                            "payment onion must contain outgoing_cltv_value"
+                        )))
+                    }
+                    (Some(_), Some(_), Some(_), Some(_)) => {
+                        Err(lightning_encoding::Error::DataIntegrityError(s!(
+                            "payment onion must not contain both \
+                             short_channel_id and payment_data"
+                        )))
+                    }
+                    (
+                        Some(amt_to_forward),
+                        Some(outgoing_cltv_value),
+                        Some(short_channel_id),
+                        None,
+                    ) => Ok(PaymentOnion {
                         realm: HopRealm::TlvIntermediary(short_channel_id),
                         amt_to_forward,
-                        outgoing_cltv_value
+                        outgoing_cltv_value,
                     }),
-                    (Some(amt_to_forward), Some(outgoing_cltv_value), None, payment_data) => Ok(PaymentOnion {
+                    (
+                        Some(amt_to_forward),
+                        Some(outgoing_cltv_value),
+                        None,
+                        payment_data,
+                    ) => Ok(PaymentOnion {
                         realm: HopRealm::TlvReceiver(payment_data),
                         amt_to_forward,
-                        outgoing_cltv_value
-                    })
+                        outgoing_cltv_value,
+                    }),
                 }
             }
         }

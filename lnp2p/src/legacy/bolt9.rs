@@ -576,7 +576,8 @@ impl strict_encoding::StrictDecode for InitFeatures {
     }
 }
 
-/// Features negotiated during channel creation and announced with `channel_announcement`.
+/// Features negotiated during channel creation and announced with
+/// `channel_announcement`.
 ///
 /// NB: Current BOLT-1 does not define any specific channel features.
 ///

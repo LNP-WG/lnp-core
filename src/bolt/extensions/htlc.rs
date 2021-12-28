@@ -11,6 +11,8 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
+use std::collections::BTreeMap;
+
 use bitcoin::blockdata::opcodes::all::*;
 use bitcoin::blockdata::script;
 use bitcoin::secp256k1::PublicKey;
@@ -19,7 +21,6 @@ use bitcoin::util::psbt::PartiallySignedTransaction as Psbt;
 use bitcoin::{OutPoint, Transaction, TxIn, TxOut};
 use lnp2p::legacy::{ChannelId, Messages};
 use p2p::legacy::ChannelType;
-use std::collections::BTreeMap;
 use wallet::hlc::{HashLock, HashPreimage};
 use wallet::scripts::{LockScript, PubkeyScript, WitnessScript};
 use wallet::IntoPk;
@@ -120,15 +121,12 @@ impl Htlc {
     ) -> u64 {
         let htlc_id = self.next_offered_htlc_id;
         self.next_offered_htlc_id += 1;
-        self.offered_htlcs.insert(
-            htlc_id,
-            HtlcSecret {
-                amount: amount_msat,
-                hashlock: payment_hash,
-                id: htlc_id,
-                cltv_expiry,
-            },
-        );
+        self.offered_htlcs.insert(htlc_id, HtlcSecret {
+            amount: amount_msat,
+            hashlock: payment_hash,
+            id: htlc_id,
+            cltv_expiry,
+        });
         htlc_id
     }
 }

@@ -151,32 +151,35 @@ pub enum Messages {
 
     // Part III. Gossip protocol (BOLT-7)
     // ==================================
-    /// This is a direct message between the two endpoints of a channel and serves
-    /// as an opt-in mechanism to allow the announcement of the channel to the rest
-    /// of the network. It contains the necessary signatures, by the sender, to
-    /// construct the `channel_announcement` message.
+    /// This is a direct message between the two endpoints of a channel and
+    /// serves as an opt-in mechanism to allow the announcement of the
+    /// channel to the rest of the network. It contains the necessary
+    /// signatures, by the sender, to construct the `channel_announcement`
+    /// message.
     #[api(type = 259)]
     AnnouncementSignatures(AnnouncementSignatures),
 
-    /// This gossip message contains ownership information regarding a channel. It
-    /// ties each on-chain Bitcoin key to the associated Lightning node key, and
-    /// vice-versa. The channel is not practically usable until at least one side
-    /// has announced its fee levels and expiry, using channel_update.
+    /// This gossip message contains ownership information regarding a channel.
+    /// It ties each on-chain Bitcoin key to the associated Lightning node
+    /// key, and vice-versa. The channel is not practically usable until at
+    /// least one side has announced its fee levels and expiry, using
+    /// channel_update.
     #[api(type = 256)]
     ChannelAnnouncement(ChannelAnnouncement),
 
-    /// This gossip message allows a node to indicate extra data associated with it,
-    /// in addition to its public key. To avoid trivial denial of service attacks,
-    /// nodes not associated with an already known channel are ignored.
+    /// This gossip message allows a node to indicate extra data associated
+    /// with it, in addition to its public key. To avoid trivial denial of
+    /// service attacks, nodes not associated with an already known channel
+    /// are ignored.
     #[api(type = 257)]
     NodeAnnouncements(NodeAnnouncements),
 
     /// After a channel has been initially announced, each side independently
     /// announces the fees and minimum expiry delta it requires to relay HTLCs
-    /// through this channel. Each uses the 8-byte channel `shortid` that matches  
-    /// the `channel_announcement` and the 1-bit `channel_flags` field to indicate
-    /// which end of the channel it's on (origin or final). A node can do this
-    /// multiple times, in order to change fees.
+    /// through this channel. Each uses the 8-byte channel `shortid` that
+    /// matches the `channel_announcement` and the 1-bit `channel_flags`
+    /// field to indicate which end of the channel it's on (origin or
+    /// final). A node can do this multiple times, in order to change fees.
     #[api(type = 258)]
     ChannelUpdate(ChannelUpdate),
 

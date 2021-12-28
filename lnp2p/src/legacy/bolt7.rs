@@ -15,13 +15,13 @@
 
 //! Bolt 7 Gossip messages
 
-use crate::legacy::ChannelFeatures;
 use amplify::Slice32;
 use bitcoin::secp256k1::{PublicKey, Signature};
 
 use super::{
     AddressList, Alias, ChannelId, InitFeatures, NodeColor, ShortChannelId,
 };
+use crate::legacy::ChannelFeatures;
 
 /// This is a direct message between the two endpoints of a channel and serves
 /// as an opt-in mechanism to allow the announcement of the channel to the rest
