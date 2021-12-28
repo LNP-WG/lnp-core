@@ -33,15 +33,13 @@ use wallet::psbt::Psbt;
 use wallet::scripts::{LockScript, PubkeyScript, WitnessScript};
 use wallet::{psbt, IntoPk};
 
-use super::extensions::AnchorOutputs;
+use super::keyset::{LocalKeyset, LocalPubkey, RemoteKeyset};
 use super::policy::{CommonParams, PeerParams, Policy};
-use super::{ExtensionId, Lifecycle, RemoteKeyset};
-use crate::bolt::extensions::Htlc;
-use crate::bolt::keyset::{LocalKeyset, LocalPubkey};
-use crate::bolt::ChannelState;
+use super::{AnchorOutputs, ChannelState, ExtensionId, Htlc, Lifecycle};
+use crate::channel::funding::{self, Funding, PsbtLnpFunding};
+use crate::channel::tx_graph::TxGraph;
 use crate::extension::ChannelConstructor;
-use crate::funding::PsbtLnpFunding;
-use crate::{channel, funding, Channel, ChannelExtension, Extension, Funding};
+use crate::{channel, Channel, ChannelExtension, Extension};
 
 /// Errors during payment creation
 #[derive(
@@ -942,7 +940,7 @@ impl Core {
 impl ChannelExtension for Core {
     fn build_graph(
         &self,
-        tx_graph: &mut channel::TxGraph,
+        tx_graph: &mut TxGraph,
         as_remote_node: bool,
     ) -> Result<(), channel::Error> {
         let obscured_commitment = self.obscured_commitment_number();

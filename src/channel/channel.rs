@@ -22,11 +22,12 @@ use bitcoin::util::psbt::PartiallySignedTransaction as Psbt;
 use lnp2p::legacy::Messages;
 use strict_encoding::{StrictDecode, StrictEncode};
 
-use super::extension::{self, ChannelExtension, Extension};
-use crate::bolt::{Lifecycle, PolicyError};
-use crate::extension::Nomenclature;
-pub(crate) use crate::tx_graph::{TxGraph, TxRole};
-use crate::{funding, ChannelConstructor, Funding};
+use super::tx_graph::TxGraph;
+use super::{funding, Funding};
+use crate::channel::bolt::{Lifecycle, PolicyError};
+use crate::extension;
+use crate::ChannelConstructor;
+use crate::{ChannelExtension, Extension};
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug, Display, Error, From)]
 #[display(doc_comments)]
@@ -320,7 +321,10 @@ where
         Ok(())
     }
 
-    fn load_state(&mut self, state: &<Self::Identity as Nomenclature>::State) {
+    fn load_state(
+        &mut self,
+        state: &<Self::Identity as extension::Nomenclature>::State,
+    ) {
         self.funding = state.to_funding();
         self.constructor.load_state(&state);
         for extension in self.extenders.values_mut() {
@@ -331,7 +335,10 @@ where
         }
     }
 
-    fn store_state(&self, state: &mut <Self::Identity as Nomenclature>::State) {
+    fn store_state(
+        &self,
+        state: &mut <Self::Identity as extension::Nomenclature>::State,
+    ) {
         state.set_funding(&self.funding);
         self.constructor.store_state(state);
         for extension in self.extenders.values() {

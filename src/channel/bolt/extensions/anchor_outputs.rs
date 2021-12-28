@@ -13,7 +13,8 @@
 
 use p2p::legacy::Messages;
 
-use crate::bolt::{ChannelState, ExtensionId};
+use crate::channel::bolt::{ChannelState, ExtensionId};
+use crate::channel::tx_graph::TxGraph;
 use crate::{channel, ChannelExtension, Extension};
 
 #[derive(Debug, Default)]
@@ -54,7 +55,7 @@ impl ChannelExtension for AnchorOutputs {
     #[inline]
     fn build_graph(
         &self,
-        _tx_graph: &mut channel::TxGraph,
+        _tx_graph: &mut TxGraph,
         _as_remote_node: bool,
     ) -> Result<(), channel::Error> {
         todo!("implement anchor outputs")

@@ -17,9 +17,10 @@ mod state;
 mod util;
 
 mod channel;
-pub mod extensions;
+mod extensions;
 
-pub use channel::{Core, ScriptGenerators};
+pub use channel::{Core, Direction, ScriptGenerators};
+pub use extensions::{AnchorOutputs, Htlc, HtlcKnown, HtlcSecret};
 pub use keyset::{LocalKeyset, LocalPubkey, RemoteKeyset};
 pub use policy::{CommonParams, PeerParams, Policy, PolicyError};
 pub use state::ChannelState;

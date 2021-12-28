@@ -14,7 +14,8 @@
 use lnp2p::legacy::Messages;
 use wallet::lex_order::LexOrder;
 
-use crate::bolt::{ChannelState, ExtensionId};
+use crate::channel::bolt::{ChannelState, ExtensionId};
+use crate::channel::tx_graph::TxGraph;
 use crate::{channel, ChannelExtension, Extension};
 
 #[derive(Debug, Default)]
@@ -57,7 +58,7 @@ impl ChannelExtension for Bip96 {
     #[inline]
     fn build_graph(
         &self,
-        tx_graph: &mut channel::TxGraph,
+        tx_graph: &mut TxGraph,
         _as_remote_node: bool,
     ) -> Result<(), channel::Error> {
         tx_graph.cmt_outs.lex_order();

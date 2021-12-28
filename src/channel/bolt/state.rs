@@ -17,13 +17,11 @@ use amplify::{DumbDefault, Slice32, ToYamlString};
 use p2p::legacy::{ActiveChannelId, TempChannelId};
 use secp256k1::{PublicKey, Signature};
 
-use crate::bolt::channel::Direction;
-use crate::bolt::extensions::{HtlcKnown, HtlcSecret};
-use crate::bolt::{
-    CommonParams, Lifecycle, LocalKeyset, PeerParams, Policy, RemoteKeyset,
+use super::{
+    CommonParams, Direction, HtlcKnown, HtlcSecret, Lifecycle, LocalKeyset,
+    PeerParams, Policy, RemoteKeyset,
 };
-use crate::channel::State;
-use crate::Funding;
+use crate::channel::{Funding, State};
 
 #[derive(Clone, Debug)]
 #[derive(StrictEncode, StrictDecode)]

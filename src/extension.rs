@@ -11,19 +11,19 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
-use internet2::presentation::sphinx::{Hop, SphinxPayload};
 use std::convert::TryFrom;
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
 
+use internet2::presentation::sphinx::{Hop, SphinxPayload};
 use lnp2p::legacy::Messages;
 use p2p::legacy::PaymentRequest;
 use wallet::psbt::Psbt;
 
 use super::{channel, Channel};
+use crate::channel::tx_graph::TxGraph;
+use crate::channel::Funding;
 use crate::channel::State;
-use crate::routing::ChannelInfo;
-use crate::Funding;
 
 /// Marker trait for creating extension nomenclatures, defining order in which
 /// extensions are applied to the channel transaction structure.
@@ -107,7 +107,7 @@ pub trait ChannelExtension: Extension {
     /// Applies state to the channel transaction graph
     fn build_graph(
         &self,
-        tx_graph: &mut channel::TxGraph,
+        tx_graph: &mut TxGraph,
         remote: bool,
     ) -> Result<(), channel::Error>;
 }

@@ -15,21 +15,27 @@
 
 use std::collections::BTreeMap;
 
-use amplify::Slice32;
 use internet2::presentation::sphinx::Hop;
 use p2p::legacy::{
-    ChannelAnnouncement, ChannelFeatures, ChannelUpdate, Messages,
-    PaymentOnion, PaymentRequest, ShortChannelId,
+    ChannelAnnouncement, ChannelUpdate, Messages, PaymentOnion, PaymentRequest,
 };
 use secp256k1::PublicKey;
 
-use crate::bolt::ExtensionId;
+use crate::channel::bolt::ExtensionId;
 use crate::channel::Error;
 use crate::extension::Nomenclature;
 use crate::{extension, ChannelExtension, Extension, RoutingExtension};
 
-pub type ExtensionQueue<N> =
-    BTreeMap<N, Box<dyn RoutingExtension<Identity = N>>>;
+pub type ExtensionQueue<N> = BTreeMap<
+    N,
+    Box<
+        dyn RoutingExtension<
+            Identity = N,
+            ChannelInfo = ChannelInfo,
+            Payload = PaymentOnion,
+        >,
+    >,
+>;
 
 /// Information about channel used for route construction and re-broadcasting
 /// gossip messages.

@@ -21,13 +21,13 @@ use strict_encoding::{
     self, strict_deserialize, strict_serialize, StrictDecode, StrictEncode,
 };
 
-use super::extensions::AnchorOutputs;
-use super::Core;
-use crate::bolt::extensions::Htlc;
-use crate::bolt::ChannelState;
+use super::{AnchorOutputs, ChannelState, Htlc};
+use crate::channel::bolt::Core;
+use crate::channel::shared_ext::Bip96;
+use crate::channel::tx_graph::TxRole;
 use crate::channel::{Channel, Error};
-use crate::shared_ext::Bip96;
-use crate::{channel, extension, ChannelExtension, Extension};
+use crate::extension;
+use crate::{ChannelExtension, Extension};
 
 /// Shorthand for representing asset - amount pairs
 pub type AssetsBalance = BTreeMap<AssetId, u64>;
@@ -167,7 +167,7 @@ impl From<u16> for TxType {
     }
 }
 
-impl channel::TxRole for TxType {}
+impl TxRole for TxType {}
 
 /// Channel lifecycle: states of the channel state machine
 #[cfg_attr(

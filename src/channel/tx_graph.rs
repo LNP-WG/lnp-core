@@ -19,7 +19,7 @@ use std::collections::BTreeMap;
 use bitcoin::{Transaction, TxIn, TxOut};
 use wallet::psbt::{self, Psbt};
 
-use crate::Funding;
+use crate::channel::Funding;
 
 pub trait TxRole: Clone + From<u16> + Into<u16> {}
 pub trait TxIndex: Clone + From<u64> + Into<u64> {}

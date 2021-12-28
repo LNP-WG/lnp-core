@@ -25,7 +25,8 @@ use wallet::hlc::{HashLock, HashPreimage};
 use wallet::scripts::{LockScript, PubkeyScript, WitnessScript};
 use wallet::IntoPk;
 
-use crate::bolt::{ChannelState, ExtensionId, TxType};
+use crate::channel::bolt::{ChannelState, ExtensionId, TxType};
+use crate::channel::tx_graph::TxGraph;
 use crate::{channel, ChannelExtension, Extension};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -121,12 +122,15 @@ impl Htlc {
     ) -> u64 {
         let htlc_id = self.next_offered_htlc_id;
         self.next_offered_htlc_id += 1;
-        self.offered_htlcs.insert(htlc_id, HtlcSecret {
-            amount: amount_msat,
-            hashlock: payment_hash,
-            id: htlc_id,
-            cltv_expiry,
-        });
+        self.offered_htlcs.insert(
+            htlc_id,
+            HtlcSecret {
+                amount: amount_msat,
+                hashlock: payment_hash,
+                id: htlc_id,
+                cltv_expiry,
+            },
+        );
         htlc_id
     }
 }
@@ -323,7 +327,7 @@ impl Extension for Htlc {
 impl ChannelExtension for Htlc {
     fn build_graph(
         &self,
-        tx_graph: &mut channel::TxGraph,
+        tx_graph: &mut TxGraph,
         _as_remote_node: bool,
     ) -> Result<(), channel::Error> {
         // Process offered HTLCs
