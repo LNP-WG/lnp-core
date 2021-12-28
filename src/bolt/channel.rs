@@ -17,13 +17,17 @@ use bitcoin::blockdata::script;
 use bitcoin::hashes::{sha256, Hash, HashEngine};
 use bitcoin::secp256k1::PublicKey;
 use bitcoin::{Network, TxOut};
+use internet2::presentation::sphinx::{self, Hop, Onion, OnionPacket};
 use lnp2p::legacy::{
     AcceptChannel, ActiveChannelId, ChannelId, Messages, OpenChannel,
     TempChannelId,
 };
 use lnpbp::chain::Chain;
-use p2p::legacy::{ChannelReestablish, FundingLocked};
+use p2p::legacy::{
+    ChannelReestablish, FundingLocked, PaymentOnion, UpdateAddHtlc,
+};
 use secp256k1::{Secp256k1, Signature};
+use wallet::hlc::HashLock;
 use wallet::lex_order::LexOrder;
 use wallet::psbt::Psbt;
 use wallet::scripts::{LockScript, PubkeyScript, WitnessScript};
@@ -32,11 +36,27 @@ use wallet::{psbt, IntoPk};
 use super::extensions::AnchorOutputs;
 use super::policy::{CommonParams, PeerParams, Policy};
 use super::{ExtensionId, Lifecycle, RemoteKeyset};
+use crate::bolt::extensions::Htlc;
 use crate::bolt::keyset::{LocalKeyset, LocalPubkey};
 use crate::bolt::ChannelState;
 use crate::extension::ChannelConstructor;
 use crate::funding::PsbtLnpFunding;
 use crate::{channel, funding, Channel, ChannelExtension, Extension, Funding};
+
+/// Errors during payment creation
+#[derive(
+    Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display, From,
+    Error
+)]
+#[display(doc_comments)]
+pub enum PaymentError {
+    /// payments can't be made while channel is not established
+    ChannelNotFormed,
+
+    /// failed to create payment. Details: {0}
+    #[from]
+    OnionEncode(sphinx::EncodeError),
+}
 
 /// Errors during channel re-establishment
 #[derive(
@@ -225,6 +245,38 @@ impl Channel<ExtensionId> {
         self.constructor_mut()
             .compose_reestablish_channel(remote_channel_reestablish)
             .map_err(|err| channel::Error::Extension(err.to_string()))
+    }
+
+    pub fn compose_payment(
+        &'static mut self,
+        amount_msat: u64,
+        payment_hash: HashLock,
+        cltv_expiry: u32,
+        route: &[Hop<PaymentOnion>],
+    ) -> Result<UpdateAddHtlc, PaymentError> {
+        // TODO: Optimize and keep Secp256k1 on a permanent basis
+        let secp = Secp256k1::new();
+        let payment_onion = Onion::Onion(OnionPacket::with(
+            &secp,
+            &route,
+            payment_hash.as_ref(),
+        )?);
+        let channel_id =
+            self.channel_id().ok_or(PaymentError::ChannelNotFormed)?;
+        let htlc_ext = self
+            .extension_mut::<Htlc>(ExtensionId::Htlc)
+            .expect("BOLT channel must always have HTLC extension");
+        let htlc_id =
+            htlc_ext.offer_htlc(amount_msat, payment_hash, cltv_expiry);
+        Ok(UpdateAddHtlc {
+            channel_id,
+            htlc_id,
+            amount_msat,
+            payment_hash,
+            cltv_expiry,
+            onion_routing_packet: payment_onion,
+            unknown_tlvs: none!(),
+        })
     }
 
     /// Tries to identify bitcoin network which channel is based on. Returns
