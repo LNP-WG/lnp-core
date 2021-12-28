@@ -11,6 +11,7 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
+use std::any::Any;
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::hash::Hash;
@@ -133,6 +134,32 @@ where
                 },
             ),
         }
+    }
+
+    pub fn extension<E>(&'static self, id: N) -> Option<&E> {
+        self.extenders
+            .get(&id)
+            .map(|ext| &*ext as &dyn Any)
+            .and_then(|ext| ext.downcast_ref())
+            .or_else(|| {
+                self.modifiers
+                    .get(&id)
+                    .map(|ext| &*ext as &dyn Any)
+                    .and_then(|ext| ext.downcast_ref())
+            })
+    }
+
+    pub fn extension_mut<E>(&'static mut self, id: N) -> Option<&mut E> {
+        self.extenders
+            .get_mut(&id)
+            .map(|ext| &mut *ext as &mut dyn Any)
+            .and_then(|ext| ext.downcast_mut())
+            .or_else(|| {
+                self.modifiers
+                    .get_mut(&id)
+                    .map(|ext| &mut *ext as &mut dyn Any)
+                    .and_then(|ext| ext.downcast_mut())
+            })
     }
 
     /// Gets extender by extension identifier
