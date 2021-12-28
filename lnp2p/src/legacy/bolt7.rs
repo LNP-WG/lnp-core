@@ -13,14 +13,20 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
+//! Bolt 7 Gossip messages
+
+use crate::legacy::ChannelFeatures;
+use amplify::Slice32;
 use bitcoin::secp256k1::{PublicKey, Signature};
-use lnpbp::chain::AssetId;
 
 use super::{
     AddressList, Alias, ChannelId, InitFeatures, NodeColor, ShortChannelId,
 };
 
-/// Bolt 7 Gossip messages
+/// This is a direct message between the two endpoints of a channel and serves
+/// as an opt-in mechanism to allow the announcement of the channel to the rest
+/// of the network. It contains the necessary signatures, by the sender, to
+/// construct the `channel_announcement` message.
 #[derive(Clone, PartialEq, Eq, Debug, Display)]
 #[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
@@ -41,11 +47,15 @@ pub struct AnnouncementSignatures {
     pub bitcoin_signature: Signature,
 }
 
+/// This gossip message contains ownership information regarding a channel. It
+/// ties each on-chain Bitcoin key to the associated Lightning node key, and
+/// vice-versa. The channel is not practically usable until at least one side
+/// has announced its fee levels and expiry, using channel_update.
 #[derive(Clone, PartialEq, Eq, Debug, Display)]
 #[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("channel_announcement({chain_hash}, {short_channel_id}, ...)")]
-pub struct ChannelAnnouncements {
+pub struct ChannelAnnouncement {
     /// Node Signature 1
     pub node_signature_1: Signature,
 
@@ -59,10 +69,10 @@ pub struct ChannelAnnouncements {
     pub bitcoin_signature_2: Signature,
 
     /// feature bytes
-    pub features: InitFeatures,
+    pub features: ChannelFeatures,
 
     /// chain hash
-    pub chain_hash: AssetId,
+    pub chain_hash: Slice32,
 
     /// Short channel ID
     pub short_channel_id: ShortChannelId,
@@ -80,6 +90,9 @@ pub struct ChannelAnnouncements {
     pub bitcoin_key_2: PublicKey,
 }
 
+/// This gossip message allows a node to indicate extra data associated with it,
+/// in addition to its public key. To avoid trivial denial of service attacks,
+/// nodes not associated with an already known channel are ignored.
 #[derive(Clone, PartialEq, Eq, Debug, Display)]
 #[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
@@ -107,6 +120,13 @@ pub struct NodeAnnouncements {
     pub addresses: AddressList,
 }
 
+/// After a channel has been initially announced, each side independently
+/// announces the fees and minimum expiry delta it requires to relay HTLCs
+/// through this channel. Each uses the 8-byte channel `shortid` that matches  
+/// the `channel_announcement` and the 1-bit `channel_flags` field to indicate
+/// which end of the channel it's on (origin or final). A node can do this
+/// multiple times, in order to change fees.
+// TODO: Do custom encoding due to `message_flags` and `option_channel_htlc_max`
 #[derive(Clone, PartialEq, Eq, Debug, Display)]
 #[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
@@ -116,7 +136,7 @@ pub struct ChannelUpdate {
     pub signature: Signature,
 
     /// Chainhash
-    pub chain_hash: AssetId,
+    pub chain_hash: Slice32,
 
     /// Short Channel Id
     pub short_channel_id: ShortChannelId,
@@ -125,12 +145,14 @@ pub struct ChannelUpdate {
     pub timestamp: u32,
 
     /// message flags
+    // TODO: Introduce a dedicated data type
     pub message_flags: u8,
 
-    /// channle flags
-    pub channle_flags: u8,
+    /// channel flags
+    // TODO: Introduce a dedicated data type
+    pub channel_flags: u8,
 
-    /// cltv expiry delta
+    /// CLTV expiry delta
     pub cltv_expiry_delta: u16,
 
     /// minimum HTLC in msat
@@ -142,7 +164,7 @@ pub struct ChannelUpdate {
     /// fee proportional millionth
     pub fee_proportional_millionths: u32,
 
-    /// if option_channel_htlc_max is set
+    /// Used only if `option_channel_htlc_max` in `message_flags` is set
     pub htlc_maximum_msat: u64,
 }
 
@@ -153,7 +175,7 @@ pub struct ChannelUpdate {
 #[display("query_short_channel_ids({chain_hash}, {short_ids:#?}, ...tlvs)")]
 pub struct QueryShortChannelIds {
     /// chain hash
-    pub chain_hash: AssetId,
+    pub chain_hash: Slice32,
 
     /// short ids to query
     pub short_ids: Vec<ShortChannelId>,
@@ -165,7 +187,7 @@ pub struct QueryShortChannelIds {
 #[display("reply_short_channel_ids_end({chain_hash}, {full_information})")]
 pub struct ReplyShortChannelIdsEnd {
     /// chain hash
-    pub chain_hash: AssetId,
+    pub chain_hash: Slice32,
 
     /// full information
     pub full_information: u8,
@@ -180,7 +202,7 @@ pub struct ReplyShortChannelIdsEnd {
 )]
 pub struct QueryChannelRange {
     /// chain hash
-    pub chain_hash: AssetId,
+    pub chain_hash: Slice32,
 
     /// first block number
     pub first_blocknum: u32,
@@ -203,7 +225,7 @@ pub struct QueryChannelRange {
 )]
 pub struct ReplyChannelRange {
     /// chain hash
-    pub chain_hash: AssetId,
+    pub chain_hash: Slice32,
 
     /// first block number
     pub first_blocknum: u32,
@@ -230,7 +252,7 @@ pub struct ReplyChannelRange {
 )]
 pub struct GossipTimestampFilter {
     /// chain hash
-    pub chain_hash: AssetId,
+    pub chain_hash: Slice32,
 
     /// first timestamp
     pub first_timestamp: u32,
