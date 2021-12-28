@@ -48,6 +48,7 @@ macro_rules! dumb_pubkey {
 pub mod channel;
 pub mod extension;
 mod funding;
+pub mod routing;
 pub mod shared_ext;
 pub mod tx_graph;
 

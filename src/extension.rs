@@ -11,15 +11,18 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
+use internet2::presentation::sphinx::{Hop, SphinxPayload};
 use std::convert::TryFrom;
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
 
 use lnp2p::legacy::Messages;
+use p2p::legacy::PaymentRequest;
 use wallet::psbt::Psbt;
 
 use super::{channel, Channel};
 use crate::channel::State;
+use crate::routing::ChannelInfo;
 use crate::Funding;
 
 /// Marker trait for creating extension nomenclatures, defining order in which
@@ -55,8 +58,8 @@ where
         Vec::default()
     }
 
-    /// Updates core channel structure from peer message. Processed before each
-    /// of the registered extensions gets [`Extension::update_from_peer`]
+    /// Updates channel extension structure from peer message. Processed before
+    /// each of the registered extensions gets [`Extension::update_from_peer`]
     fn update_from_peer(
         channel: &mut Channel<Self>,
         message: &Messages,
@@ -86,7 +89,17 @@ pub trait Extension {
     fn store_state(&self, state: &mut <Self::Identity as Nomenclature>::State);
 }
 
-pub trait RoutingExtension: Extension {}
+pub trait RoutingExtension: Extension {
+    type ChannelInfo;
+    type Payload: SphinxPayload;
+
+    fn improve_route(
+        &mut self,
+        payment: PaymentRequest,
+        route: &mut Vec<Hop<Self::Payload>>,
+        channels: &[Self::ChannelInfo],
+    );
+}
 
 pub trait GossipExtension: Extension {}
 
