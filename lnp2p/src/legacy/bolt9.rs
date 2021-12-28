@@ -250,6 +250,9 @@ impl FromStr for Feature {
     }
 }
 
+/// Features provided in the `init` message and announced with
+/// `node_announcement`.
+///
 /// Flags are numbered from the least-significant bit, at bit 0 (i.e. 0x1, an
 /// even bit). They are generally assigned in pairs so that features can be
 /// introduced as optional (odd bits) and later upgraded to be compulsory (even
@@ -356,6 +359,7 @@ impl Display for InitFeatures {
     }
 }
 
+// TODO: Re-org into a trait
 impl InitFeatures {
     /// Measures minimally-encoded byte length for the feature vector
     pub fn byte_len(&self) -> u16 {
@@ -567,6 +571,110 @@ impl strict_encoding::StrictDecode for InitFeatures {
     ) -> Result<Self, strict_encoding::Error> {
         let vec = FlagVec::strict_decode(d)?;
         InitFeatures::try_from(vec).map_err(|e| {
+            strict_encoding::Error::DataIntegrityError(e.to_string())
+        })
+    }
+}
+
+/// Features negotiated during channel creation and announced with `channel_announcement`.
+///
+/// NB: Current BOLT-1 does not define any specific channel features.
+///
+/// Flags are numbered from the least-significant bit, at bit 0 (i.e. 0x1, an
+/// even bit). They are generally assigned in pairs so that features can be
+/// introduced as optional (odd bits) and later upgraded to be compulsory (even
+/// bits), which will be refused by outdated nodes.
+///
+/// # Specification
+/// <https://github.com/lightningnetwork/lightning-rfc/blob/master/09-features.md>
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
+pub struct ChannelFeatures {}
+
+impl TryFrom<FlagVec> for ChannelFeatures {
+    type Error = Error;
+
+    fn try_from(_: FlagVec) -> Result<Self, Self::Error> {
+        Ok(ChannelFeatures {})
+    }
+}
+
+impl From<ChannelFeatures> for FlagVec {
+    fn from(_: ChannelFeatures) -> Self {
+        FlagVec::default()
+    }
+}
+
+impl LightningEncode for ChannelFeatures {
+    fn lightning_encode<E: io::Write>(
+        &self,
+        e: E,
+    ) -> Result<usize, lightning_encoding::Error> {
+        let flag_vec = FlagVec::from(self.clone());
+        let vec: Vec<u8> = flag_vec.as_inner().iter().rev().copied().collect();
+        vec.lightning_encode(e)
+
+        /* Previous implementation:
+        let len = self.byte_len();
+        let mut vec = vec![len];
+
+        let set_bit = |bit: u16| {
+            let byte_no = len - bit / 8 - 1;
+            let bit_no = bit % 8;
+            vec[byte_no] |= 1 << bit_no;
+        };
+
+        for (feature, required) in self.known_set_features() {
+            let bit = feature
+                .bit(required)
+                .expect("feature with unknown bit is set in feature vector");
+            if !bit {
+                continue;
+            }
+            set_bit(bit)
+        }
+        for bit in &self.unknown {
+            set_bit(bit)
+        }
+        vec.lightning_encode(e)
+         */
+    }
+}
+
+impl LightningDecode for ChannelFeatures {
+    fn lightning_decode<D: io::Read>(
+        d: D,
+    ) -> Result<Self, lightning_encoding::Error> {
+        let vec = Vec::<u8>::lightning_decode(d)?;
+
+        let flag_vec = FlagVec::from_inner(vec.into_iter().rev().collect());
+        ChannelFeatures::try_from(flag_vec).map_err(|e| {
+            lightning_encoding::Error::DataIntegrityError(e.to_string())
+        })
+    }
+}
+
+#[cfg(feature = "strict_encoding")]
+impl strict_encoding::StrictEncode for ChannelFeatures {
+    fn strict_encode<E: io::Write>(
+        &self,
+        e: E,
+    ) -> Result<usize, strict_encoding::Error> {
+        FlagVec::from(self.clone()).strict_encode(e)
+    }
+}
+
+#[cfg(feature = "strict_encoding")]
+impl strict_encoding::StrictDecode for ChannelFeatures {
+    fn strict_decode<D: io::Read>(
+        d: D,
+    ) -> Result<Self, strict_encoding::Error> {
+        let vec = FlagVec::strict_decode(d)?;
+        ChannelFeatures::try_from(vec).map_err(|e| {
             strict_encoding::Error::DataIntegrityError(e.to_string())
         })
     }

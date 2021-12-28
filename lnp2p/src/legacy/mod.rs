@@ -26,7 +26,9 @@ pub use bolt1::*;
 pub use bolt2::*;
 pub use bolt4::*;
 pub use bolt7::*;
-pub use bolt9::{Feature, FeatureContext, InitFeatures, UnknownFeatureError};
+pub use bolt9::{
+    ChannelFeatures, Feature, FeatureContext, InitFeatures, UnknownFeatureError,
+};
 use internet2::{CreateUnmarshaller, Payload, Unmarshall, Unmarshaller};
 use lightning_encoding::{self, LightningDecode, LightningEncode};
 use lnpbp::bech32::Blob;
