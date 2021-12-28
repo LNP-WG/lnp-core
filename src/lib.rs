@@ -53,8 +53,6 @@ pub mod shared_ext;
 pub mod tx_graph;
 
 pub mod bolt;
-pub mod prometheus;
-pub mod storm;
 
 pub use channel::Channel;
 pub use extension::{
