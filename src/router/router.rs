@@ -24,8 +24,7 @@ use strict_encoding::{StrictDecode, StrictEncode};
 
 use crate::{extension, Extension, RouterExtension};
 
-pub type ExtensionQueue<N> =
-    BTreeMap<N, Box<dyn RouterExtension<Identity = N>>>;
+pub type ExtensionQueue<N> = BTreeMap<N, Box<dyn RouterExtension<N>>>;
 
 /// Marker trait for creating routing extension nomenclatures, defining order in
 /// which extensions are called to construct the route.
@@ -38,7 +37,7 @@ where
 {
     type HopPayload: SphinxPayload;
 
-    fn default_extensions() -> Vec<Box<dyn RouterExtension<Identity = Self>>>;
+    fn default_extensions() -> Vec<Box<dyn RouterExtension<Self>>>;
 
     /// Updates router extension structure from peer message. Processed before
     /// each of the registered extensions gets [`Extension::update_from_peer`]
@@ -63,7 +62,7 @@ where
 {
     /// Constructs router with all used extensions
     pub fn new(
-        extensions: impl IntoIterator<Item = Box<dyn RouterExtension<Identity = N>>>,
+        extensions: impl IntoIterator<Item = Box<dyn RouterExtension<N>>>,
     ) -> Self {
         Self {
             extensions: extensions.into_iter().fold(
@@ -96,10 +95,7 @@ where
     ///
     /// Will be effective onl upon next channel state update.
     #[inline]
-    pub fn add_extender(
-        &mut self,
-        extension: Box<dyn RouterExtension<Identity = N>>,
-    ) {
+    pub fn add_extender(&mut self, extension: Box<dyn RouterExtension<N>>) {
         self.extensions.insert(extension.identity(), extension);
     }
 }
@@ -141,14 +137,12 @@ where
     }
 }
 
-impl<N> Extension for Router<N>
+impl<N> Extension<N> for Router<N>
 where
     N: extension::Nomenclature + Nomenclature,
 {
-    type Identity = N;
-
     #[inline]
-    fn identity(&self) -> Self::Identity {
+    fn identity(&self) -> N {
         N::default()
     }
 
@@ -163,30 +157,24 @@ where
         Ok(())
     }
 
-    fn load_state(
-        &mut self,
-        state: &<Self::Identity as extension::Nomenclature>::State,
-    ) {
+    fn load_state(&mut self, state: &N::State) {
         for extension in self.extensions.values_mut() {
             extension.load_state(&state);
         }
     }
 
-    fn store_state(
-        &self,
-        state: &mut <Self::Identity as extension::Nomenclature>::State,
-    ) {
+    fn store_state(&self, state: &mut N::State) {
         for extension in self.extensions.values() {
             extension.store_state(state);
         }
     }
 }
 
-impl<N> RouterExtension for Router<N>
+impl<N> RouterExtension<N> for Router<N>
 where
     N: Nomenclature + 'static,
 {
-    fn new() -> Box<dyn RouterExtension<Identity = Self::Identity>>
+    fn new() -> Box<dyn RouterExtension<N>>
     where
         Self: Sized,
     {

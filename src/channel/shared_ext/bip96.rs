@@ -16,16 +16,14 @@ use wallet::lex_order::LexOrder;
 
 use crate::channel::bolt::{BoltExt, ChannelState, Error};
 use crate::channel::tx_graph::TxGraph;
-use crate::{ChannelExtension, Extension};
+use crate::{channel, extension, ChannelExtension, Extension};
 
 #[derive(Debug, Default)]
 pub struct Bip96;
 
-impl Extension for Bip96 {
-    type Identity = BoltExt;
-
+impl Extension<BoltExt> for Bip96 {
     #[inline]
-    fn identity(&self) -> Self::Identity {
+    fn identity(&self) -> BoltExt {
         BoltExt::Bip96
     }
 
@@ -46,9 +44,14 @@ impl Extension for Bip96 {
     }
 }
 
-impl ChannelExtension for Bip96 {
+impl<N> ChannelExtension<N> for Bip96
+where
+    Self: Extension<N>,
+    N: channel::Nomenclature,
+    N::State: channel::State,
+{
     #[inline]
-    fn new() -> Box<dyn ChannelExtension<Identity = Self::Identity>>
+    fn new() -> Box<dyn ChannelExtension<N>>
     where
         Self: Sized,
     {
@@ -60,7 +63,7 @@ impl ChannelExtension for Bip96 {
         &self,
         tx_graph: &mut TxGraph,
         _as_remote_node: bool,
-    ) -> Result<(), Error> {
+    ) -> Result<(), <N as extension::Nomenclature>::Error> {
         tx_graph.cmt_outs.lex_order();
         tx_graph
             .vec_mut()

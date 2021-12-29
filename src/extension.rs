@@ -23,7 +23,7 @@ use wallet::psbt::Psbt;
 
 use crate::channel::tx_graph::TxGraph;
 use crate::channel::Funding;
-use crate::{channel, router};
+use crate::{channel, extension, router};
 
 /// Marker trait for creating extension nomenclatures, defining order in which
 /// extensions are called to process the data.
@@ -49,51 +49,47 @@ where
     type Error: std::error::Error;
 }
 
-pub trait Extension {
-    // TODO: Refactor into generic parameter, not type alias. This should allow
-    //       use of the same extension under multiple nomenclatures.
-    type Identity: Nomenclature;
-
-    fn identity(&self) -> Self::Identity;
+pub trait Extension<N: Nomenclature> {
+    fn identity(&self) -> N;
 
     /// Updates extension state from the data taken from the message received
     /// from the remote peer
     fn update_from_peer(
         &mut self,
         message: &Messages,
-    ) -> Result<(), <Self::Identity as Nomenclature>::Error>;
+    ) -> Result<(), <N as extension::Nomenclature>::Error>;
 
-    fn load_state(&mut self, state: &<Self::Identity as Nomenclature>::State);
-    fn store_state(&self, state: &mut <Self::Identity as Nomenclature>::State);
+    fn load_state(&mut self, state: &N::State);
+    fn store_state(&self, state: &mut N::State);
 }
 
-pub trait RouterExtension
+pub trait RouterExtension<N>
 where
-    Self: Extension,
-    <Self as Extension>::Identity: router::Nomenclature,
+    N: router::Nomenclature,
+    Self: Extension<N>,
 {
     /// Constructs boxed extension objects which can be inserted into router
     /// extension pipeline
-    fn new() -> Box<dyn RouterExtension<Identity = Self::Identity>>
+    fn new() -> Box<dyn RouterExtension<N>>
     where
         Self: Sized;
 
     fn build_route(
         &mut self,
         payment: PaymentRequest,
-        route: &mut Vec<Hop<<<Self as Extension>::Identity as router::Nomenclature>::HopPayload>>,
+        route: &mut Vec<Hop<<N as router::Nomenclature>::HopPayload>>,
     );
 }
 
-pub trait ChannelExtension
+pub trait ChannelExtension<N>
 where
-    Self: Extension,
-    <Self as Extension>::Identity: channel::Nomenclature,
-    <<Self as Extension>::Identity as Nomenclature>::State: channel::State,
+    N: channel::Nomenclature,
+    N::State: channel::State,
+    Self: Extension<N>,
 {
     /// Constructs boxed extension objects which can be inserted into channel
     /// extension pipeline
-    fn new() -> Box<dyn ChannelExtension<Identity = Self::Identity>>
+    fn new() -> Box<dyn ChannelExtension<N>>
     where
         Self: Sized;
 
@@ -102,19 +98,19 @@ where
         &self,
         tx_graph: &mut TxGraph,
         remote: bool,
-    ) -> Result<(), <<Self as Extension>::Identity as Nomenclature>::Error>;
+    ) -> Result<(), <N as Nomenclature>::Error>;
 }
 
 /// Channel constructor specific methods
-pub trait ChannelConstructor
+pub trait ChannelConstructor<N>
 where
-    Self: ChannelExtension + Default,
-    <Self as Extension>::Identity: channel::Nomenclature,
-    <<Self as Extension>::Identity as Nomenclature>::State: channel::State,
+    N: channel::Nomenclature,
+    N::State: channel::State,
+    Self: ChannelExtension<N> + Default,
 {
     fn enrich_funding(
         &self,
         psbt: &mut Psbt,
         funding: &Funding,
-    ) -> Result<(), <<Self as Extension>::Identity as Nomenclature>::Error>;
+    ) -> Result<(), <N as Nomenclature>::Error>;
 }

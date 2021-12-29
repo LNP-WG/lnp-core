@@ -135,10 +135,8 @@ impl Htlc {
     }
 }
 
-impl Extension for Htlc {
-    type Identity = BoltExt;
-
-    fn identity(&self) -> Self::Identity {
+impl Extension<BoltExt> for Htlc {
+    fn identity(&self) -> BoltExt {
         BoltExt::Htlc
     }
 
@@ -311,9 +309,9 @@ impl Extension for Htlc {
     }
 }
 
-impl ChannelExtension for Htlc {
+impl ChannelExtension<BoltExt> for Htlc {
     #[inline]
-    fn new() -> Box<dyn ChannelExtension<Identity = Self::Identity>>
+    fn new() -> Box<dyn ChannelExtension<BoltExt>>
     where
         Self: Sized,
     {

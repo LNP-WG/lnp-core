@@ -44,13 +44,14 @@ impl DumbDefault for RouterState {
 #[derive(StrictEncode, StrictDecode)]
 #[display(Debug)]
 pub enum GossipExt {
+    MainRouter = 0,
     DirectRouter = 1,
     GossipRouter = 2,
 }
 
 impl Default for GossipExt {
     fn default() -> Self {
-        GossipExt::DirectRouter
+        GossipExt::MainRouter
     }
 }
 
@@ -81,12 +82,10 @@ impl extension::Nomenclature for GossipExt {
 impl router::Nomenclature for GossipExt {
     type HopPayload = PaymentOnion;
 
-    fn default_extensions() -> Vec<Box<dyn RouterExtension<Identity = Self>>> {
+    fn default_extensions() -> Vec<Box<dyn RouterExtension<Self>>> {
         vec![
-            Box::new(DirectRouter::default())
-                as Box<dyn RouterExtension<Identity = Self>>,
-            Box::new(GossipRouter::default())
-                as Box<dyn RouterExtension<Identity = Self>>,
+            Box::new(DirectRouter::default()) as Box<dyn RouterExtension<Self>>,
+            Box::new(GossipRouter::default()) as Box<dyn RouterExtension<Self>>,
         ]
     }
 
@@ -139,10 +138,8 @@ impl DirectRouter {
     }
 }
 
-impl Extension for DirectRouter {
-    type Identity = GossipExt;
-
-    fn identity(&self) -> Self::Identity {
+impl Extension<GossipExt> for DirectRouter {
+    fn identity(&self) -> GossipExt {
         GossipExt::DirectRouter
     }
 
@@ -170,9 +167,9 @@ impl Extension for DirectRouter {
     }
 }
 
-impl RouterExtension for DirectRouter {
+impl RouterExtension<GossipExt> for DirectRouter {
     #[inline]
-    fn new() -> Box<dyn RouterExtension<Identity = Self::Identity>>
+    fn new() -> Box<dyn RouterExtension<GossipExt>>
     where
         Self: Sized,
     {
@@ -194,10 +191,8 @@ pub struct GossipRouter {
     channels: Vec<GossipChannelInfo>,
 }
 
-impl Extension for GossipRouter {
-    type Identity = GossipExt;
-
-    fn identity(&self) -> Self::Identity {
+impl Extension<GossipExt> for GossipRouter {
+    fn identity(&self) -> GossipExt {
         GossipExt::GossipRouter
     }
 
@@ -221,9 +216,9 @@ impl Extension for GossipRouter {
     }
 }
 
-impl RouterExtension for GossipRouter {
+impl RouterExtension<GossipExt> for GossipRouter {
     #[inline]
-    fn new() -> Box<dyn RouterExtension<Identity = Self::Identity>>
+    fn new() -> Box<dyn RouterExtension<GossipExt>>
     where
         Self: Sized,
     {

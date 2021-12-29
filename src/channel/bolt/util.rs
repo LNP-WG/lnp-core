@@ -93,12 +93,12 @@ impl channel::Nomenclature for BoltExt {
     type Constructor = BoltChannel;
 
     #[inline]
-    fn default_extenders() -> Vec<Box<dyn ChannelExtension<Identity = Self>>> {
+    fn default_extenders() -> Vec<Box<dyn ChannelExtension<Self>>> {
         vec![Htlc::new()]
     }
 
     #[inline]
-    fn default_modifiers() -> Vec<Box<dyn ChannelExtension<Identity = Self>>> {
+    fn default_modifiers() -> Vec<Box<dyn ChannelExtension<Self>>> {
         vec![Bip96::new()]
     }
 

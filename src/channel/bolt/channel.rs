@@ -528,10 +528,8 @@ impl BoltChannel {
     }
 }
 
-impl Extension for BoltChannel {
-    type Identity = BoltExt;
-
-    fn identity(&self) -> Self::Identity {
+impl Extension<BoltExt> for BoltChannel {
+    fn identity(&self) -> BoltExt {
         BoltExt::Bolt3
     }
 
@@ -959,9 +957,9 @@ impl BoltChannel {
     }
 }
 
-impl ChannelExtension for BoltChannel {
+impl ChannelExtension<BoltExt> for BoltChannel {
     #[inline]
-    fn new() -> Box<dyn ChannelExtension<Identity = Self::Identity>> {
+    fn new() -> Box<dyn ChannelExtension<BoltExt>> {
         Box::new(BoltChannel::default())
     }
 
@@ -1023,7 +1021,7 @@ impl ChannelExtension for BoltChannel {
     }
 }
 
-impl ChannelConstructor for BoltChannel {
+impl ChannelConstructor<BoltExt> for BoltChannel {
     fn enrich_funding(
         &self,
         psbt: &mut Psbt,

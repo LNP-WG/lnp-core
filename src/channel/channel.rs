@@ -35,15 +35,15 @@ pub trait Nomenclature: extension::Nomenclature
 where
     <Self as extension::Nomenclature>::State: State,
 {
-    type Constructor: ChannelConstructor<Identity = Self>;
+    type Constructor: ChannelConstructor<Self>;
 
     /// Returns set of default channel extenders
-    fn default_extenders() -> Vec<Box<dyn ChannelExtension<Identity = Self>>> {
+    fn default_extenders() -> Vec<Box<dyn ChannelExtension<Self>>> {
         Vec::default()
     }
 
     /// Returns set of default channel modifiers
-    fn default_modifiers() -> Vec<Box<dyn ChannelExtension<Identity = Self>>> {
+    fn default_modifiers() -> Vec<Box<dyn ChannelExtension<Self>>> {
         Vec::default()
     }
 
@@ -61,8 +61,7 @@ pub trait State: StrictEncode + StrictDecode + DumbDefault {
     fn set_funding(&mut self, funding: &Funding);
 }
 
-pub type ExtensionQueue<N> =
-    BTreeMap<N, Box<dyn ChannelExtension<Identity = N>>>;
+pub type ExtensionQueue<N> = BTreeMap<N, Box<dyn ChannelExtension<N>>>;
 
 /// Channel operates as a three sets of extensions, where each set is applied
 /// to construct the transaction graph and the state in a strict order one after
@@ -113,8 +112,8 @@ where
     /// Constructs channel with all used extensions
     pub fn new(
         constructor: N::Constructor,
-        extenders: impl IntoIterator<Item = Box<dyn ChannelExtension<Identity = N>>>,
-        modifiers: impl IntoIterator<Item = Box<dyn ChannelExtension<Identity = N>>>,
+        extenders: impl IntoIterator<Item = Box<dyn ChannelExtension<N>>>,
+        modifiers: impl IntoIterator<Item = Box<dyn ChannelExtension<N>>>,
     ) -> Self {
         Self {
             funding: Funding::new(),
@@ -164,19 +163,13 @@ where
 
     /// Gets extender by extension identifier
     #[inline]
-    pub fn extender(
-        &self,
-        id: N,
-    ) -> Option<&Box<dyn ChannelExtension<Identity = N>>> {
+    pub fn extender(&self, id: N) -> Option<&Box<dyn ChannelExtension<N>>> {
         self.extenders.get(&id)
     }
 
     /// Gets modifier by extension identifier
     #[inline]
-    pub fn modifier(
-        &self,
-        id: N,
-    ) -> Option<&Box<dyn ChannelExtension<Identity = N>>> {
+    pub fn modifier(&self, id: N) -> Option<&Box<dyn ChannelExtension<N>>> {
         self.modifiers.get(&id)
     }
 
@@ -185,7 +178,7 @@ where
     pub fn extender_mut(
         &mut self,
         id: N,
-    ) -> Option<&mut Box<dyn ChannelExtension<Identity = N>>> {
+    ) -> Option<&mut Box<dyn ChannelExtension<N>>> {
         self.extenders.get_mut(&id)
     }
 
@@ -194,7 +187,7 @@ where
     pub fn modifier_mut(
         &mut self,
         id: N,
-    ) -> Option<&mut Box<dyn ChannelExtension<Identity = N>>> {
+    ) -> Option<&mut Box<dyn ChannelExtension<N>>> {
         self.modifiers.get_mut(&id)
     }
 
@@ -202,10 +195,7 @@ where
     ///
     /// Will be effective onl upon next channel state update.
     #[inline]
-    pub fn add_extender(
-        &mut self,
-        extension: Box<dyn ChannelExtension<Identity = N>>,
-    ) {
+    pub fn add_extender(&mut self, extension: Box<dyn ChannelExtension<N>>) {
         self.extenders.insert(extension.identity(), extension);
     }
 
@@ -213,10 +203,7 @@ where
     ///
     /// Will be effective onl upon next channel state update.
     #[inline]
-    pub fn add_modifier(
-        &mut self,
-        modifier: Box<dyn ChannelExtension<Identity = N>>,
-    ) {
+    pub fn add_modifier(&mut self, modifier: Box<dyn ChannelExtension<N>>) {
         self.modifiers.insert(modifier.identity(), modifier);
     }
 
@@ -309,14 +296,12 @@ where
 
 /// Channel is the extension to itself :) so it receives the same input as any
 /// other extension and just forwards it to them
-impl<N> Extension for Channel<N>
+impl<N> Extension<N> for Channel<N>
 where
     N: 'static + Nomenclature,
     N::State: State,
 {
-    type Identity = N;
-
-    fn identity(&self) -> Self::Identity {
+    fn identity(&self) -> N {
         N::default()
     }
 
@@ -335,10 +320,7 @@ where
         Ok(())
     }
 
-    fn load_state(
-        &mut self,
-        state: &<Self::Identity as extension::Nomenclature>::State,
-    ) {
+    fn load_state(&mut self, state: &N::State) {
         self.funding = state.to_funding();
         self.constructor.load_state(&state);
         for extension in self.extenders.values_mut() {
@@ -349,10 +331,7 @@ where
         }
     }
 
-    fn store_state(
-        &self,
-        state: &mut <Self::Identity as extension::Nomenclature>::State,
-    ) {
+    fn store_state(&self, state: &mut N::State) {
         state.set_funding(&self.funding);
         self.constructor.store_state(state);
         for extension in self.extenders.values() {
@@ -367,13 +346,13 @@ where
 /// Channel is the extension to itself :) so it receives the same input as any
 /// other extension and just forwards it to them. This is required for channel
 /// composebility.
-impl<N> ChannelExtension for Channel<N>
+impl<N> ChannelExtension<N> for Channel<N>
 where
     N: 'static + Nomenclature,
     N::State: State,
 {
     #[inline]
-    fn new() -> Box<dyn ChannelExtension<Identity = Self::Identity>> {
+    fn new() -> Box<dyn ChannelExtension<N>> {
         Box::new(Channel::default())
     }
 

@@ -20,11 +20,9 @@ use crate::{ChannelExtension, Extension};
 #[derive(Debug, Default)]
 pub struct AnchorOutputs;
 
-impl Extension for AnchorOutputs {
-    type Identity = BoltExt;
-
+impl Extension<BoltExt> for AnchorOutputs {
     #[inline]
-    fn identity(&self) -> Self::Identity {
+    fn identity(&self) -> BoltExt {
         BoltExt::AnchorOutputs
     }
 
@@ -43,9 +41,9 @@ impl Extension for AnchorOutputs {
     }
 }
 
-impl ChannelExtension for AnchorOutputs {
+impl ChannelExtension<BoltExt> for AnchorOutputs {
     #[inline]
-    fn new() -> Box<dyn ChannelExtension<Identity = Self::Identity>>
+    fn new() -> Box<dyn ChannelExtension<BoltExt>>
     where
         Self: Sized,
     {
