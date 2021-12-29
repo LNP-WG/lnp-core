@@ -24,4 +24,4 @@ pub use extensions::{AnchorOutputs, Htlc, HtlcKnown, HtlcSecret};
 pub use keyset::{LocalKeyset, LocalPubkey, RemoteKeyset};
 pub use policy::{CommonParams, PeerParams, Policy, PolicyError};
 pub use state::ChannelState;
-pub use util::{AssetsBalance, ExtensionId, Lifecycle, TxType};
+pub use util::{AssetsBalance, BoltExt, Lifecycle, TxType};

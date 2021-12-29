@@ -11,13 +11,8 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
-pub mod bolt;
-mod channel;
-mod funding;
-pub mod shared_ext;
-pub mod tx_graph;
+mod router;
+mod util;
 
-pub use channel::{
-    Channel, Error, ExtensionQueue, History, Nomenclature, State,
-};
-pub use funding::{Error as FundingError, Funding, PsbtLnpFunding};
+pub use router::GossipRouter;
+pub use util::ChannelInfo;

@@ -35,7 +35,7 @@ use wallet::{psbt, IntoPk};
 
 use super::keyset::{LocalKeyset, LocalPubkey, RemoteKeyset};
 use super::policy::{CommonParams, PeerParams, Policy};
-use super::{AnchorOutputs, ChannelState, ExtensionId, Htlc, Lifecycle};
+use super::{AnchorOutputs, BoltExt, ChannelState, Htlc, Lifecycle};
 use crate::channel::funding::{self, Funding, PsbtLnpFunding};
 use crate::channel::tx_graph::TxGraph;
 use crate::extension::ChannelConstructor;
@@ -108,7 +108,7 @@ impl Direction {
     }
 }
 
-impl Channel<ExtensionId> {
+impl Channel<BoltExt> {
     /// Constructs the new channel which will check the negotiation
     /// process against the provided policy and will use given parameters
     /// for constructing `open_channel` (for outbound channels) and
@@ -262,7 +262,7 @@ impl Channel<ExtensionId> {
         let channel_id =
             self.channel_id().ok_or(PaymentError::ChannelNotFormed)?;
         let htlc_ext = self
-            .extension_mut::<Htlc>(ExtensionId::Htlc)
+            .extension_mut::<Htlc>(BoltExt::Htlc)
             .expect("BOLT channel must always have HTLC extension");
         let htlc_id =
             htlc_ext.offer_htlc(amount_msat, payment_hash, cltv_expiry);
@@ -497,15 +497,10 @@ impl Core {
 }
 
 impl Extension for Core {
-    type Identity = ExtensionId;
-
-    #[inline]
-    fn new() -> Box<dyn ChannelExtension<Identity = Self::Identity>> {
-        Box::new(Core::default())
-    }
+    type Identity = BoltExt;
 
     fn identity(&self) -> Self::Identity {
-        ExtensionId::Bolt3
+        BoltExt::Bolt3
     }
 
     fn update_from_peer(
@@ -938,6 +933,11 @@ impl Core {
 }
 
 impl ChannelExtension for Core {
+    #[inline]
+    fn new() -> Box<dyn ChannelExtension<Identity = Self::Identity>> {
+        Box::new(Core::default())
+    }
+
     fn build_graph(
         &self,
         tx_graph: &mut TxGraph,
@@ -1408,7 +1408,7 @@ mod test {
         funding_psbt.set_channel_funding_output(0).unwrap();
 
         let mut channel =
-            Channel::<ExtensionId>::new(core.clone(), [], [Bip96::new()]);
+            Channel::<BoltExt>::new(core.clone(), [], [Bip96::new()]);
         let psbt = channel.refund_tx(funding_psbt, true).unwrap();
         let mut tx = psbt.global.unsigned_tx;
 

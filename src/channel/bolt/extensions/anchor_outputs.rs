@@ -13,7 +13,7 @@
 
 use p2p::legacy::Messages;
 
-use crate::channel::bolt::{ChannelState, ExtensionId};
+use crate::channel::bolt::{BoltExt, ChannelState};
 use crate::channel::tx_graph::TxGraph;
 use crate::{channel, ChannelExtension, Extension};
 
@@ -21,19 +21,11 @@ use crate::{channel, ChannelExtension, Extension};
 pub struct AnchorOutputs;
 
 impl Extension for AnchorOutputs {
-    type Identity = ExtensionId;
-
-    #[inline]
-    fn new() -> Box<dyn ChannelExtension<Identity = Self::Identity>>
-    where
-        Self: Sized,
-    {
-        Box::new(AnchorOutputs::default())
-    }
+    type Identity = BoltExt;
 
     #[inline]
     fn identity(&self) -> Self::Identity {
-        ExtensionId::AnchorOutputs
+        BoltExt::AnchorOutputs
     }
 
     #[inline]
@@ -52,6 +44,14 @@ impl Extension for AnchorOutputs {
 }
 
 impl ChannelExtension for AnchorOutputs {
+    #[inline]
+    fn new() -> Box<dyn ChannelExtension<Identity = Self::Identity>>
+    where
+        Self: Sized,
+    {
+        Box::new(AnchorOutputs::default())
+    }
+
     #[inline]
     fn build_graph(
         &self,

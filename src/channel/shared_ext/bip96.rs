@@ -14,7 +14,7 @@
 use lnp2p::legacy::Messages;
 use wallet::lex_order::LexOrder;
 
-use crate::channel::bolt::{ChannelState, ExtensionId};
+use crate::channel::bolt::{BoltExt, ChannelState};
 use crate::channel::tx_graph::TxGraph;
 use crate::{channel, ChannelExtension, Extension};
 
@@ -22,19 +22,11 @@ use crate::{channel, ChannelExtension, Extension};
 pub struct Bip96;
 
 impl Extension for Bip96 {
-    type Identity = ExtensionId;
-
-    #[inline]
-    fn new() -> Box<dyn ChannelExtension<Identity = Self::Identity>>
-    where
-        Self: Sized,
-    {
-        Box::new(Bip96::default())
-    }
+    type Identity = BoltExt;
 
     #[inline]
     fn identity(&self) -> Self::Identity {
-        ExtensionId::Bip96
+        BoltExt::Bip96
     }
 
     #[inline]
@@ -55,6 +47,14 @@ impl Extension for Bip96 {
 }
 
 impl ChannelExtension for Bip96 {
+    #[inline]
+    fn new() -> Box<dyn ChannelExtension<Identity = Self::Identity>>
+    where
+        Self: Sized,
+    {
+        Box::new(Bip96::default())
+    }
+
     #[inline]
     fn build_graph(
         &self,

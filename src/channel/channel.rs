@@ -26,9 +26,10 @@ use super::tx_graph::TxGraph;
 use super::{funding, Funding};
 use crate::channel::bolt::{Lifecycle, PolicyError};
 use crate::extension;
-use crate::ChannelConstructor;
-use crate::{ChannelExtension, Extension};
+use crate::{ChannelConstructor, ChannelExtension, Extension};
 
+// TODO: Use Box<dyn Error> for boxing extension- and channel-type-specific
+//       errors.
 #[derive(Clone, PartialEq, Eq, Hash, Debug, Display, Error, From)]
 #[display(doc_comments)]
 pub enum Error {
@@ -58,6 +59,36 @@ pub enum Error {
     },
 }
 
+/// Marker trait for creating channel extension nomenclatures, defining order in
+/// which extensions are applied to the channel transaction structure.
+///
+/// Extension nomenclature is an enum with members convertible into `u16`
+/// representation
+pub trait Nomenclature
+where
+    Self: extension::Nomenclature<Error = Error>,
+    <Self as extension::Nomenclature>::State: State,
+{
+    type Constructor: ChannelConstructor<Identity = Self>;
+
+    /// Returns set of default channel extenders
+    fn default_extenders() -> Vec<Box<dyn ChannelExtension<Identity = Self>>> {
+        Vec::default()
+    }
+
+    /// Returns set of default channel modifiers
+    fn default_modifiers() -> Vec<Box<dyn ChannelExtension<Identity = Self>>> {
+        Vec::default()
+    }
+
+    /// Updates channel extension structure from peer message. Processed before
+    /// each of the registered extensions gets [`Extension::update_from_peer`]
+    fn update_from_peer(
+        channel: &mut Channel<Self>,
+        message: &Messages,
+    ) -> Result<(), Error>;
+}
+
 /// Trait for any data that can be used as a part of the channel state
 pub trait State: StrictEncode + StrictDecode + DumbDefault {
     fn to_funding(&self) -> Funding;
@@ -75,7 +106,8 @@ pub type ExtensionQueue<N> =
 #[derive(Getters)]
 pub struct Channel<N>
 where
-    N: extension::Nomenclature,
+    N: Nomenclature,
+    N::State: State,
 {
     /* TODO: Add channel graph cache.
              For this we need to track each state mutation and reset the cached data
@@ -109,7 +141,8 @@ where
 
 impl<N> Channel<N>
 where
-    N: 'static + extension::Nomenclature,
+    N: 'static + Nomenclature,
+    N::State: State,
 {
     /// Constructs channel with all used extensions
     pub fn new(
@@ -255,7 +288,8 @@ where
 
 impl<N> Default for Channel<N>
 where
-    N: 'static + extension::Nomenclature + Default,
+    N: 'static + Nomenclature + Default,
+    N::State: State,
 {
     fn default() -> Self {
         Channel::new(
@@ -268,7 +302,8 @@ where
 
 impl<N> StrictEncode for Channel<N>
 where
-    N: 'static + extension::Nomenclature,
+    N: 'static + Nomenclature,
+    N::State: State,
 {
     fn strict_encode<E: Write>(
         &self,
@@ -282,7 +317,8 @@ where
 
 impl<N> StrictDecode for Channel<N>
 where
-    N: 'static + extension::Nomenclature,
+    N: 'static + Nomenclature,
+    N::State: State,
 {
     fn strict_decode<D: Read>(d: D) -> Result<Self, strict_encoding::Error> {
         let state = N::State::strict_decode(d)?;
@@ -296,14 +332,10 @@ where
 /// other extension and just forwards it to them
 impl<N> Extension for Channel<N>
 where
-    N: 'static + extension::Nomenclature,
+    N: 'static + Nomenclature,
+    N::State: State,
 {
     type Identity = N;
-
-    #[inline]
-    fn new() -> Box<dyn ChannelExtension<Identity = Self::Identity>> {
-        Box::new(Channel::default())
-    }
 
     fn identity(&self) -> Self::Identity {
         N::default()
@@ -355,8 +387,14 @@ where
 /// composebility.
 impl<N> ChannelExtension for Channel<N>
 where
-    N: 'static + extension::Nomenclature,
+    N: 'static + Nomenclature,
+    N::State: State,
 {
+    #[inline]
+    fn new() -> Box<dyn ChannelExtension<Identity = Self::Identity>> {
+        Box::new(Channel::default())
+    }
+
     fn build_graph(
         &self,
         tx_graph: &mut TxGraph,

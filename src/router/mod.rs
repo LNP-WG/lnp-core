@@ -11,6 +11,7 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
+pub mod gossip;
 mod router;
 
-pub use router::{ChannelInfo, ExtensionQueue};
+pub use router::{ExtensionQueue, Nomenclature, Router};

@@ -25,7 +25,7 @@ use wallet::hlc::{HashLock, HashPreimage};
 use wallet::scripts::{LockScript, PubkeyScript, WitnessScript};
 use wallet::IntoPk;
 
-use crate::channel::bolt::{ChannelState, ExtensionId, TxType};
+use crate::channel::bolt::{BoltExt, ChannelState, TxType};
 use crate::channel::tx_graph::TxGraph;
 use crate::{channel, ChannelExtension, Extension};
 
@@ -136,18 +136,10 @@ impl Htlc {
 }
 
 impl Extension for Htlc {
-    type Identity = ExtensionId;
-
-    #[inline]
-    fn new() -> Box<dyn ChannelExtension<Identity = Self::Identity>>
-    where
-        Self: Sized,
-    {
-        Box::new(Htlc::default())
-    }
+    type Identity = BoltExt;
 
     fn identity(&self) -> Self::Identity {
-        ExtensionId::Htlc
+        BoltExt::Htlc
     }
 
     fn update_from_peer(
@@ -325,6 +317,14 @@ impl Extension for Htlc {
 }
 
 impl ChannelExtension for Htlc {
+    #[inline]
+    fn new() -> Box<dyn ChannelExtension<Identity = Self::Identity>>
+    where
+        Self: Sized,
+    {
+        Box::new(Htlc::default())
+    }
+
     fn build_graph(
         &self,
         tx_graph: &mut TxGraph,

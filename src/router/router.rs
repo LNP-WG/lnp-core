@@ -15,102 +15,102 @@
 
 use std::collections::BTreeMap;
 
-use internet2::presentation::sphinx::Hop;
-use p2p::legacy::{
-    ChannelAnnouncement, ChannelUpdate, Messages, PaymentOnion, PaymentRequest,
-};
-use secp256k1::PublicKey;
+use internet2::presentation::sphinx::{Hop, SphinxPayload};
+use p2p::legacy::{Messages, PaymentRequest};
 
-use crate::channel::bolt::ExtensionId;
-use crate::channel::Error;
-use crate::extension::Nomenclature;
-use crate::{extension, ChannelExtension, Extension, RoutingExtension};
+use crate::{extension, Extension, RouterExtension};
 
-pub type ExtensionQueue<N> = BTreeMap<
-    N,
-    Box<
-        dyn RoutingExtension<
-            Identity = N,
-            ChannelInfo = ChannelInfo,
-            Payload = PaymentOnion,
-        >,
-    >,
->;
+pub type ExtensionQueue<N> =
+    BTreeMap<N, Box<dyn RouterExtension<Identity = N>>>;
 
-/// Information about channel used for route construction and re-broadcasting
-/// gossip messages.
-pub struct ChannelInfo {
-    /// Node identities consituting channel
-    pub nodes: (PublicKey, PublicKey),
+/// Marker trait for creating routing extension nomenclatures, defining order in
+/// which extensions are called to construct the route.
+///
+/// Extension nomenclature is an enum with members convertible into `u16`
+/// representation
+pub trait Nomenclature
+where
+    Self: extension::Nomenclature,
+{
+    type HopPayload: SphinxPayload;
 
-    /// Information about each channel direction.
-    ///
-    /// The first tuple field corresponds to the direction from the first
-    /// node id (see [`ChannelInfo::nodes`]) to the second one – and the second
-    /// tuple field to the opposite direction.
-    pub directions: (Option<ChannelUpdate>, Option<ChannelUpdate>),
-
-    /// The channel capacity, known only for local channels - or if it can be
-    /// deduced from on-chain data, if they are available
-    pub capacity_sats: Option<u64>,
-
-    /// Original channel announcement message from which we've got this
-    /// information. Absent for manually added channels and may be absent for
-    /// local channels.
-    pub announcement: Option<ChannelAnnouncement>,
+    /// Updates router extension structure from peer message. Processed before
+    /// each of the registered extensions gets [`Extension::update_from_peer`]
+    fn update_from_peer(
+        router: &mut Router<Self>,
+        message: &Messages,
+    ) -> Result<(), <Self as extension::Nomenclature>::Error>;
 }
 
-/// BOLT-7 gossip-based router
-pub struct GossipRouter<N>
+/// Generic router consisting of a queue of routing extensions, implementing
+/// specific router logic
+pub struct Router<N>
 where
-    N: extension::Nomenclature,
+    N: Nomenclature,
 {
-    channels: Vec<ChannelInfo>,
     extensions: ExtensionQueue<N>,
 }
 
-impl<N> Extension for GossipRouter<N>
-where
-    N: extension::Nomenclature,
-{
-    type Identity = ExtensionId;
+impl<N> Router<N> where N: Nomenclature {}
 
-    fn new() -> Box<dyn ChannelExtension<Identity = Self::Identity>>
+impl<N> Extension for Router<N>
+where
+    N: extension::Nomenclature + Nomenclature,
+{
+    type Identity = N;
+
+    fn identity(&self) -> Self::Identity {
+        todo!()
+    }
+
+    fn update_from_peer(
+        &mut self,
+        message: &Messages,
+    ) -> Result<(), <N as extension::Nomenclature>::Error> {
+        N::update_from_peer(self, message)?;
+        self.extensions
+            .iter_mut()
+            .try_for_each(|(_, e)| e.update_from_peer(message))?;
+        Ok(())
+    }
+
+    fn load_state(
+        &mut self,
+        state: &<Self::Identity as extension::Nomenclature>::State,
+    ) {
+        for extension in self.extensions.values_mut() {
+            extension.load_state(&state);
+        }
+    }
+
+    fn store_state(
+        &self,
+        state: &mut <Self::Identity as extension::Nomenclature>::State,
+    ) {
+        for extension in self.extensions.values() {
+            extension.store_state(state);
+        }
+    }
+}
+
+impl<N> RouterExtension for Router<N>
+where
+    N: Nomenclature,
+{
+    fn new() -> Box<dyn RouterExtension<Identity = Self::Identity>>
     where
         Self: Sized,
     {
         todo!()
     }
 
-    fn identity(&self) -> Self::Identity {
-        todo!()
-    }
-
-    fn update_from_peer(&mut self, message: &Messages) -> Result<(), Error> {
-        todo!()
-    }
-
-    fn load_state(&mut self, state: &<Self::Identity as Nomenclature>::State) {
-        todo!()
-    }
-
-    fn store_state(&self, state: &mut <Self::Identity as Nomenclature>::State) {
-        todo!()
-    }
-}
-
-impl<N> RoutingExtension for GossipRouter<N>
-where
-    N: extension::Nomenclature,
-{
-    type ChannelInfo = ChannelInfo;
-    type Payload = PaymentOnion;
-
-    fn improve_route(
+    fn build_route(
         &mut self,
         payment: PaymentRequest,
-        route: &mut Vec<Hop<Self::Payload>>,
-        channels: &[Self::ChannelInfo],
+        route: &mut Vec<Hop<N::HopPayload>>,
     ) {
+        for extension in self.extensions.values_mut() {
+            extension.build_route(payment, route);
+        }
     }
 }

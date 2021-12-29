@@ -51,6 +51,5 @@ pub mod router;
 
 pub use channel::Channel;
 pub use extension::{
-    ChannelConstructor, ChannelExtension, Extension, GossipExtension,
-    RoutingExtension,
+    ChannelConstructor, ChannelExtension, Extension, RouterExtension,
 };

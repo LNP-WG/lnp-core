@@ -21,32 +21,20 @@ use strict_encoding::{
     self, strict_deserialize, strict_serialize, StrictDecode, StrictEncode,
 };
 
-use super::{AnchorOutputs, ChannelState, Htlc};
-use crate::channel::bolt::Core;
+use super::{AnchorOutputs, ChannelState, Core, Htlc};
 use crate::channel::shared_ext::Bip96;
 use crate::channel::tx_graph::TxRole;
-use crate::channel::{Channel, Error};
+use crate::channel::{self, Channel, Error};
 use crate::extension;
-use crate::{ChannelExtension, Extension};
+use crate::ChannelExtension;
 
 /// Shorthand for representing asset - amount pairs
 pub type AssetsBalance = BTreeMap<AssetId, u64>;
 
-#[derive(
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Debug,
-    Display,
-    StrictEncode,
-    StrictDecode
-)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display)]
+#[derive(StrictEncode, StrictDecode)]
 #[display(Debug)]
-pub enum ExtensionId {
+pub enum BoltExt {
     /// The channel itself
     Channel = 0,
 
@@ -71,14 +59,14 @@ pub enum ExtensionId {
     Bip96 = 1000,
 }
 
-impl Default for ExtensionId {
+impl Default for BoltExt {
     fn default() -> Self {
-        ExtensionId::Channel
+        BoltExt::Channel
     }
 }
 
-impl From<ExtensionId> for u16 {
-    fn from(id: ExtensionId) -> Self {
+impl From<BoltExt> for u16 {
+    fn from(id: BoltExt) -> Self {
         let mut buf = [0u8; 2];
         buf.copy_from_slice(
             &strict_serialize(&id)
@@ -88,7 +76,7 @@ impl From<ExtensionId> for u16 {
     }
 }
 
-impl TryFrom<u16> for ExtensionId {
+impl TryFrom<u16> for BoltExt {
     type Error = strict_encoding::Error;
 
     fn try_from(value: u16) -> Result<Self, Self::Error> {
@@ -96,8 +84,12 @@ impl TryFrom<u16> for ExtensionId {
     }
 }
 
-impl extension::Nomenclature for ExtensionId {
+impl extension::Nomenclature for BoltExt {
     type State = ChannelState;
+    type Error = channel::Error;
+}
+
+impl channel::Nomenclature for BoltExt {
     type Constructor = Core;
 
     #[inline]
