@@ -11,14 +11,17 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
-use p2p::legacy::{ChannelAnnouncement, ChannelUpdate};
+use amplify::Slice32;
+use p2p::legacy::{
+    ChannelAnnouncement, ChannelId, ChannelUpdate, ShortChannelId,
+};
 use secp256k1::PublicKey;
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 #[derive(StrictEncode, StrictDecode)]
 /// Information about channel used for route construction and re-broadcasting
 /// gossip messages.
-pub struct ChannelInfo {
+pub struct GossipChannelInfo {
     /// Node identities consituting channel
     pub nodes: (PublicKey, PublicKey),
 
@@ -37,4 +40,41 @@ pub struct ChannelInfo {
     /// information. Absent for manually added channels and may be absent for
     /// local channels.
     pub announcement: Option<ChannelAnnouncement>,
+}
+
+#[derive(Clone, Copy, Eq, PartialEq, Hash, Debug)]
+#[derive(StrictEncode, StrictDecode)]
+/// Information about channel used for route construction and re-broadcasting
+/// gossip messages.
+pub struct DirectChannelInfo {
+    /// Other node identity
+    pub remote_node: PublicKey,
+
+    /// Full channel id
+    pub channel_id: ChannelId,
+
+    /// Short Channel Id
+    pub short_channel_id: ShortChannelId,
+
+    /// Chainhash
+    pub chain_hash: Slice32,
+
+    pub inbound_capacity_msat: u64,
+
+    pub outboud_capacity_msat: u64,
+
+    /// CLTV expiry delta
+    pub cltv_expiry: u16,
+
+    /// minimum HTLC in msat
+    pub htlc_minimum_msat: u64,
+
+    /// maximum HTLC in msat
+    pub htlc_maximum_msat: u64,
+
+    /// base fee in msat
+    pub fee_base_msat: u32,
+
+    /// fee proportional millionth
+    pub fee_proportional_millionths: u32,
 }

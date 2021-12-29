@@ -14,5 +14,5 @@
 mod router;
 mod util;
 
-pub use router::GossipRouter;
-pub use util::ChannelInfo;
+pub use router::{DirectRouter, GossipRouter};
+pub use util::{DirectChannelInfo, GossipChannelInfo};

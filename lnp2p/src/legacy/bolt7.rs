@@ -156,7 +156,7 @@ pub struct ChannelUpdate {
     pub cltv_expiry_delta: u16,
 
     /// minimum HTLC in msat
-    pub htlc_minimum_msal: u64,
+    pub htlc_minimum_msat: u64,
 
     /// base fee in msat
     pub fee_base_msat: u32,

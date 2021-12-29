@@ -16,7 +16,8 @@ use internet2::presentation::sphinx::Hop;
 use p2p::legacy::{Messages, PaymentOnion, PaymentRequest};
 use strict_encoding::{strict_deserialize, strict_serialize};
 
-use super::ChannelInfo;
+use super::GossipChannelInfo;
+use crate::router::gossip::DirectChannelInfo;
 use crate::router::Router;
 use crate::{extension, router, Extension, RouterExtension};
 
@@ -29,7 +30,8 @@ pub enum Error {}
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 #[derive(StrictEncode, StrictDecode)]
 pub struct RouterState {
-    channels: Vec<ChannelInfo>,
+    remote_channels: Vec<GossipChannelInfo>,
+    direct_channels: Vec<DirectChannelInfo>,
 }
 
 impl DumbDefault for RouterState {
@@ -42,17 +44,13 @@ impl DumbDefault for RouterState {
 #[derive(StrictEncode, StrictDecode)]
 #[display(Debug)]
 pub enum RouterExt {
-    Core,
-}
-
-impl extension::Nomenclature for RouterExt {
-    type State = RouterState;
-    type Error = Error;
+    DirectRouter = 1,
+    GossipRouter = 2,
 }
 
 impl Default for RouterExt {
     fn default() -> Self {
-        RouterExt::Core
+        RouterExt::DirectRouter
     }
 }
 
@@ -75,48 +73,161 @@ impl TryFrom<u16> for RouterExt {
     }
 }
 
+impl extension::Nomenclature for RouterExt {
+    type State = RouterState;
+    type Error = Error;
+}
+
 impl router::Nomenclature for RouterExt {
     type HopPayload = PaymentOnion;
 
+    fn default_extensions() -> Vec<Box<dyn RouterExtension<Identity = Self>>> {
+        vec![
+            Box::new(DirectRouter::default())
+                as Box<dyn RouterExtension<Identity = Self>>,
+            Box::new(GossipRouter::default())
+                as Box<dyn RouterExtension<Identity = Self>>,
+        ]
+    }
+
     fn update_from_peer(
-        router: &mut Router<Self>,
-        message: &Messages,
+        _router: &mut Router<Self>,
+        _message: &Messages,
     ) -> Result<(), Error> {
+        // TODO: Add support for gossip queries by adding query extension if
+        //       we are getting corresponding feature flag
+        Ok(())
+    }
+}
+
+impl Router<RouterExt> {
+    pub fn add_direct_channel(
+        &'static mut self,
+        info: DirectChannelInfo,
+    ) -> Option<DirectChannelInfo> {
+        let direct_router: &mut DirectRouter = self
+            .extension_mut(RouterExt::DirectRouter)
+            .expect("direct routed must be present in BOLT-compatible router");
+        direct_router.add_direct_channel(info)
+    }
+}
+
+/// Router for direct channels (between this node and other nodes) for
+/// legacy BOLT lightning channels
+#[derive(Getters, Clone, PartialEq, Eq, Debug, Default)]
+pub struct DirectRouter {
+    channels: Vec<DirectChannelInfo>,
+}
+
+impl DirectRouter {
+    pub fn add_direct_channel(
+        &mut self,
+        info: DirectChannelInfo,
+    ) -> Option<DirectChannelInfo> {
+        let prev_info = if let Some((index, _)) = self
+            .channels
+            .iter()
+            .enumerate()
+            .find(|(index, c)| c.channel_id == info.channel_id)
+        {
+            Some(self.channels.remove(index))
+        } else {
+            None
+        };
+        self.channels.push(info);
+        prev_info
+    }
+}
+
+impl Extension for DirectRouter {
+    type Identity = RouterExt;
+
+    fn identity(&self) -> Self::Identity {
+        RouterExt::DirectRouter
+    }
+
+    fn update_from_peer(&mut self, message: &Messages) -> Result<(), Error> {
+        match message {
+            /*
+            Messages::FundingLocked(FundingLocked { channel_id, .. }) => {}
+            Messages::ChannelReestablish(_) => {}
+            Messages::ClosingSigned(_) => {}
+            Messages::CommitmentSigned(_) => {}
+            Messages::RevokeAndAck(_) => {}
+             */
+            _ => {} // Nothing to do here
+        }
+
+        Ok(())
+    }
+
+    fn load_state(&mut self, state: &RouterState) {
+        self.channels = state.direct_channels.clone();
+    }
+
+    fn store_state(&self, state: &mut RouterState) {
+        state.direct_channels = self.channels.clone();
+    }
+}
+
+impl RouterExtension for DirectRouter {
+    #[inline]
+    fn new() -> Box<dyn RouterExtension<Identity = Self::Identity>>
+    where
+        Self: Sized,
+    {
+        Box::new(DirectRouter::default())
+    }
+
+    fn build_route(
+        &mut self,
+        payment: PaymentRequest,
+        route: &mut Vec<Hop<PaymentOnion>>,
+    ) {
         todo!()
     }
 }
 
 /// BOLT-7 gossip-based router
+#[derive(Getters, Clone, PartialEq, Eq, Debug, Default)]
 pub struct GossipRouter {
-    pub channels: Vec<ChannelInfo>,
+    channels: Vec<GossipChannelInfo>,
 }
 
 impl Extension for GossipRouter {
     type Identity = RouterExt;
 
     fn identity(&self) -> Self::Identity {
-        todo!()
+        RouterExt::GossipRouter
     }
 
     fn update_from_peer(&mut self, message: &Messages) -> Result<(), Error> {
-        todo!()
+        match message {
+            // TODO: Extract routing information from gossip messages
+            Messages::UpdateFee(_) => {}
+            Messages::ChannelAnnouncement(_) => {}
+            Messages::ChannelUpdate(_) => {}
+            _ => {}
+        }
+        Ok(())
     }
 
     fn load_state(&mut self, state: &RouterState) {
-        todo!()
+        self.channels = state.remote_channels.clone()
     }
 
     fn store_state(&self, state: &mut RouterState) {
-        todo!()
+        state.remote_channels = self.channels.clone()
     }
 }
 
 impl RouterExtension for GossipRouter {
+    #[inline]
     fn new() -> Box<dyn RouterExtension<Identity = Self::Identity>>
     where
         Self: Sized,
     {
-        todo!()
+        Box::new(GossipRouter::default())
     }
 
     fn build_route(

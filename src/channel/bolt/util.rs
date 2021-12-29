@@ -118,21 +118,9 @@ impl channel::Nomenclature for BoltExt {
     }
 }
 
-#[derive(
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Debug,
-    Display,
-    StrictEncode,
-    StrictDecode
-)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display)]
+#[derive(StrictEncode, StrictDecode)]
 #[display(Debug)]
-#[non_exhaustive]
 pub enum TxType {
     HtlcSuccess,
     HtlcTimeout,
@@ -167,20 +155,8 @@ impl TxRole for TxType {}
     derive(Serialize, Deserialize),
     serde(crate = "serde_crate")
 )]
-#[derive(
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Debug,
-    Display,
-    StrictEncode,
-    StrictDecode
-)]
-#[non_exhaustive]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display)]
+#[derive(StrictEncode, StrictDecode)]
 #[repr(u8)]
 pub enum Lifecycle {
     /// Channel is initialized, communications with the remote peer has not

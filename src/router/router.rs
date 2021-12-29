@@ -38,9 +38,7 @@ where
 {
     type HopPayload: SphinxPayload;
 
-    fn default_extensions() -> Vec<Box<dyn RouterExtension<Identity = Self>>> {
-        Vec::default()
-    }
+    fn default_extensions() -> Vec<Box<dyn RouterExtension<Identity = Self>>>;
 
     /// Updates router extension structure from peer message. Processed before
     /// each of the registered extensions gets [`Extension::update_from_peer`]
