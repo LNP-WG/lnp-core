@@ -27,7 +27,7 @@ use crate::legacy::ChannelFeatures;
 /// as an opt-in mechanism to allow the announcement of the channel to the rest
 /// of the network. It contains the necessary signatures, by the sender, to
 /// construct the `channel_announcement` message.
-#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Display)]
 #[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display(
@@ -127,7 +127,7 @@ pub struct NodeAnnouncements {
 /// which end of the channel it's on (origin or final). A node can do this
 /// multiple times, in order to change fees.
 // TODO: Do custom encoding due to `message_flags` and `option_channel_htlc_max`
-#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Display)]
 #[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("channel_id({chain_hash}, {short_channel_id}, {timestamp}, ...)")]
@@ -169,7 +169,7 @@ pub struct ChannelUpdate {
 }
 
 /// Extended Gossip messages
-#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug, Display)]
 #[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("query_short_channel_ids({chain_hash}, {short_ids:#?}, ...tlvs)")]
@@ -181,7 +181,7 @@ pub struct QueryShortChannelIds {
     pub short_ids: Vec<ShortChannelId>,
 }
 
-#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, Display)]
 #[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("reply_short_channel_ids_end({chain_hash}, {full_information})")]
@@ -193,7 +193,7 @@ pub struct ReplyShortChannelIdsEnd {
     pub full_information: u8,
 }
 
-#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, Display)]
 #[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display(
@@ -216,7 +216,7 @@ pub struct QueryChannelRange {
      */
 }
 
-#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug, Display)]
 #[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display(
@@ -243,7 +243,7 @@ pub struct ReplyChannelRange {
     *pub reply_channel_range_tlvs: BTreeMap<u8, Vec<u8>>, */
 }
 
-#[derive(Clone, PartialEq, Eq, Debug, Display)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, Display)]
 #[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display(
