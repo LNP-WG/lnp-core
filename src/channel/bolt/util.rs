@@ -21,7 +21,7 @@ use strict_encoding::{
     self, strict_deserialize, strict_serialize, StrictDecode, StrictEncode,
 };
 
-use super::{AnchorOutputs, ChannelState, Core, Htlc};
+use super::{AnchorOutputs, BoltChannel, ChannelState, Htlc};
 use crate::channel::shared_ext::Bip96;
 use crate::channel::tx_graph::TxRole;
 use crate::channel::{self, Channel, Error};
@@ -90,7 +90,7 @@ impl extension::Nomenclature for BoltExt {
 }
 
 impl channel::Nomenclature for BoltExt {
-    type Constructor = Core;
+    type Constructor = BoltChannel;
 
     #[inline]
     fn default_extenders() -> Vec<Box<dyn ChannelExtension<Identity = Self>>> {

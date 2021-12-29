@@ -332,7 +332,7 @@ impl Channel<BoltExt> {
 #[derive(Getters, Clone, PartialEq, Eq, Debug, StrictEncode, StrictDecode)]
 #[getter(as_copy)]
 // TODO: Make it crate-private
-pub struct Core {
+pub struct BoltChannel {
     /// Current channel lifecycle stage
     #[getter(as_copy)]
     stage: Lifecycle,
@@ -402,11 +402,11 @@ pub struct Core {
     direction: Direction,
 }
 
-impl Default for Core {
+impl Default for BoltChannel {
     fn default() -> Self {
         let direction = Direction::Outbount;
         let dumb_keys = RemoteKeyset::dumb_default();
-        Core {
+        BoltChannel {
             stage: Lifecycle::Initial,
             chain_hash: default!(),
             active_channel_id: ActiveChannelId::random(),
@@ -427,7 +427,7 @@ impl Default for Core {
     }
 }
 
-impl Core {
+impl BoltChannel {
     /// Returns [`ChannelId`], if the channel already assigned it
     #[inline]
     pub fn channel_id(&self) -> Option<ChannelId> {
@@ -496,7 +496,7 @@ impl Core {
     }
 }
 
-impl Extension for Core {
+impl Extension for BoltChannel {
     type Identity = BoltExt;
 
     fn identity(&self) -> Self::Identity {
@@ -660,7 +660,7 @@ impl Extension for Core {
     }
 }
 
-impl Core {
+impl BoltChannel {
     fn commitment_fee(&self) -> u64 {
         724 * self.common_params.feerate_per_kw as u64 / 1000
     }
@@ -932,10 +932,10 @@ impl Core {
     }
 }
 
-impl ChannelExtension for Core {
+impl ChannelExtension for BoltChannel {
     #[inline]
     fn new() -> Box<dyn ChannelExtension<Identity = Self::Identity>> {
-        Box::new(Core::default())
+        Box::new(BoltChannel::default())
     }
 
     fn build_graph(
@@ -996,7 +996,7 @@ impl ChannelExtension for Core {
     }
 }
 
-impl ChannelConstructor for Core {
+impl ChannelConstructor for BoltChannel {
     fn enrich_funding(
         &self,
         psbt: &mut Psbt,
@@ -1291,10 +1291,10 @@ mod test {
         };
     }
 
-    fn core_for_tests() -> Core {
+    fn core_for_tests() -> BoltChannel {
         let local_payment_basepoint = pk!("034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa");
         let remote_payment_basepoint = pk!("032c0b7cf95324a07d05398b240174dc0c2be444d96b159aa6c7f7b1e668680991");
-        let mut core = Core::default();
+        let mut core = BoltChannel::default();
 
         core.direction = Direction::Outbount;
         core.commitment_number = 42;
