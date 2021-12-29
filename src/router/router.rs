@@ -13,10 +13,14 @@
 
 //! Routing extensions and data types
 
+use amplify::DumbDefault;
+use std::any::Any;
 use std::collections::BTreeMap;
+use std::io::{Read, Write};
 
 use internet2::presentation::sphinx::{Hop, SphinxPayload};
 use p2p::legacy::{Messages, PaymentRequest};
+use strict_encoding::{StrictDecode, StrictEncode};
 
 use crate::{extension, Extension, RouterExtension};
 
@@ -33,6 +37,10 @@ where
     Self: extension::Nomenclature,
 {
     type HopPayload: SphinxPayload;
+
+    fn default_extensions() -> Vec<Box<dyn RouterExtension<Identity = Self>>> {
+        Vec::default()
+    }
 
     /// Updates router extension structure from peer message. Processed before
     /// each of the registered extensions gets [`Extension::update_from_peer`]
@@ -51,7 +59,89 @@ where
     extensions: ExtensionQueue<N>,
 }
 
-impl<N> Router<N> where N: Nomenclature {}
+impl<N> Router<N>
+where
+    N: Nomenclature,
+{
+    /// Constructs router with all used extensions
+    pub fn new(
+        extensions: impl IntoIterator<Item = Box<dyn RouterExtension<Identity = N>>>,
+    ) -> Self {
+        Self {
+            extensions: extensions.into_iter().fold(
+                ExtensionQueue::<N>::new(),
+                |mut queue, e| {
+                    queue.insert(e.identity(), e);
+                    queue
+                },
+            ),
+        }
+    }
+
+    /// Gets extension reference by extension identifier
+    pub fn extension<E>(&'static self, id: N) -> Option<&E> {
+        self.extensions
+            .get(&id)
+            .map(|ext| &*ext as &dyn Any)
+            .and_then(|ext| ext.downcast_ref())
+    }
+
+    /// Gets mutable extension reference by extension identifier
+    pub fn extension_mut<E>(&'static mut self, id: N) -> Option<&mut E> {
+        self.extensions
+            .get_mut(&id)
+            .map(|ext| &mut *ext as &mut dyn Any)
+            .and_then(|ext| ext.downcast_mut())
+    }
+
+    /// Adds new extension to the channel.
+    ///
+    /// Will be effective onl upon next channel state update.
+    #[inline]
+    pub fn add_extender(
+        &mut self,
+        extension: Box<dyn RouterExtension<Identity = N>>,
+    ) {
+        self.extensions.insert(extension.identity(), extension);
+    }
+}
+
+impl<N> Default for Router<N>
+where
+    N: 'static + Nomenclature + Default,
+{
+    fn default() -> Self {
+        Router::new(N::default_extensions())
+    }
+}
+
+impl<N> StrictEncode for Router<N>
+where
+    N: 'static + Nomenclature,
+    N::State: StrictEncode,
+{
+    fn strict_encode<E: Write>(
+        &self,
+        e: E,
+    ) -> Result<usize, strict_encoding::Error> {
+        let mut state = N::State::dumb_default();
+        self.store_state(&mut state);
+        state.strict_encode(e)
+    }
+}
+
+impl<N> StrictDecode for Router<N>
+where
+    N: 'static + Nomenclature,
+    N::State: StrictDecode,
+{
+    fn strict_decode<D: Read>(d: D) -> Result<Self, strict_encoding::Error> {
+        let state = N::State::strict_decode(d)?;
+        let mut router = Router::default();
+        router.load_state(&state);
+        Ok(router)
+    }
+}
 
 impl<N> Extension for Router<N>
 where
@@ -59,8 +149,9 @@ where
 {
     type Identity = N;
 
+    #[inline]
     fn identity(&self) -> Self::Identity {
-        todo!()
+        N::default()
     }
 
     fn update_from_peer(
@@ -95,13 +186,13 @@ where
 
 impl<N> RouterExtension for Router<N>
 where
-    N: Nomenclature,
+    N: Nomenclature + 'static,
 {
     fn new() -> Box<dyn RouterExtension<Identity = Self::Identity>>
     where
         Self: Sized,
     {
-        todo!()
+        Box::new(Router::default())
     }
 
     fn build_route(

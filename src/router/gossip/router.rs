@@ -11,6 +11,7 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
+use amplify::DumbDefault;
 use internet2::presentation::sphinx::Hop;
 use p2p::legacy::{Messages, PaymentOnion, PaymentRequest};
 use strict_encoding::{strict_deserialize, strict_serialize};
@@ -25,10 +26,16 @@ use crate::{extension, router, Extension, RouterExtension};
 #[display(doc_comments)]
 pub enum Error {}
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
 #[derive(StrictEncode, StrictDecode)]
 pub struct RouterState {
     channels: Vec<ChannelInfo>,
+}
+
+impl DumbDefault for RouterState {
+    fn dumb_default() -> Self {
+        RouterState::default()
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display)]

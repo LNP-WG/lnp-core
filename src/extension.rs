@@ -11,6 +11,7 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
+use amplify::DumbDefault;
 use std::convert::TryFrom;
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
@@ -44,7 +45,7 @@ where
         + TryFrom<u16, Error = strict_encoding::Error>
         + Into<u16>,
 {
-    type State;
+    type State: DumbDefault;
     type Error: std::error::Error;
 }
 
