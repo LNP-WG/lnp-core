@@ -14,9 +14,9 @@
 use lnp2p::legacy::Messages;
 use wallet::lex_order::LexOrder;
 
-use crate::channel::bolt::{BoltExt, ChannelState};
+use crate::channel::bolt::{BoltExt, ChannelState, Error};
 use crate::channel::tx_graph::TxGraph;
-use crate::{channel, ChannelExtension, Extension};
+use crate::{ChannelExtension, Extension};
 
 #[derive(Debug, Default)]
 pub struct Bip96;
@@ -30,7 +30,7 @@ impl Extension for Bip96 {
     }
 
     #[inline]
-    fn update_from_peer(&mut self, _: &Messages) -> Result<(), channel::Error> {
+    fn update_from_peer(&mut self, _: &Messages) -> Result<(), Error> {
         // Nothing to do here: peers can't tell us anything that will be related
         // to the stateless lexicographic output ordering. So ignoring their
         // messages all together
@@ -60,7 +60,7 @@ impl ChannelExtension for Bip96 {
         &self,
         tx_graph: &mut TxGraph,
         _as_remote_node: bool,
-    ) -> Result<(), channel::Error> {
+    ) -> Result<(), Error> {
         tx_graph.cmt_outs.lex_order();
         tx_graph
             .vec_mut()

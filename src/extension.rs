@@ -50,6 +50,8 @@ where
 }
 
 pub trait Extension {
+    // TODO: Refactor into generic parameter, not type alias. This should allow
+    //       use of the same extension under multiple nomenclatures.
     type Identity: Nomenclature;
 
     fn identity(&self) -> Self::Identity;

@@ -21,10 +21,10 @@ use strict_encoding::{
     self, strict_deserialize, strict_serialize, StrictDecode, StrictEncode,
 };
 
-use super::{AnchorOutputs, BoltChannel, ChannelState, Htlc};
+use super::{AnchorOutputs, BoltChannel, ChannelState, Error, Htlc};
 use crate::channel::shared_ext::Bip96;
 use crate::channel::tx_graph::TxRole;
-use crate::channel::{self, Channel, Error};
+use crate::channel::{self, Channel};
 use crate::extension;
 use crate::ChannelExtension;
 
@@ -86,7 +86,7 @@ impl TryFrom<u16> for BoltExt {
 
 impl extension::Nomenclature for BoltExt {
     type State = ChannelState;
-    type Error = channel::Error;
+    type Error = Error;
 }
 
 impl channel::Nomenclature for BoltExt {

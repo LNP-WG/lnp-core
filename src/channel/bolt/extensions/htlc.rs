@@ -25,9 +25,9 @@ use wallet::hlc::{HashLock, HashPreimage};
 use wallet::scripts::{LockScript, PubkeyScript, WitnessScript};
 use wallet::IntoPk;
 
-use crate::channel::bolt::{BoltExt, ChannelState, TxType};
+use crate::channel::bolt::{BoltExt, ChannelState, Error, TxType};
 use crate::channel::tx_graph::TxGraph;
-use crate::{channel, ChannelExtension, Extension};
+use crate::{ChannelExtension, Extension};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 #[derive(StrictEncode, StrictDecode)]
@@ -142,10 +142,7 @@ impl Extension for Htlc {
         BoltExt::Htlc
     }
 
-    fn update_from_peer(
-        &mut self,
-        message: &Messages,
-    ) -> Result<(), channel::Error> {
+    fn update_from_peer(&mut self, message: &Messages) -> Result<(), Error> {
         match message {
             Messages::OpenChannel(open_channel) => {
                 self.anchors_zero_fee_htlc_tx = open_channel
@@ -191,26 +188,26 @@ impl Extension for Htlc {
                     if message.amount_msat == 0
                         || message.amount_msat < self.htlc_minimum_msat
                     {
-                        return Err(channel::Error::Htlc(
+                        return Err(Error::Htlc(
                             "amount_msat has to be greater than 0".to_string(),
                         ));
                     } else if self.received_htlcs.len()
                         >= self.max_accepted_htlcs as usize
                     {
-                        return Err(channel::Error::Htlc(
+                        return Err(Error::Htlc(
                             "max no. of HTLC limit exceeded".to_string(),
                         ));
                     } else if message.cltv_expiry > 500000000 {
-                        return Err(channel::Error::Htlc(
+                        return Err(Error::Htlc(
                             "cltv_expiry limit exceeded".to_string(),
                         ));
                     } else if message.amount_msat.leading_zeros() < 32 {
-                        return Err(channel::Error::Htlc(
+                        return Err(Error::Htlc(
                             "Leading zeros not satisfied for Bitcoin network"
                                 .to_string(),
                         ));
                     } else if message.htlc_id <= self.next_recieved_htlc_id {
-                        return Err(channel::Error::Htlc(
+                        return Err(Error::Htlc(
                             "HTLC id violation occurred".to_string(),
                         )); // TODO handle reconnection
                     } else {
@@ -225,7 +222,7 @@ impl Extension for Htlc {
                         self.next_recieved_htlc_id += 1;
                     }
                 } else {
-                    return Err(channel::Error::Htlc(
+                    return Err(Error::Htlc(
                         "Missmatched channel_id, bad remote node".to_string(),
                     ));
                 }
@@ -233,12 +230,10 @@ impl Extension for Htlc {
             Messages::UpdateFulfillHtlc(message) => {
                 if message.channel_id == self.channel_id {
                     // Get the corresponding offered htlc
-                    let offered_htlc = self
-                        .received_htlcs
-                        .get(&message.htlc_id)
-                        .ok_or(channel::Error::Htlc(
-                            "HTLC id didn't match".to_string(),
-                        ))?;
+                    let offered_htlc =
+                        self.received_htlcs.get(&message.htlc_id).ok_or(
+                            Error::Htlc("HTLC id didn't match".to_string()),
+                        )?;
 
                     // Check for correct hash preimage in the message
                     if offered_htlc.hashlock
@@ -255,7 +250,7 @@ impl Extension for Htlc {
                             .insert(message.htlc_id, resolved_htlc);
                     }
                 } else {
-                    return Err(channel::Error::Htlc(
+                    return Err(Error::Htlc(
                         "Missmatched channel_id, bad remote node".to_string(),
                     ));
                 }
@@ -329,7 +324,7 @@ impl ChannelExtension for Htlc {
         &self,
         tx_graph: &mut TxGraph,
         _as_remote_node: bool,
-    ) -> Result<(), channel::Error> {
+    ) -> Result<(), Error> {
         // Process offered HTLCs
         for (index, offered) in self.offered_htlcs.iter() {
             let htlc_output = ScriptGenerators::ln_offered_htlc(

@@ -17,7 +17,5 @@ mod funding;
 pub mod shared_ext;
 pub mod tx_graph;
 
-pub use channel::{
-    Channel, Error, ExtensionQueue, History, Nomenclature, State,
-};
+pub use channel::{Channel, ExtensionQueue, History, Nomenclature, State};
 pub use funding::{Error as FundingError, Funding, PsbtLnpFunding};

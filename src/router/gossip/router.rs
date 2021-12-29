@@ -43,19 +43,19 @@ impl DumbDefault for RouterState {
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display)]
 #[derive(StrictEncode, StrictDecode)]
 #[display(Debug)]
-pub enum RouterExt {
+pub enum GossipExt {
     DirectRouter = 1,
     GossipRouter = 2,
 }
 
-impl Default for RouterExt {
+impl Default for GossipExt {
     fn default() -> Self {
-        RouterExt::DirectRouter
+        GossipExt::DirectRouter
     }
 }
 
-impl From<RouterExt> for u16 {
-    fn from(id: RouterExt) -> Self {
+impl From<GossipExt> for u16 {
+    fn from(id: GossipExt) -> Self {
         let mut buf = [0u8; 2];
         buf.copy_from_slice(
             &strict_serialize(&id)
@@ -65,7 +65,7 @@ impl From<RouterExt> for u16 {
     }
 }
 
-impl TryFrom<u16> for RouterExt {
+impl TryFrom<u16> for GossipExt {
     type Error = strict_encoding::Error;
 
     fn try_from(value: u16) -> Result<Self, Self::Error> {
@@ -73,12 +73,12 @@ impl TryFrom<u16> for RouterExt {
     }
 }
 
-impl extension::Nomenclature for RouterExt {
+impl extension::Nomenclature for GossipExt {
     type State = RouterState;
     type Error = Error;
 }
 
-impl router::Nomenclature for RouterExt {
+impl router::Nomenclature for GossipExt {
     type HopPayload = PaymentOnion;
 
     fn default_extensions() -> Vec<Box<dyn RouterExtension<Identity = Self>>> {
@@ -100,13 +100,13 @@ impl router::Nomenclature for RouterExt {
     }
 }
 
-impl Router<RouterExt> {
+impl Router<GossipExt> {
     pub fn add_direct_channel(
         &'static mut self,
         info: DirectChannelInfo,
     ) -> Option<DirectChannelInfo> {
         let direct_router: &mut DirectRouter = self
-            .extension_mut(RouterExt::DirectRouter)
+            .extension_mut(GossipExt::DirectRouter)
             .expect("direct routed must be present in BOLT-compatible router");
         direct_router.add_direct_channel(info)
     }
@@ -140,10 +140,10 @@ impl DirectRouter {
 }
 
 impl Extension for DirectRouter {
-    type Identity = RouterExt;
+    type Identity = GossipExt;
 
     fn identity(&self) -> Self::Identity {
-        RouterExt::DirectRouter
+        GossipExt::DirectRouter
     }
 
     fn update_from_peer(&mut self, message: &Messages) -> Result<(), Error> {
@@ -195,10 +195,10 @@ pub struct GossipRouter {
 }
 
 impl Extension for GossipRouter {
-    type Identity = RouterExt;
+    type Identity = GossipExt;
 
     fn identity(&self) -> Self::Identity {
-        RouterExt::GossipRouter
+        GossipExt::GossipRouter
     }
 
     fn update_from_peer(&mut self, message: &Messages) -> Result<(), Error> {

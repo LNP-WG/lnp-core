@@ -13,9 +13,9 @@
 
 use p2p::legacy::Messages;
 
-use crate::channel::bolt::{BoltExt, ChannelState};
+use crate::channel::bolt::{BoltExt, ChannelState, Error};
 use crate::channel::tx_graph::TxGraph;
-use crate::{channel, ChannelExtension, Extension};
+use crate::{ChannelExtension, Extension};
 
 #[derive(Debug, Default)]
 pub struct AnchorOutputs;
@@ -29,7 +29,7 @@ impl Extension for AnchorOutputs {
     }
 
     #[inline]
-    fn update_from_peer(&mut self, _: &Messages) -> Result<(), channel::Error> {
+    fn update_from_peer(&mut self, _: &Messages) -> Result<(), Error> {
         // TODO: Implement
         Ok(())
     }
@@ -57,7 +57,7 @@ impl ChannelExtension for AnchorOutputs {
         &self,
         _tx_graph: &mut TxGraph,
         _as_remote_node: bool,
-    ) -> Result<(), channel::Error> {
+    ) -> Result<(), Error> {
         todo!("implement anchor outputs")
     }
 }

@@ -13,8 +13,6 @@
 
 use std::any::Any;
 use std::collections::BTreeMap;
-use std::fmt::Debug;
-use std::hash::Hash;
 use std::io::{Read, Write};
 
 use amplify::DumbDefault;
@@ -23,50 +21,18 @@ use lnp2p::legacy::Messages;
 use strict_encoding::{StrictDecode, StrictEncode};
 
 use super::tx_graph::TxGraph;
-use super::{funding, Funding};
-use crate::channel::bolt::{Lifecycle, PolicyError};
+use super::Funding;
+use crate::channel::FundingError;
 use crate::extension;
 use crate::{ChannelConstructor, ChannelExtension, Extension};
-
-// TODO: Use Box<dyn Error> for boxing extension- and channel-type-specific
-//       errors.
-#[derive(Clone, PartialEq, Eq, Hash, Debug, Display, Error, From)]
-#[display(doc_comments)]
-pub enum Error {
-    /// Error in channel funding: {0}
-    #[from]
-    Funding(funding::Error),
-
-    /// Extension-specific error: {0}
-    Extension(String),
-
-    /// HTLC extension error
-    // TODO: Expand into specific error types
-    #[display(inner)]
-    Htlc(String),
-
-    /// Policy errors happening during channel negotiation
-    #[from]
-    #[display(inner)]
-    Policy(PolicyError),
-
-    /// channel is in a state {current} incompatible with the requested
-    /// operation
-    #[display(doc_comments)]
-    LifecycleMismatch {
-        current: Lifecycle,
-        required: &'static [Lifecycle],
-    },
-}
 
 /// Marker trait for creating channel extension nomenclatures, defining order in
 /// which extensions are applied to the channel transaction structure.
 ///
 /// Extension nomenclature is an enum with members convertible into `u16`
 /// representation
-pub trait Nomenclature
+pub trait Nomenclature: extension::Nomenclature
 where
-    Self: extension::Nomenclature<Error = Error>,
     <Self as extension::Nomenclature>::State: State,
 {
     type Constructor: ChannelConstructor<Identity = Self>;
@@ -86,7 +52,7 @@ where
     fn update_from_peer(
         channel: &mut Channel<Self>,
         message: &Messages,
-    ) -> Result<(), Error>;
+    ) -> Result<(), <Self as extension::Nomenclature>::Error>;
 }
 
 /// Trait for any data that can be used as a part of the channel state
@@ -255,12 +221,27 @@ where
     }
 
     /// Constructs current version of commitment transaction
-    pub fn commitment_tx(&mut self, remote: bool) -> Result<Psbt, Error> {
+    pub fn commitment_tx(
+        &mut self,
+        remote: bool,
+    ) -> Result<Psbt, <N as extension::Nomenclature>::Error> {
         let mut tx_graph = TxGraph::from_funding(&self.funding);
         self.build_graph(&mut tx_graph, remote)?;
         Ok(tx_graph.render_cmt())
     }
 
+    #[inline]
+    pub fn set_funding_amount(&mut self, amount: u64) {
+        self.funding = Funding::preliminary(amount)
+    }
+}
+
+impl<N> Channel<N>
+where
+    N: 'static + Nomenclature,
+    N::State: State,
+    <N as extension::Nomenclature>::Error: From<FundingError>,
+{
     /// Constructs the first commitment transaction (called "refund
     /// transaction") taking given funding outpoint.
     #[inline]
@@ -268,21 +249,19 @@ where
         &mut self,
         funding_psbt: Psbt,
         remote: bool,
-    ) -> Result<Psbt, Error> {
+    ) -> Result<Psbt, <N as extension::Nomenclature>::Error> {
         self.set_funding(funding_psbt)?;
         self.commitment_tx(remote)
     }
 
     #[inline]
-    pub fn set_funding(&mut self, mut psbt: Psbt) -> Result<(), Error> {
+    pub fn set_funding(
+        &mut self,
+        mut psbt: Psbt,
+    ) -> Result<(), <N as extension::Nomenclature>::Error> {
         self.constructor.enrich_funding(&mut psbt, &self.funding)?;
         self.funding = Funding::with(psbt)?;
         Ok(())
-    }
-
-    #[inline]
-    pub fn set_funding_amount(&mut self, amount: u64) {
-        self.funding = Funding::preliminary(amount)
     }
 }
 
@@ -341,7 +320,10 @@ where
         N::default()
     }
 
-    fn update_from_peer(&mut self, message: &Messages) -> Result<(), Error> {
+    fn update_from_peer(
+        &mut self,
+        message: &Messages,
+    ) -> Result<(), <N as extension::Nomenclature>::Error> {
         N::update_from_peer(self, message)?;
         self.constructor.update_from_peer(message)?;
         self.extenders
@@ -399,7 +381,7 @@ where
         &self,
         tx_graph: &mut TxGraph,
         as_remote_node: bool,
-    ) -> Result<(), Error> {
+    ) -> Result<(), <N as extension::Nomenclature>::Error> {
         self.constructor.build_graph(tx_graph, as_remote_node)?;
         self.extenders
             .iter()

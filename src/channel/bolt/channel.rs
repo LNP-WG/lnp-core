@@ -36,10 +36,42 @@ use wallet::{psbt, IntoPk};
 use super::keyset::{LocalKeyset, LocalPubkey, RemoteKeyset};
 use super::policy::{CommonParams, PeerParams, Policy};
 use super::{AnchorOutputs, BoltExt, ChannelState, Htlc, Lifecycle};
+use crate::channel::bolt::PolicyError;
 use crate::channel::funding::{self, Funding, PsbtLnpFunding};
 use crate::channel::tx_graph::TxGraph;
 use crate::extension::ChannelConstructor;
-use crate::{channel, Channel, ChannelExtension, Extension};
+use crate::{Channel, ChannelExtension, Extension};
+
+// TODO: Use Box<dyn Error> for boxing extension- and channel-type-specific
+//       errors.
+#[derive(Clone, PartialEq, Eq, Hash, Debug, Display, Error, From)]
+#[display(doc_comments)]
+pub enum Error {
+    /// Error in channel funding: {0}
+    #[from]
+    Funding(funding::Error),
+
+    /// Extension-specific error: {0}
+    Extension(String),
+
+    /// HTLC extension error
+    // TODO: Expand into specific error types
+    #[display(inner)]
+    Htlc(String),
+
+    /// Policy errors happening during channel negotiation
+    #[from]
+    #[display(inner)]
+    Policy(PolicyError),
+
+    /// channel is in a state {current} incompatible with the requested
+    /// operation
+    #[display(doc_comments)]
+    LifecycleMismatch {
+        current: Lifecycle,
+        required: &'static [Lifecycle],
+    },
+}
 
 /// Errors during payment creation
 #[derive(
@@ -205,7 +237,7 @@ impl Channel<BoltExt> {
         common_params: CommonParams,
         local_params: PeerParams,
         local_keys: LocalKeyset,
-    ) -> Result<OpenChannel, channel::Error> {
+    ) -> Result<OpenChannel, Error> {
         self.set_funding_amount(funding_sat);
         self.constructor_mut().compose_open_channel(
             funding_sat,
@@ -225,9 +257,7 @@ impl Channel<BoltExt> {
     ///
     /// Fails if the node is not in [`Lifecycle::Initial`] or
     /// [`Lifecycle::Reestablishing`] state.
-    pub fn compose_accept_channel(
-        &mut self,
-    ) -> Result<AcceptChannel, channel::Error> {
+    pub fn compose_accept_channel(&mut self) -> Result<AcceptChannel, Error> {
         self.constructor_mut().compose_accept_channel()
     }
 
@@ -239,10 +269,10 @@ impl Channel<BoltExt> {
     pub fn compose_reestablish_channel(
         &mut self,
         remote_channel_reestablish: &ChannelReestablish,
-    ) -> Result<ChannelReestablish, channel::Error> {
+    ) -> Result<ChannelReestablish, Error> {
         self.constructor_mut()
             .compose_reestablish_channel(remote_channel_reestablish)
-            .map_err(|err| channel::Error::Extension(err.to_string()))
+            .map_err(|err| Error::Extension(err.to_string()))
     }
 
     pub fn compose_payment(
@@ -503,10 +533,7 @@ impl Extension for BoltChannel {
         BoltExt::Bolt3
     }
 
-    fn update_from_peer(
-        &mut self,
-        message: &Messages,
-    ) -> Result<(), channel::Error> {
+    fn update_from_peer(&mut self, message: &Messages) -> Result<(), Error> {
         // TODO: Check lifecycle
         match message {
             Messages::OpenChannel(open_channel) => {
@@ -604,7 +631,7 @@ impl Extension for BoltChannel {
                 if message.amount_msat + total_htlc_value_in_flight_msat
                     > self.max_htlc_value_in_flight_msat
                 {
-                    return Err(channel::Error::Htlc(
+                    return Err(Error::Htlc(
                         "max HTLC inflight amount limit exceeded".to_string(),
                     ));
                 }
@@ -695,11 +722,11 @@ impl BoltChannel {
         common_params: CommonParams,
         local_params: PeerParams,
         local_keyset: LocalKeyset,
-    ) -> Result<OpenChannel, channel::Error> {
+    ) -> Result<OpenChannel, Error> {
         if self.stage != Lifecycle::Initial
             && self.stage != Lifecycle::Reestablishing
         {
-            return Err(channel::Error::LifecycleMismatch {
+            return Err(Error::LifecycleMismatch {
                 current: self.stage,
                 required: &[Lifecycle::Initial, Lifecycle::Reestablishing],
             });
@@ -745,13 +772,11 @@ impl BoltChannel {
         })
     }
 
-    fn compose_accept_channel(
-        &mut self,
-    ) -> Result<AcceptChannel, channel::Error> {
+    fn compose_accept_channel(&mut self) -> Result<AcceptChannel, Error> {
         if self.stage != Lifecycle::Initial
             && self.stage != Lifecycle::Reestablishing
         {
-            return Err(channel::Error::LifecycleMismatch {
+            return Err(Error::LifecycleMismatch {
                 current: self.stage,
                 required: &[Lifecycle::Initial, Lifecycle::Reestablishing],
             });
@@ -942,7 +967,7 @@ impl ChannelExtension for BoltChannel {
         &self,
         tx_graph: &mut TxGraph,
         as_remote_node: bool,
-    ) -> Result<(), channel::Error> {
+    ) -> Result<(), Error> {
         let obscured_commitment = self.obscured_commitment_number();
         let lock_time =
             (0x20u32 << 24) | (obscured_commitment as u32 & 0x00_FF_FF_FF);
@@ -1001,7 +1026,7 @@ impl ChannelConstructor for BoltChannel {
         &self,
         psbt: &mut Psbt,
         funding: &Funding,
-    ) -> Result<(), channel::Error> {
+    ) -> Result<(), Error> {
         let vout = psbt
             .channel_funding_output()
             .ok_or(funding::Error::NoFundingOutput)?;
