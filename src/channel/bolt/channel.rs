@@ -51,8 +51,10 @@ pub enum Error {
     #[from]
     Funding(funding::Error),
 
-    /// Extension-specific error: {0}
-    Extension(String),
+    /// Error reestablishing channel
+    #[display(inner)]
+    #[from]
+    ChannelReestablish(ReestablishError),
 
     /// HTLC extension error
     // TODO: Expand into specific error types
@@ -272,7 +274,7 @@ impl Channel<BoltExt> {
     ) -> Result<ChannelReestablish, Error> {
         self.constructor_mut()
             .compose_reestablish_channel(remote_channel_reestablish)
-            .map_err(|err| Error::Extension(err.to_string()))
+            .map_err(Error::from)
     }
 
     pub fn compose_payment(
