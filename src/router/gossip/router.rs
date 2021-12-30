@@ -17,7 +17,7 @@ use p2p::legacy::{Messages, PaymentOnion, PaymentRequest};
 use strict_encoding::{strict_deserialize, strict_serialize};
 
 use super::GossipChannelInfo;
-use crate::router::gossip::DirectChannelInfo;
+use crate::router::gossip::LocalChannelInfo;
 use crate::router::Router;
 use crate::{extension, router, Extension, RouterExtension};
 
@@ -31,7 +31,7 @@ pub enum Error {}
 #[derive(StrictEncode, StrictDecode)]
 pub struct RouterState {
     remote_channels: Vec<GossipChannelInfo>,
-    direct_channels: Vec<DirectChannelInfo>,
+    direct_channels: Vec<LocalChannelInfo>,
 }
 
 impl DumbDefault for RouterState {
@@ -102,8 +102,8 @@ impl router::Nomenclature for GossipExt {
 impl Router<GossipExt> {
     pub fn add_direct_channel(
         &'static mut self,
-        info: DirectChannelInfo,
-    ) -> Option<DirectChannelInfo> {
+        info: LocalChannelInfo,
+    ) -> Option<LocalChannelInfo> {
         let direct_router: &mut DirectRouter = self
             .extension_mut(GossipExt::DirectRouter)
             .expect("direct routed must be present in BOLT-compatible router");
@@ -115,19 +115,19 @@ impl Router<GossipExt> {
 /// legacy BOLT lightning channels
 #[derive(Getters, Clone, PartialEq, Eq, Debug, Default)]
 pub struct DirectRouter {
-    channels: Vec<DirectChannelInfo>,
+    channels: Vec<LocalChannelInfo>,
 }
 
 impl DirectRouter {
     pub fn add_direct_channel(
         &mut self,
-        info: DirectChannelInfo,
-    ) -> Option<DirectChannelInfo> {
+        info: LocalChannelInfo,
+    ) -> Option<LocalChannelInfo> {
         let prev_info = if let Some((index, _)) = self
             .channels
             .iter()
             .enumerate()
-            .find(|(index, c)| c.channel_id == info.channel_id)
+            .find(|(_, c)| c.channel_id == info.channel_id)
         {
             Some(self.channels.remove(index))
         } else {
@@ -178,8 +178,8 @@ impl RouterExtension<GossipExt> for DirectRouter {
 
     fn build_route(
         &mut self,
-        payment: PaymentRequest,
-        route: &mut Vec<Hop<PaymentOnion>>,
+        _payment: PaymentRequest,
+        _route: &mut Vec<Hop<PaymentOnion>>,
     ) {
         todo!()
     }
@@ -227,8 +227,8 @@ impl RouterExtension<GossipExt> for GossipRouter {
 
     fn build_route(
         &mut self,
-        payment: PaymentRequest,
-        route: &mut Vec<Hop<PaymentOnion>>,
+        _payment: PaymentRequest,
+        _route: &mut Vec<Hop<PaymentOnion>>,
     ) {
         todo!()
     }

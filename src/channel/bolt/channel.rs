@@ -309,6 +309,11 @@ impl Channel<BoltExt> {
         })
     }
 
+    #[inline]
+    pub fn chain_hash(&self) -> Slice32 {
+        self.constructor().chain_hash()
+    }
+
     /// Tries to identify bitcoin network which channel is based on. Returns
     /// `None` if the channel is using non-bitcoin chain.
     #[inline]

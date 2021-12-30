@@ -588,7 +588,7 @@ impl strict_encoding::StrictDecode for InitFeatures {
 ///
 /// # Specification
 /// <https://github.com/lightningnetwork/lightning-rfc/blob/master/09-features.md>
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default)]
 #[cfg_attr(
     feature = "serde",
     derive(Serialize, Deserialize),

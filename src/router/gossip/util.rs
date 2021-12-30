@@ -12,41 +12,75 @@
 // If not, see <https://opensource.org/licenses/MIT>.
 
 use amplify::Slice32;
-use p2p::legacy::{
-    ChannelAnnouncement, ChannelId, ChannelUpdate, ShortChannelId,
-};
+use p2p::legacy::{ChannelFeatures, ChannelId, ShortChannelId};
 use secp256k1::PublicKey;
 
-#[derive(Clone, Eq, PartialEq, Debug)]
+#[derive(Clone, Copy, Eq, PartialEq, Hash, Debug)]
 #[derive(StrictEncode, StrictDecode)]
+pub struct DirectionalInfo {
+    /// Time stamp
+    pub timestamp: u32,
+
+    /// message flags
+    // TODO: Introduce a dedicated data type
+    pub message_flags: u8,
+
+    /// channel flags
+    // TODO: Introduce a dedicated data type
+    pub channel_flags: u8,
+
+    /// CLTV expiry delta
+    pub cltv_expiry_delta: u16,
+
+    /// minimum HTLC in msat
+    pub htlc_minimum_msat: u64,
+
+    /// base fee in msat
+    pub fee_base_msat: u32,
+
+    /// fee proportional millionth
+    pub fee_proportional_millionths: u32,
+
+    /// Used only if `option_channel_htlc_max` in `message_flags` is set
+    pub htlc_maximum_msat: u64,
+}
+
 /// Information about channel used for route construction and re-broadcasting
 /// gossip messages.
+#[derive(Clone, Copy, Eq, PartialEq, Hash, Debug, Display)]
+#[derive(StrictEncode, StrictDecode)]
+#[display("{short_channel_id}")]
 pub struct GossipChannelInfo {
-    /// Node identities consituting channel
+    /// Node identities constituting channel
     pub nodes: (PublicKey, PublicKey),
+
+    /// Chainhash
+    pub chain_hash: Slice32,
+
+    /// Short Channel Id
+    pub short_channel_id: ShortChannelId,
 
     /// Information about each channel direction.
     ///
     /// The first tuple field corresponds to the direction from the first
     /// node id (see [`ChannelInfo::nodes`]) to the second one – and the second
     /// tuple field to the opposite direction.
-    pub directions: (Option<ChannelUpdate>, Option<ChannelUpdate>),
+    pub directions: (Option<DirectionalInfo>, Option<DirectionalInfo>),
 
     /// The channel capacity, known only for local channels - or if it can be
     /// deduced from on-chain data, if they are available
     pub capacity_sats: Option<u64>,
 
-    /// Original channel announcement message from which we've got this
-    /// information. Absent for manually added channels and may be absent for
-    /// local channels.
-    pub announcement: Option<ChannelAnnouncement>,
+    /// Channel features
+    pub features: ChannelFeatures,
 }
 
-#[derive(Clone, Copy, Eq, PartialEq, Hash, Debug)]
-#[derive(StrictEncode, StrictDecode)]
 /// Information about channel used for route construction and re-broadcasting
 /// gossip messages.
-pub struct DirectChannelInfo {
+#[derive(Clone, Copy, Eq, PartialEq, Hash, Debug, Display)]
+#[derive(StrictEncode, StrictDecode)]
+#[display("{channel_id}@{remote_node}")]
+pub struct LocalChannelInfo {
     /// Other node identity
     pub remote_node: PublicKey,
 
@@ -71,10 +105,4 @@ pub struct DirectChannelInfo {
 
     /// maximum HTLC in msat
     pub htlc_maximum_msat: u64,
-
-    /// base fee in msat
-    pub fee_base_msat: u32,
-
-    /// fee proportional millionth
-    pub fee_proportional_millionths: u32,
 }
