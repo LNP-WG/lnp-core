@@ -220,17 +220,60 @@ impl Default for Policy {
 impl Policy {
     /// Sets policy to match default policy used in c-lightning
     pub fn with_clightning_defaults() -> Policy {
-        todo!()
+        Policy {
+            to_self_delay_max: 14 * 24 * 6,
+            feerate_per_kw_range: 1..1000,
+            minimum_depth: 3,
+            maximum_depth: Some(6),
+            funding_satoshis_min: Some(10000),
+            htlc_minimum_msat_max: None,
+            max_htlc_value_in_flight_msat_min: Some(10000),
+            max_accepted_htlcs_min: Some(30),
+            channel_reserve_satoshis_max_abs: None,
+            // c-lightning uses 10% of the channel funding as a reserve
+            channel_reserve_satoshis_max_percent: Some(10),
+            dust_limit_satoshis_max: Some(546),
+        }
     }
 
     /// Sets policy to match default policy used in LND
     pub fn with_lnd_defaults() -> Policy {
-        todo!()
+        Policy {
+            to_self_delay_max: 14 * 24 * 6,
+            feerate_per_kw_range: 1..1000,
+            minimum_depth: 3,
+            maximum_depth: Some(6),
+            funding_satoshis_min: Some(20000),
+            htlc_minimum_msat_max: None,
+            max_htlc_value_in_flight_msat_min: Some(10000),
+            max_accepted_htlcs_min: Some(483),
+            channel_reserve_satoshis_max_abs: None,
+            // LND uses 1% of the channel funding as a reserve
+            channel_reserve_satoshis_max_percent: Some(1),
+            // Since LND 0.13.3 there is no default value for dust limit
+            // DustLimitForSize retrieves the dust limit for a given pkscript
+            // size 546 is the biggest value for p2pkh
+            // https://github.com/lightningnetwork/lnd/pull/5781
+            dust_limit_satoshis_max: Some(546),
+        }
     }
 
     /// Sets policy to match default policy used in Eclair
     pub fn with_eclair_defaults() -> Policy {
-        todo!()
+        Policy {
+            to_self_delay_max: 14 * 24 * 6,
+            feerate_per_kw_range: 1..1000,
+            minimum_depth: 3,
+            maximum_depth: Some(6),
+            funding_satoshis_min: Some(100000),
+            htlc_minimum_msat_max: None,
+            max_htlc_value_in_flight_msat_min: Some(5000000000),
+            max_accepted_htlcs_min: Some(30),
+            channel_reserve_satoshis_max_abs: None,
+            // LND uses 5% of the channel funding as a reserve
+            channel_reserve_satoshis_max_percent: Some(5),
+            dust_limit_satoshis_max: Some(546),
+        }
     }
 
     fn validate_peer_params(
