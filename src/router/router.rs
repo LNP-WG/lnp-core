@@ -15,7 +15,7 @@
 
 use amplify::DumbDefault;
 use std::any::Any;
-use std::collections::BTreeMap;
+use std::collections::{btree_map, BTreeMap};
 use std::io::{Read, Write};
 
 use internet2::presentation::sphinx::{Hop, SphinxPayload};
@@ -58,7 +58,7 @@ where
 
 impl<N> Router<N>
 where
-    N: Nomenclature,
+    N: Nomenclature + 'static,
 {
     /// Constructs router with all used extensions
     pub fn new(
@@ -73,6 +73,20 @@ where
                 },
             ),
         }
+    }
+
+    #[inline]
+    pub fn extensions(
+        &self,
+    ) -> btree_map::Iter<N, Box<dyn RouterExtension<N>>> {
+        self.extensions.iter()
+    }
+
+    #[inline]
+    pub fn extensions_mut(
+        &mut self,
+    ) -> btree_map::IterMut<N, Box<dyn RouterExtension<N>>> {
+        self.extensions.iter_mut()
     }
 
     /// Gets extension reference by extension identifier
@@ -91,12 +105,19 @@ where
             .and_then(|ext| ext.downcast_mut())
     }
 
-    /// Adds new extension to the channel.
-    ///
-    /// Will be effective onl upon next channel state update.
+    /// Adds new extension to the router.
     #[inline]
-    pub fn add_extender(&mut self, extension: Box<dyn RouterExtension<N>>) {
+    pub fn add_extension(&mut self, extension: Box<dyn RouterExtension<N>>) {
         self.extensions.insert(extension.identity(), extension);
+    }
+
+    pub fn compute_route(
+        &mut self,
+        payment: PaymentRequest,
+    ) -> Vec<Hop<N::HopPayload>> {
+        let mut route = vec![];
+        self.build_route(payment, &mut route);
+        route
     }
 }
 

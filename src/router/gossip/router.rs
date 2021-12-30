@@ -13,7 +13,9 @@
 
 use amplify::DumbDefault;
 use internet2::presentation::sphinx::Hop;
-use p2p::legacy::{Messages, PaymentOnion, PaymentRequest};
+use p2p::legacy::{
+    ChannelId, HopRealm, Messages, PaymentOnion, PaymentRequest, ShortChannelId,
+};
 use strict_encoding::{strict_deserialize, strict_serialize};
 
 use super::GossipChannelInfo;
@@ -109,6 +111,16 @@ impl Router<GossipExt> {
             .expect("direct routed must be present in BOLT-compatible router");
         direct_router.add_direct_channel(info)
     }
+
+    pub fn remove_direct_channel(
+        &'static mut self,
+        channel_id: ChannelId,
+    ) -> Option<LocalChannelInfo> {
+        let direct_router: &mut DirectRouter = self
+            .extension_mut(GossipExt::DirectRouter)
+            .expect("direct routed must be present in BOLT-compatible router");
+        direct_router.remove_direct_channel(channel_id)
+    }
 }
 
 /// Router for direct channels (between this node and other nodes) for
@@ -123,18 +135,25 @@ impl DirectRouter {
         &mut self,
         info: LocalChannelInfo,
     ) -> Option<LocalChannelInfo> {
-        let prev_info = if let Some((index, _)) = self
+        let prev_info = self.remove_direct_channel(info.channel_id);
+        self.channels.push(info);
+        prev_info
+    }
+
+    pub fn remove_direct_channel(
+        &mut self,
+        channel_id: ChannelId,
+    ) -> Option<LocalChannelInfo> {
+        if let Some((index, _)) = self
             .channels
             .iter()
             .enumerate()
-            .find(|(_, c)| c.channel_id == info.channel_id)
+            .find(|(_, info)| info.channel_id == channel_id)
         {
             Some(self.channels.remove(index))
         } else {
             None
-        };
-        self.channels.push(info);
-        prev_info
+        }
     }
 }
 
@@ -178,10 +197,28 @@ impl RouterExtension<GossipExt> for DirectRouter {
 
     fn build_route(
         &mut self,
-        _payment: PaymentRequest,
-        _route: &mut Vec<Hop<PaymentOnion>>,
+        payment: PaymentRequest,
+        route: &mut Vec<Hop<PaymentOnion>>,
     ) {
-        todo!()
+        if let Some(channel) = self
+            .channels
+            .iter()
+            .find(|info| info.remote_node == payment.node_id)
+        {
+            if channel.outboud_capacity_msat < payment.amount_msat {
+                return; // We do not have enough funds
+            }
+
+            *route = vec![Hop::with(
+                payment.node_id,
+                PaymentOnion {
+                    // TODO: Choose realm basing on the destination configuration
+                    realm: HopRealm::Legacy(ShortChannelId::default()),
+                    amt_to_forward: payment.amount_msat,
+                    outgoing_cltv_value: payment.min_final_cltv_expiry,
+                },
+            )];
+        }
     }
 }
 
@@ -230,6 +267,6 @@ impl RouterExtension<GossipExt> for GossipRouter {
         _payment: PaymentRequest,
         _route: &mut Vec<Hop<PaymentOnion>>,
     ) {
-        todo!()
+        // TODO: Implement route computing
     }
 }

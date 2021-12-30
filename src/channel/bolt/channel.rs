@@ -40,6 +40,7 @@ use crate::channel::bolt::PolicyError;
 use crate::channel::funding::{self, Funding, PsbtLnpFunding};
 use crate::channel::tx_graph::TxGraph;
 use crate::extension::ChannelConstructor;
+use crate::router::gossip::LocalChannelInfo;
 use crate::{Channel, ChannelExtension, Extension};
 
 // TODO: Use Box<dyn Error> for boxing extension- and channel-type-specific
@@ -325,6 +326,26 @@ impl Channel<BoltExt> {
             }
         }
         None
+    }
+
+    pub fn channel_info(&self, remote_node: PublicKey) -> LocalChannelInfo {
+        // TODO: Fill with the real data
+        LocalChannelInfo {
+            remote_node,
+            channel_id: self
+                .channel_id()
+                .expect("channel id must be known at this stage"),
+            short_channel_id: Default::default(),
+            chain_hash: self.chain_hash(),
+            inbound_capacity_msat: self.remote_amount_msat(),
+            outboud_capacity_msat: self.local_amount_msat(),
+            cltv_expiry: 0,
+            htlc_minimum_msat: self
+                .constructor()
+                .local_params()
+                .htlc_minimum_msat,
+            htlc_maximum_msat: 0,
+        }
     }
 
     #[inline]

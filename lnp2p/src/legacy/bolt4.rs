@@ -28,9 +28,9 @@ use crate::legacy::ShortChannelId;
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 pub struct PaymentOnion {
-    realm: HopRealm,
-    amt_to_forward: u64,
-    outgoing_cltv_value: u32,
+    pub realm: HopRealm,
+    pub amt_to_forward: u64,
+    pub outgoing_cltv_value: u32,
 }
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug)]
@@ -45,8 +45,8 @@ pub enum HopRealm {
 #[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 pub struct PaymentData {
-    payment_secret: HashPreimage,
-    total_msat: u64,
+    pub payment_secret: HashPreimage,
+    pub total_msat: u64,
 }
 
 // For internal use to simplify Tlv encoding/decoding implementation
