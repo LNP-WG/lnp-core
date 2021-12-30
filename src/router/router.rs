@@ -14,7 +14,6 @@
 //! Routing extensions and data types
 
 use amplify::DumbDefault;
-use std::any::Any;
 use std::collections::{btree_map, BTreeMap};
 use std::io::{Read, Write};
 
@@ -87,22 +86,6 @@ where
         &mut self,
     ) -> btree_map::IterMut<N, Box<dyn RouterExtension<N>>> {
         self.extensions.iter_mut()
-    }
-
-    /// Gets extension reference by extension identifier
-    pub fn extension<E>(&'static self, id: N) -> Option<&E> {
-        self.extensions
-            .get(&id)
-            .map(|ext| &*ext as &dyn Any)
-            .and_then(|ext| ext.downcast_ref())
-    }
-
-    /// Gets mutable extension reference by extension identifier
-    pub fn extension_mut<E>(&'static mut self, id: N) -> Option<&mut E> {
-        self.extensions
-            .get_mut(&id)
-            .map(|ext| &mut *ext as &mut dyn Any)
-            .and_then(|ext| ext.downcast_mut())
     }
 
     /// Adds new extension to the router.

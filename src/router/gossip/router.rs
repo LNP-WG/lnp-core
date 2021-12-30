@@ -80,7 +80,7 @@ impl extension::Nomenclature for GossipExt {
     type State = RouterState;
     type Error = Error;
     type PeerMessage = lnp2p::legacy::Messages;
-    type UpdateMessage = ();
+    type UpdateMessage = UpdateMsg;
 }
 
 impl router::Nomenclature for GossipExt {
@@ -103,26 +103,11 @@ impl router::Nomenclature for GossipExt {
     }
 }
 
-impl Router<GossipExt> {
-    pub fn add_direct_channel(
-        &'static mut self,
-        info: LocalChannelInfo,
-    ) -> Option<LocalChannelInfo> {
-        let direct_router: &mut DirectRouter = self
-            .extension_mut(GossipExt::DirectRouter)
-            .expect("direct routed must be present in BOLT-compatible router");
-        direct_router.add_direct_channel(info)
-    }
-
-    pub fn remove_direct_channel(
-        &'static mut self,
-        channel_id: ChannelId,
-    ) -> Option<LocalChannelInfo> {
-        let direct_router: &mut DirectRouter = self
-            .extension_mut(GossipExt::DirectRouter)
-            .expect("direct routed must be present in BOLT-compatible router");
-        direct_router.remove_direct_channel(channel_id)
-    }
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+pub enum UpdateMsg {
+    DirectChannelAdd(LocalChannelInfo),
+    DirectChannelRemove(ChannelId),
+    DirectChannelUpdate(ChannelId),
 }
 
 /// Router for direct channels (between this node and other nodes) for
@@ -133,7 +118,7 @@ pub struct DirectRouter {
 }
 
 impl DirectRouter {
-    pub fn add_direct_channel(
+    fn add_direct_channel(
         &mut self,
         info: LocalChannelInfo,
     ) -> Option<LocalChannelInfo> {
@@ -142,7 +127,7 @@ impl DirectRouter {
         prev_info
     }
 
-    pub fn remove_direct_channel(
+    fn remove_direct_channel(
         &mut self,
         channel_id: ChannelId,
     ) -> Option<LocalChannelInfo> {
@@ -176,6 +161,21 @@ impl Extension<GossipExt> for DirectRouter {
             _ => {} // Nothing to do here
         }
 
+        Ok(())
+    }
+
+    fn update_from_local(&mut self, message: &UpdateMsg) -> Result<(), Error> {
+        match message {
+            UpdateMsg::DirectChannelAdd(info) => {
+                self.add_direct_channel(*info);
+            }
+            UpdateMsg::DirectChannelRemove(channel_id) => {
+                self.remove_direct_channel(*channel_id);
+            }
+            UpdateMsg::DirectChannelUpdate(_) => {
+                // TODO: implement update for channel balances
+            }
+        }
         Ok(())
     }
 
