@@ -17,7 +17,6 @@ use std::fmt::{Debug, Display};
 use std::hash::Hash;
 
 use internet2::presentation::sphinx::Hop;
-use lnp2p::legacy::Messages;
 use p2p::legacy::PaymentRequest;
 use wallet::psbt::Psbt;
 
@@ -47,6 +46,8 @@ where
 {
     type State: DumbDefault;
     type Error: std::error::Error;
+    type PeerMessage;
+    type UpdateMessage;
 }
 
 pub trait Extension<N: Nomenclature> {
@@ -56,8 +57,17 @@ pub trait Extension<N: Nomenclature> {
     /// from the remote peer
     fn update_from_peer(
         &mut self,
-        message: &Messages,
+        message: &<N as extension::Nomenclature>::PeerMessage,
     ) -> Result<(), <N as extension::Nomenclature>::Error>;
+
+    /// Updates extension state from some local data
+    fn update_from_local(
+        &mut self,
+        _message: &<N as extension::Nomenclature>::UpdateMessage,
+    ) -> Result<(), <N as extension::Nomenclature>::Error> {
+        // Do nothing by default
+        Ok(())
+    }
 
     fn load_state(&mut self, state: &N::State);
     fn store_state(&self, state: &mut N::State);

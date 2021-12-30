@@ -87,6 +87,8 @@ impl TryFrom<u16> for BoltExt {
 impl extension::Nomenclature for BoltExt {
     type State = ChannelState;
     type Error = Error;
+    type PeerMessage = lnp2p::legacy::Messages;
+    type UpdateMessage = ();
 }
 
 impl channel::Nomenclature for BoltExt {

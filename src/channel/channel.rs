@@ -17,7 +17,6 @@ use std::io::{Read, Write};
 
 use amplify::DumbDefault;
 use bitcoin::util::psbt::PartiallySignedTransaction as Psbt;
-use lnp2p::legacy::Messages;
 use strict_encoding::{StrictDecode, StrictEncode};
 
 use super::tx_graph::TxGraph;
@@ -51,7 +50,7 @@ where
     /// each of the registered extensions gets [`Extension::update_from_peer`]
     fn update_from_peer(
         channel: &mut Channel<Self>,
-        message: &Messages,
+        message: &Self::PeerMessage,
     ) -> Result<(), <Self as extension::Nomenclature>::Error>;
 }
 
@@ -307,7 +306,7 @@ where
 
     fn update_from_peer(
         &mut self,
-        message: &Messages,
+        message: &<N as extension::Nomenclature>::PeerMessage,
     ) -> Result<(), <N as extension::Nomenclature>::Error> {
         N::update_from_peer(self, message)?;
         self.constructor.update_from_peer(message)?;

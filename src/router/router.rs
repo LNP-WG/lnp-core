@@ -19,7 +19,7 @@ use std::collections::{btree_map, BTreeMap};
 use std::io::{Read, Write};
 
 use internet2::presentation::sphinx::{Hop, SphinxPayload};
-use p2p::legacy::{Messages, PaymentRequest};
+use p2p::legacy::PaymentRequest;
 use strict_encoding::{StrictDecode, StrictEncode};
 
 use crate::{extension, Extension, RouterExtension};
@@ -43,7 +43,7 @@ where
     /// each of the registered extensions gets [`Extension::update_from_peer`]
     fn update_from_peer(
         router: &mut Router<Self>,
-        message: &Messages,
+        message: &Self::PeerMessage,
     ) -> Result<(), <Self as extension::Nomenclature>::Error>;
 }
 
@@ -169,7 +169,7 @@ where
 
     fn update_from_peer(
         &mut self,
-        message: &Messages,
+        message: &<N as extension::Nomenclature>::PeerMessage,
     ) -> Result<(), <N as extension::Nomenclature>::Error> {
         N::update_from_peer(self, message)?;
         self.extensions

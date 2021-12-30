@@ -79,6 +79,8 @@ impl TryFrom<u16> for GossipExt {
 impl extension::Nomenclature for GossipExt {
     type State = RouterState;
     type Error = Error;
+    type PeerMessage = lnp2p::legacy::Messages;
+    type UpdateMessage = ();
 }
 
 impl router::Nomenclature for GossipExt {
