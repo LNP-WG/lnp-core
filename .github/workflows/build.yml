@@ -16,7 +16,6 @@ jobs:
       fail-fast: false
       matrix:
         feature:
-          - elgamal
           - serde
     steps:
       - uses: actions/checkout@v2
@@ -55,12 +54,12 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --no-default-features
+          args: --workspace --no-default-features
       - name: Build with defaults
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --all-features
+          args: --workspace --all-targets --all-features
   toolchains:
     runs-on: ubuntu-latest
     strategy:
