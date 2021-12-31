@@ -25,6 +25,7 @@ use wallet::hlc::{HashLock, HashPreimage};
 use wallet::scripts::{LockScript, PubkeyScript, WitnessScript};
 use wallet::IntoPk;
 
+use crate::channel::bolt::util::UpdateReq;
 use crate::channel::bolt::{BoltExt, ChannelState, Error, TxType};
 use crate::channel::tx_graph::TxGraph;
 use crate::{ChannelExtension, Extension};
@@ -138,6 +139,30 @@ impl Htlc {
 impl Extension<BoltExt> for Htlc {
     fn identity(&self) -> BoltExt {
         BoltExt::Htlc
+    }
+
+    fn state_change(
+        &mut self,
+        request: &UpdateReq,
+        message: &mut Messages,
+    ) -> Result<(), Error> {
+        match (request, message) {
+            (
+                UpdateReq::PayBolt(_),
+                Messages::UpdateAddHtlc(update_add_htlc),
+            ) => {
+                let htlc_id = self.offer_htlc(
+                    update_add_htlc.amount_msat,
+                    update_add_htlc.payment_hash,
+                    update_add_htlc.cltv_expiry,
+                );
+                update_add_htlc.htlc_id = htlc_id;
+            }
+            (UpdateReq::PayBolt(_), _) => unreachable!(
+                "state change request must match provided LN P2P message"
+            ),
+        }
+        Ok(())
     }
 
     fn update_from_peer(&mut self, message: &Messages) -> Result<(), Error> {
