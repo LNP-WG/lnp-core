@@ -27,6 +27,7 @@
 #[allow(unused_imports)]
 #[macro_use]
 extern crate lightning_encoding_derive as derive;
+#[cfg(feature = "derive")]
 pub use derive::{LightningDecode, LightningEncode};
 
 #[allow(unused_imports)]

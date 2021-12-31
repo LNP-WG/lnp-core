@@ -1339,10 +1339,10 @@ mod test {
 
     use amplify::hex::ToHex;
     use bitcoin::hashes::hex::FromHex;
-    use bitcoin::{Script, Transaction, TxIn, Txid};
+    use bitcoin::{OutPoint, Script, Transaction, TxIn, Txid};
 
     use super::*;
-    use crate::shared_ext::Bip96;
+    use crate::channel::shared_ext::Bip96;
 
     macro_rules! pk {
         ($hex:expr) => {

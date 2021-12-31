@@ -13,7 +13,9 @@
 
 use std::collections::BTreeMap;
 
-use amplify::{DumbDefault, Slice32, ToYamlString};
+#[cfg(feature = "serde")]
+use amplify::ToYamlString;
+use amplify::{DumbDefault, Slice32};
 use p2p::legacy::{ActiveChannelId, TempChannelId};
 use secp256k1::{PublicKey, Signature};
 
