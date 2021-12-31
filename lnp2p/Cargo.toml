@@ -21,8 +21,8 @@ crate-type = ["rlib", "staticlib"]
 amplify = { version = "3.9.1", features = ["hex", "rand"] }
 lnpbp = "0.5.0"
 bp-core = "0.5.0"
-strict_encoding = { version = "1.7.4", optional = true, features = ["chrono"] }
-lightning_encoding = "0.5.12"
+strict_encoding = { version = "1.7.9", optional = true, features = ["chrono"] }
+lightning_encoding = "0.5.13"
 descriptor-wallet = "0.5.0"
 bitcoin = "0.27.1"
 internet2 = { version = ">=0.5.18", default-features = false, features = ["derive"] }

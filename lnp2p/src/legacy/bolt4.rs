@@ -110,9 +110,9 @@ impl LightningEncode for PaymentOnion {
             },
         };
         let stream = tlv.lightning_serialize()?;
-        let len_len = BigSize::from(stream.len()).lightning_encode(&mut e)?;
+        BigSize::from(stream.len()).lightning_encode(&mut e)?;
         e.write_all(&stream)?;
-        Ok(len_len + stream.len())
+        Ok(stream.len())
     }
 }
 

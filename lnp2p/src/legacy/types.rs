@@ -17,6 +17,8 @@ use std::io;
 use std::str::FromStr;
 
 use amplify::hex::{self, FromHex};
+use amplify::num::error::OverflowError;
+use amplify::num::u24;
 use amplify::{Display, DumbDefault, Slice32, Wrapper};
 use bitcoin::hashes::Hash;
 use bitcoin::Txid;
@@ -322,28 +324,26 @@ pub struct Alias(
     Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display, Default,
     From
 )]
+#[derive(LightningEncode, LightningDecode)]
+#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("{block_height}x{tx_index}x{output_index}")]
 pub struct ShortChannelId {
-    pub block_height: u32,
-    pub tx_index: u32,
+    pub block_height: u24,
+    pub tx_index: u24,
     pub output_index: u16,
 }
 
 impl ShortChannelId {
-    pub fn new(
+    pub fn with(
         block_height: u32,
         tx_index: u32,
         output_index: u16,
-    ) -> Option<Self> {
-        if block_height > 2 << 23 || tx_index > 2 << 23 {
-            None
-        } else {
-            Some(Self {
-                block_height,
-                tx_index,
-                output_index,
-            })
-        }
+    ) -> Result<Self, OverflowError> {
+        Ok(Self {
+            block_height: u24::try_from(block_height)?,
+            tx_index: u24::try_from(tx_index)?,
+            output_index,
+        })
     }
 }
 
@@ -384,109 +384,6 @@ impl FromStr for ShortChannelId {
             }
             _ => Err(ShortChannelIdParseError::ExessiveComponents),
         }
-    }
-}
-
-impl LightningEncode for ShortChannelId {
-    fn lightning_encode<E: io::Write>(
-        &self,
-        mut e: E,
-    ) -> Result<usize, lightning_encoding::Error> {
-        let height = self.block_height.to_be_bytes();
-        e.write_all(&height)?;
-        let index = self.tx_index.to_be_bytes();
-        e.write_all(&index)?;
-        self.output_index.lightning_encode(&mut e)?;
-        Ok(8)
-    }
-}
-
-impl LightningDecode for ShortChannelId {
-    fn lightning_decode<D: io::Read>(
-        mut d: D,
-    ) -> Result<Self, lightning_encoding::Error> {
-        let mut buf = [0u8; 4];
-        d.read_exact(&mut buf[1..])?;
-        let block_height = u32::from_be_bytes(buf);
-        d.read_exact(&mut buf[1..])?;
-        let tx_index = u32::from_be_bytes(buf);
-        let output_index = u16::lightning_decode(&mut d)?;
-        Ok(ShortChannelId {
-            block_height,
-            tx_index,
-            output_index,
-        })
-    }
-}
-
-#[cfg(feature = "strict_encoding")]
-impl StrictEncode for ShortChannelId {
-    fn strict_encode<E: io::Write>(
-        &self,
-        mut e: E,
-    ) -> Result<usize, strict_encoding::Error> {
-        let mut len = 0;
-
-        // representing block height as 3 bytes
-        let block_height: [u8; 3] = [
-            (self.block_height >> 16 & 0xFF) as u8,
-            (self.block_height >> 8 & 0xFF) as u8,
-            (self.block_height & 0xFF) as u8,
-        ];
-        len += e.write(&block_height[..])?;
-
-        // representing transaction index as 3 bytes
-        let tx_index: [u8; 3] = [
-            (self.tx_index >> 16 & 0xFF) as u8,
-            (self.tx_index >> 8 & 0xFF) as u8,
-            (self.tx_index & 0xFF) as u8,
-        ];
-        len += e.write(&tx_index[..])?;
-
-        // represents output index as 2 bytes
-        let output_index: [u8; 2] = [
-            (self.output_index >> 8 & 0xFF) as u8,
-            (self.output_index & 0xFF) as u8,
-        ];
-        len += e.write(&output_index[..])?;
-
-        Ok(len)
-    }
-}
-
-#[cfg(feature = "strict_encoding")]
-impl StrictDecode for ShortChannelId {
-    fn strict_decode<D: io::Read>(
-        mut d: D,
-    ) -> Result<Self, strict_encoding::Error> {
-        // read the block height
-        let mut block_height_bytes = [0u8; 3];
-        d.read_exact(&mut block_height_bytes[..])?;
-
-        let block_height = ((block_height_bytes[0] as u32) << 16)
-            + ((block_height_bytes[1] as u32) << 8)
-            + (block_height_bytes[2] as u32);
-
-        // read the transaction index
-        let mut transaction_index_bytes = [0u8; 3];
-        d.read_exact(&mut transaction_index_bytes[..])?;
-
-        let transaction_index = ((transaction_index_bytes[0] as u32) << 16)
-            + ((transaction_index_bytes[1] as u32) << 8)
-            + (transaction_index_bytes[2] as u32);
-
-        // read the output index
-        let mut output_index = [0u8; 2];
-        d.read_exact(&mut output_index[..])?;
-
-        let output_index =
-            ((output_index[0] as u16) << 8) + (output_index[1] as u16);
-
-        Ok(Self {
-            block_height,
-            tx_index: transaction_index,
-            output_index,
-        })
     }
 }
 
