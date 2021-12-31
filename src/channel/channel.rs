@@ -311,10 +311,10 @@ where
     ) -> Result<(), <N as extension::Nomenclature>::Error> {
         self.constructor.state_change(request, message)?;
         for extension in self.extenders.values_mut() {
-            extension.state_change(&request, message)?;
+            extension.state_change(request, message)?;
         }
         for extension in self.extenders.values_mut() {
-            extension.state_change(&request, message)?;
+            extension.state_change(request, message)?;
         }
         Ok(())
     }
@@ -336,12 +336,12 @@ where
 
     fn load_state(&mut self, state: &N::State) {
         self.funding = state.to_funding();
-        self.constructor.load_state(&state);
+        self.constructor.load_state(state);
         for extension in self.extenders.values_mut() {
-            extension.load_state(&state);
+            extension.load_state(state);
         }
         for extension in self.extenders.values_mut() {
-            extension.load_state(&state);
+            extension.load_state(state);
         }
     }
 

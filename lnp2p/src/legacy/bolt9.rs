@@ -615,7 +615,7 @@ impl LightningEncode for ChannelFeatures {
         &self,
         e: E,
     ) -> Result<usize, lightning_encoding::Error> {
-        let flag_vec = FlagVec::from(self.clone());
+        let flag_vec = FlagVec::from(*self);
         let vec: Vec<u8> = flag_vec.as_inner().iter().rev().copied().collect();
         vec.lightning_encode(e)
 
@@ -665,7 +665,7 @@ impl strict_encoding::StrictEncode for ChannelFeatures {
         &self,
         e: E,
     ) -> Result<usize, strict_encoding::Error> {
-        FlagVec::from(self.clone()).strict_encode(e)
+        FlagVec::from(*self).strict_encode(e)
     }
 }
 

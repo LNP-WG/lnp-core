@@ -24,7 +24,7 @@ where
         Ok(1 + match self {
             None => e.write(&[0u8])?,
             Some(val) => {
-                e.write(&[1u8])?;
+                e.write_all(&[1u8])?;
                 val.lightning_encode(&mut e)?
             }
         })

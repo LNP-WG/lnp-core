@@ -208,12 +208,12 @@ impl LocalKeyset {
             .map(|path| {
                 let derivation_path = channel_source.1.clone().extend(path);
                 let seckey = channel_xpriv
-                    .derive_priv(&secp, &path)
+                    .derive_priv(secp, &path)
                     .expect("negligible probability")
                     .private_key
                     .key;
                 LocalPubkey {
-                    key: PublicKey::from_secret_key(&secp, &seckey),
+                    key: PublicKey::from_secret_key(secp, &seckey),
                     source: (fingerpint, derivation_path),
                 }
             })

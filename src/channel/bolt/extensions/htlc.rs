@@ -254,8 +254,8 @@ impl Extension<BoltExt> for Htlc {
                 if message.channel_id == self.channel_id {
                     // Get the corresponding offered htlc
                     let offered_htlc =
-                        self.received_htlcs.get(&message.htlc_id).ok_or(
-                            Error::Htlc("HTLC id didn't match".to_string()),
+                        self.received_htlcs.get(&message.htlc_id).ok_or_else(
+                            || Error::Htlc("HTLC id didn't match".to_string()),
                         )?;
 
                     // Check for correct hash preimage in the message
@@ -385,7 +385,7 @@ impl ChannelExtension<BoltExt> for Htlc {
                 self.local_basepoint,
                 self.remote_basepoint,
                 recieved.cltv_expiry,
-                recieved.hashlock.clone(),
+                recieved.hashlock,
             );
             tx_graph.cmt_outs.push(htlc_output);
 

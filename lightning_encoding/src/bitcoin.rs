@@ -105,8 +105,8 @@ impl LightningEncode for Script {
 
 impl LightningDecode for Script {
     fn lightning_decode<D: Read>(d: D) -> Result<Self, Error> {
-        Ok(deserialize(&Vec::<u8>::lightning_decode(d)?)
-            .map_err(|err| Error::DataIntegrityError(err.to_string()))?)
+        deserialize(&Vec::<u8>::lightning_decode(d)?)
+            .map_err(|err| Error::DataIntegrityError(err.to_string()))
     }
 }
 

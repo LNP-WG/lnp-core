@@ -156,7 +156,7 @@ where
         message: &mut <N as extension::Nomenclature>::PeerMessage,
     ) -> Result<(), <N as extension::Nomenclature>::Error> {
         for extension in self.extensions.values_mut() {
-            extension.state_change(&request, message)?;
+            extension.state_change(request, message)?;
         }
         Ok(())
     }
@@ -174,7 +174,7 @@ where
 
     fn load_state(&mut self, state: &N::State) {
         for extension in self.extensions.values_mut() {
-            extension.load_state(&state);
+            extension.load_state(state);
         }
     }
 

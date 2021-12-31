@@ -783,7 +783,7 @@ impl BoltChannel {
                 .key,
             htlc_basepoint: local_keyset.htlc_basepoint.key,
             first_per_commitment_point: self.local_per_commitment_point,
-            shutdown_scriptpubkey: local_keyset.shutdown_scriptpubkey.clone(),
+            shutdown_scriptpubkey: local_keyset.shutdown_scriptpubkey,
             channel_flags: if common_params.announce_channel { 1 } else { 0 },
             channel_type: common_params.channel_type.into_option(),
             unknown_tlvs: none!(),
@@ -926,7 +926,7 @@ impl BoltChannel {
         engine.input(&payment_basepoint.serialize());
         let tweak = sha256::Hash::from_engine(engine);
 
-        let mut payment_pubkey = payment_basepoint.clone();
+        let mut payment_pubkey = payment_basepoint;
         payment_pubkey
             .add_exp_assign(&secp, tweak.as_ref())
             .expect("negligible probability");
@@ -953,7 +953,7 @@ impl BoltChannel {
         engine.input(&delayed_payment_basepoint.serialize());
         let tweak = sha256::Hash::from_engine(engine);
 
-        let mut delayed_pubkey = delayed_payment_basepoint.clone();
+        let mut delayed_pubkey = delayed_payment_basepoint;
         delayed_pubkey
             .add_exp_assign(&secp, tweak.as_ref())
             .expect("negligible probability");

@@ -98,6 +98,7 @@ impl From<BigSize> for usize {
 
 impl BigSize {
     /// Calculates length of serialized BigSize type
+    #[allow(clippy::len_without_is_empty)]
     pub fn len(self) -> usize {
         match self.0 {
             0..=0xFC => 1,
@@ -128,7 +129,7 @@ impl LightningEncode for BigSize {
                 result
             }
         };
-        e.write(&vec)?;
+        e.write_all(&vec)?;
         Ok(vec.len())
     }
 }
@@ -200,12 +201,14 @@ mod test {
         test_runner(65535, &[0xfd, 0xff, 0xff]);
         test_runner(65536, &[0xfe, 0x00, 0x01, 0x00, 0x00]);
         test_runner(4294967295, &[0xfe, 0xff, 0xff, 0xff, 0xff]);
-        test_runner(4294967296, &[
-            0xff, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
-        ]);
-        test_runner(18446744073709551615, &[
-            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-        ]);
+        test_runner(
+            4294967296,
+            &[0xff, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00],
+        );
+        test_runner(
+            18446744073709551615,
+            &[0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff],
+        );
     }
 
     #[should_panic(expected = "BigSizeNotCanonical")]

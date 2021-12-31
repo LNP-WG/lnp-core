@@ -86,7 +86,7 @@ where
         if consumed == data.as_ref().len() {
             Ok(rv)
         } else {
-            Err(Error::DataNotEntirelyConsumed)?
+            Err(Error::DataNotEntirelyConsumed)
         }
     }
 }

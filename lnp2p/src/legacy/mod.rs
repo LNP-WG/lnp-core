@@ -51,6 +51,7 @@ lazy_static! {
 #[api(encoding = "lightning")]
 #[non_exhaustive]
 #[display(inner)]
+#[allow(clippy::large_enum_variant)]
 pub enum Messages {
     // Part I: Generic messages outside of channel operations (BOLT-1)
     // ===============================================================

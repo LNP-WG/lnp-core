@@ -336,13 +336,13 @@ impl ShortChannelId {
         output_index: u16,
     ) -> Option<Self> {
         if block_height > 2 << 23 || tx_index > 2 << 23 {
-            return None;
+            None
         } else {
-            return Some(Self {
+            Some(Self {
                 block_height,
                 tx_index,
                 output_index,
-            });
+            })
         }
     }
 }
@@ -490,7 +490,7 @@ impl StrictDecode for ShortChannelId {
     }
 }
 
-#[derive(Clone, Debug, From, PartialEq, Eq, Hash, PartialOrd, Ord, Copy)]
+#[derive(Copy, Clone, Debug, From, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum AnnouncedNodeAddr {
     /// An IPv4 address/port on which the peer is listening.
     IpV4 {
@@ -531,12 +531,12 @@ pub enum AnnouncedNodeAddr {
 }
 
 impl AnnouncedNodeAddr {
-    fn into_u8(&self) -> u8 {
+    fn into_u8(self) -> u8 {
         match self {
-            &AnnouncedNodeAddr::IpV4 { .. } => 1,
-            &AnnouncedNodeAddr::IpV6 { .. } => 2,
-            &AnnouncedNodeAddr::OnionV2 { .. } => 3,
-            &AnnouncedNodeAddr::OnionV3 { .. } => 4,
+            AnnouncedNodeAddr::IpV4 { .. } => 1,
+            AnnouncedNodeAddr::IpV6 { .. } => 2,
+            AnnouncedNodeAddr::OnionV2 { .. } => 3,
+            AnnouncedNodeAddr::OnionV3 { .. } => 4,
         }
     }
 }
@@ -583,10 +583,10 @@ impl Uniform for AnnouncedNodeAddr {
     fn port(&self) -> Option<u16> {
         match self {
             // How to remove these unused variables?
-            AnnouncedNodeAddr::IpV4 { port, .. } => Some(port.clone()),
-            AnnouncedNodeAddr::IpV6 { port, .. } => Some(port.clone()),
-            AnnouncedNodeAddr::OnionV2 { port, .. } => Some(port.clone()),
-            AnnouncedNodeAddr::OnionV3 { port, .. } => Some(port.clone()),
+            AnnouncedNodeAddr::IpV4 { port, .. } => Some(*port),
+            AnnouncedNodeAddr::IpV6 { port, .. } => Some(*port),
+            AnnouncedNodeAddr::OnionV2 { port, .. } => Some(*port),
+            AnnouncedNodeAddr::OnionV3 { port, .. } => Some(*port),
         }
     }
 

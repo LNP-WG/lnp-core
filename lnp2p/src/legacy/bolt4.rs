@@ -145,7 +145,7 @@ impl LightningDecode for PaymentOnion {
                 "payment onion with reserved realm=0x01"
             ))),
             len => {
-                let tlv = TlvPayment::lightning_decode(d.take(len.into()))?;
+                let tlv = TlvPayment::lightning_decode(d.take(len))?;
                 match (
                     tlv.amt_to_forward,
                     tlv.outgoing_cltv_value,

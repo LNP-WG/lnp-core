@@ -86,7 +86,7 @@ where
     {
         self.graph
             .entry(role.into())
-            .or_insert(empty!())
+            .or_insert_with(Default::default)
             .insert(index.into(), psbt)
     }
 
