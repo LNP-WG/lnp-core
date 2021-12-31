@@ -48,10 +48,23 @@ where
     type Error: std::error::Error;
     type PeerMessage;
     type UpdateMessage;
+    type UpdateRequest;
 }
 
 pub trait Extension<N: Nomenclature> {
     fn identity(&self) -> N;
+
+    /// Perform a sate change and produce a message which should be communicated
+    /// to peers notifying them about the state change
+    #[allow(dead_code, unused_variables)]
+    fn state_change(
+        &mut self,
+        request: &<N as extension::Nomenclature>::UpdateRequest,
+        message: &mut <N as extension::Nomenclature>::PeerMessage,
+    ) -> Result<(), <N as extension::Nomenclature>::Error> {
+        // Do nothing by default
+        Ok(())
+    }
 
     /// Updates extension state from the data taken from the message received
     /// from the remote peer
@@ -61,9 +74,10 @@ pub trait Extension<N: Nomenclature> {
     ) -> Result<(), <N as extension::Nomenclature>::Error>;
 
     /// Updates extension state from some local data
+    #[allow(dead_code, unused_variables)]
     fn update_from_local(
         &mut self,
-        _message: &<N as extension::Nomenclature>::UpdateMessage,
+        message: &<N as extension::Nomenclature>::UpdateMessage,
     ) -> Result<(), <N as extension::Nomenclature>::Error> {
         // Do nothing by default
         Ok(())

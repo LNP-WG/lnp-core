@@ -11,12 +11,14 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
+use internet2::presentation::sphinx::Hop;
 use std::collections::BTreeMap;
 use std::convert::TryFrom;
 use std::fmt::Debug;
 
 use lnp2p::legacy::Messages;
 use lnpbp::chain::AssetId;
+use p2p::legacy::PaymentOnion;
 use strict_encoding::{
     self, strict_deserialize, strict_serialize, StrictDecode, StrictEncode,
 };
@@ -89,6 +91,7 @@ impl extension::Nomenclature for BoltExt {
     type Error = Error;
     type PeerMessage = lnp2p::legacy::Messages;
     type UpdateMessage = ();
+    type UpdateRequest = UpdateReq;
 }
 
 impl channel::Nomenclature for BoltExt {
@@ -118,6 +121,11 @@ impl channel::Nomenclature for BoltExt {
         }
         Ok(())
     }
+}
+
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+pub enum UpdateReq {
+    PayBolt(Vec<Hop<PaymentOnion>>),
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display)]

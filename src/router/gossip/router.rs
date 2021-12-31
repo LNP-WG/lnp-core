@@ -81,6 +81,7 @@ impl extension::Nomenclature for GossipExt {
     type Error = Error;
     type PeerMessage = lnp2p::legacy::Messages;
     type UpdateMessage = UpdateMsg;
+    type UpdateRequest = ();
 }
 
 impl router::Nomenclature for GossipExt {

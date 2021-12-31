@@ -304,6 +304,21 @@ where
         N::default()
     }
 
+    fn state_change(
+        &mut self,
+        request: &<N as extension::Nomenclature>::UpdateRequest,
+        message: &mut <N as extension::Nomenclature>::PeerMessage,
+    ) -> Result<(), <N as extension::Nomenclature>::Error> {
+        self.constructor.state_change(request, message)?;
+        for extension in self.extenders.values_mut() {
+            extension.state_change(&request, message)?;
+        }
+        for extension in self.extenders.values_mut() {
+            extension.state_change(&request, message)?;
+        }
+        Ok(())
+    }
+
     fn update_from_peer(
         &mut self,
         message: &<N as extension::Nomenclature>::PeerMessage,
