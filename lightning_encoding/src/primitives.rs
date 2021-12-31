@@ -14,6 +14,7 @@
 use std::io::{Read, Write};
 
 use amplify::flags::FlagVec;
+use amplify::num::u24;
 use amplify::{Slice32, Wrapper};
 
 use super::{strategies, Strategy};
@@ -47,6 +48,22 @@ impl LightningDecode for u16 {
         let mut buf = [0u8; 2];
         d.read_exact(&mut buf)?;
         Ok(u16::from_be_bytes(buf))
+    }
+}
+
+impl LightningEncode for u24 {
+    fn lightning_encode<E: Write>(&self, mut e: E) -> Result<usize, Error> {
+        let bytes = self.to_be_bytes();
+        e.write_all(&bytes)?;
+        Ok(bytes.len())
+    }
+}
+
+impl LightningDecode for u24 {
+    fn lightning_decode<D: Read>(mut d: D) -> Result<Self, Error> {
+        let mut buf = [0u8; 3];
+        d.read_exact(&mut buf)?;
+        Ok(u24::from_be_bytes(buf))
     }
 }
 
