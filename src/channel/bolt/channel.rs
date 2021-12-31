@@ -36,7 +36,7 @@ use wallet::{psbt, IntoPk};
 
 use super::keyset::{LocalKeyset, LocalPubkey, RemoteKeyset};
 use super::policy::{CommonParams, PeerParams, Policy};
-use super::{AnchorOutputs, BoltExt, ChannelState, Htlc, Lifecycle};
+use super::{AnchorOutputs, BoltExt, ChannelState, Lifecycle};
 use crate::channel::bolt::util::UpdateReq;
 use crate::channel::bolt::PolicyError;
 use crate::channel::funding::{self, Funding, PsbtLnpFunding};
@@ -86,21 +86,6 @@ pub enum Error {
 
     /// the channel must have a temporary channel id and not be active for the operaiton
     NoTemporaryId,
-}
-
-/// Errors during payment creation
-#[derive(
-    Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display, From,
-    Error
-)]
-#[display(doc_comments)]
-pub enum PaymentError {
-    /// payments can't be made while channel is not established
-    ChannelNotFormed,
-
-    /// failed to create payment. Details: {0}
-    #[from]
-    OnionEncode(sphinx::EncodeError),
 }
 
 /// Errors during channel re-establishment
@@ -296,36 +281,19 @@ impl Channel<BoltExt> {
             .map_err(Error::from)
     }
 
-    pub fn compose_payment(
-        &'static mut self,
+    pub fn compose_add_update_htlc(
+        &mut self,
         amount_msat: u64,
         payment_hash: HashLock,
         cltv_expiry: u32,
-        route: &[Hop<PaymentOnion>],
-    ) -> Result<UpdateAddHtlc, PaymentError> {
-        // TODO: Optimize and keep Secp256k1 on a permanent basis
-        let secp = Secp256k1::new();
-        let payment_onion = Onion::Onion(OnionPacket::with(
-            &secp,
-            &route,
-            payment_hash.as_ref(),
-        )?);
-        let channel_id =
-            self.channel_id().ok_or(PaymentError::ChannelNotFormed)?;
-        let htlc_ext = self
-            .extension_mut::<Htlc>(BoltExt::Htlc)
-            .expect("BOLT channel must always have HTLC extension");
-        let htlc_id =
-            htlc_ext.offer_htlc(amount_msat, payment_hash, cltv_expiry);
-        Ok(UpdateAddHtlc {
-            channel_id,
-            htlc_id,
+        route: Vec<Hop<PaymentOnion>>,
+    ) -> Result<Messages, Error> {
+        self.constructor_mut().compose_add_update_htlc(
             amount_msat,
             payment_hash,
             cltv_expiry,
-            onion_routing_packet: payment_onion,
-            unknown_tlvs: none!(),
-        })
+            route,
+        )
     }
 
     #[inline]
@@ -396,30 +364,6 @@ impl Channel<BoltExt> {
     #[inline]
     pub fn remote_amount_msat(&self) -> u64 {
         self.constructor().remote_amount_msat()
-    }
-
-    pub fn pay(
-        &mut self,
-        amount_msat: u64,
-        payment_hash: HashLock,
-        cltv_expiry: u32,
-        route: Vec<Hop<PaymentOnion>>,
-    ) -> Result<Messages, Error> {
-        // TODO: Optimize and keep Secp256k1 on a permanent basis
-        let secp = Secp256k1::new();
-        let onion_packet =
-            OnionPacket::with(&secp, &route, payment_hash.as_ref())?;
-        let mut update_add_htlc = Messages::UpdateAddHtlc(UpdateAddHtlc {
-            channel_id: self.try_channel_id()?,
-            htlc_id: 0,
-            amount_msat,
-            payment_hash,
-            cltv_expiry,
-            onion_routing_packet: Onion::Onion(onion_packet),
-            unknown_tlvs: none!(),
-        });
-        self.state_change(&UpdateReq::PayBolt(route), &mut update_add_htlc)?;
-        Ok(update_add_htlc)
     }
 }
 
@@ -539,6 +483,12 @@ impl BoltChannel {
     #[inline]
     pub fn temp_channel_id(&self) -> Option<TempChannelId> {
         self.active_channel_id.temp_channel_id()
+    }
+
+    /// Returns [`ChannelId`], if the channel already assigned it – or errors otherwise.
+    #[inline]
+    pub fn try_channel_id(&self) -> Result<ChannelId, Error> {
+        self.channel_id().ok_or(Error::NoChanelId)
     }
 
     /// Assigns channel a temporary id
@@ -925,6 +875,30 @@ impl BoltChannel {
                 .expect("channel id must be known at FUNDING_LOCKED stage"),
             next_per_commitment_point: self.next_per_commitment_point(),
         }
+    }
+
+    pub fn compose_add_update_htlc(
+        &mut self,
+        amount_msat: u64,
+        payment_hash: HashLock,
+        cltv_expiry: u32,
+        route: Vec<Hop<PaymentOnion>>,
+    ) -> Result<Messages, Error> {
+        // TODO: Optimize and keep Secp256k1 on a permanent basis
+        let secp = Secp256k1::new();
+        let onion_packet =
+            OnionPacket::with(&secp, &route, payment_hash.as_ref())?;
+        let mut message = Messages::UpdateAddHtlc(UpdateAddHtlc {
+            channel_id: self.try_channel_id()?,
+            htlc_id: 0,
+            amount_msat,
+            payment_hash,
+            cltv_expiry,
+            onion_routing_packet: Onion::Onion(onion_packet),
+            unknown_tlvs: none!(),
+        });
+        self.state_change(&UpdateReq::PayBolt(route), &mut message)?;
+        Ok(message)
     }
 
     fn next_per_commitment_point(&mut self) -> PublicKey {
