@@ -27,6 +27,11 @@ impl Extension<BoltExt> for Bip96 {
         BoltExt::Bip96
     }
 
+    fn update_from_local(&mut self, _message: &()) -> Result<(), Error> {
+        // Nothing to do here so far
+        Ok(())
+    }
+
     #[inline]
     fn update_from_peer(&mut self, _: &Messages) -> Result<(), Error> {
         // Nothing to do here: peers can't tell us anything that will be related

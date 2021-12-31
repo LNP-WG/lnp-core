@@ -141,6 +141,11 @@ impl Extension<BoltExt> for Htlc {
         BoltExt::Htlc
     }
 
+    fn update_from_local(&mut self, _message: &()) -> Result<(), Error> {
+        // Nothing to do here so far
+        Ok(())
+    }
+
     fn state_change(
         &mut self,
         request: &UpdateReq,

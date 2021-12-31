@@ -236,6 +236,11 @@ impl Extension<GossipExt> for GossipRouter {
         GossipExt::GossipRouter
     }
 
+    fn update_from_local(&mut self, _message: &UpdateMsg) -> Result<(), Error> {
+        // Nothing to do here so far
+        Ok(())
+    }
+
     fn update_from_peer(&mut self, message: &Messages) -> Result<(), Error> {
         match message {
             // TODO: Extract routing information from gossip messages

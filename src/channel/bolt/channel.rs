@@ -551,6 +551,11 @@ impl Extension<BoltExt> for BoltChannel {
         BoltExt::Bolt3
     }
 
+    fn update_from_local(&mut self, _message: &()) -> Result<(), Error> {
+        // Nothing to do here so far
+        Ok(())
+    }
+
     fn update_from_peer(&mut self, message: &Messages) -> Result<(), Error> {
         // TODO: Check lifecycle
         match message {

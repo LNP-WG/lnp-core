@@ -74,14 +74,10 @@ pub trait Extension<N: Nomenclature> {
     ) -> Result<(), <N as extension::Nomenclature>::Error>;
 
     /// Updates extension state from some local data
-    #[allow(dead_code, unused_variables)]
     fn update_from_local(
         &mut self,
         message: &<N as extension::Nomenclature>::UpdateMessage,
-    ) -> Result<(), <N as extension::Nomenclature>::Error> {
-        // Do nothing by default
-        Ok(())
-    }
+    ) -> Result<(), <N as extension::Nomenclature>::Error>;
 
     fn load_state(&mut self, state: &N::State);
     fn store_state(&self, state: &mut N::State);

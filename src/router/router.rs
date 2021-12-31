@@ -161,6 +161,16 @@ where
         Ok(())
     }
 
+    fn update_from_local(
+        &mut self,
+        message: &<N as extension::Nomenclature>::UpdateMessage,
+    ) -> Result<(), <N as extension::Nomenclature>::Error> {
+        self.extensions
+            .iter_mut()
+            .try_for_each(|(_, e)| e.update_from_local(message))?;
+        Ok(())
+    }
+
     fn update_from_peer(
         &mut self,
         message: &<N as extension::Nomenclature>::PeerMessage,

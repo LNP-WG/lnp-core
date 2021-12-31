@@ -26,6 +26,11 @@ impl Extension<BoltExt> for AnchorOutputs {
         BoltExt::AnchorOutputs
     }
 
+    fn update_from_local(&mut self, _message: &()) -> Result<(), Error> {
+        // Nothing to do here so far
+        Ok(())
+    }
+
     #[inline]
     fn update_from_peer(&mut self, _: &Messages) -> Result<(), Error> {
         // TODO: Implement
