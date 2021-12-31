@@ -11,11 +11,11 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
-use amplify::DumbDefault;
 use std::convert::TryFrom;
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
 
+use amplify::DumbDefault;
 use internet2::presentation::sphinx::Hop;
 use p2p::legacy::PaymentRequest;
 use wallet::psbt::Psbt;

@@ -22,8 +22,7 @@ use strict_encoding::{StrictDecode, StrictEncode};
 use super::tx_graph::TxGraph;
 use super::Funding;
 use crate::channel::FundingError;
-use crate::extension;
-use crate::{ChannelConstructor, ChannelExtension, Extension};
+use crate::{extension, ChannelConstructor, ChannelExtension, Extension};
 
 /// Marker trait for creating channel extension nomenclatures, defining order in
 /// which extensions are applied to the channel transaction structure.

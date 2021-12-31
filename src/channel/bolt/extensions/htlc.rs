@@ -123,15 +123,12 @@ impl Htlc {
     ) -> u64 {
         let htlc_id = self.next_offered_htlc_id;
         self.next_offered_htlc_id += 1;
-        self.offered_htlcs.insert(
-            htlc_id,
-            HtlcSecret {
-                amount: amount_msat,
-                hashlock: payment_hash,
-                id: htlc_id,
-                cltv_expiry,
-            },
-        );
+        self.offered_htlcs.insert(htlc_id, HtlcSecret {
+            amount: amount_msat,
+            hashlock: payment_hash,
+            id: htlc_id,
+            cltv_expiry,
+        });
         htlc_id
     }
 }

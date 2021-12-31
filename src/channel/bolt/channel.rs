@@ -84,7 +84,8 @@ pub enum Error {
     /// the channel does not have permanent channel_id assigned
     NoChanelId,
 
-    /// the channel must have a temporary channel id and not be active for the operaiton
+    /// the channel must have a temporary channel id and not be active for the
+    /// operaiton
     NoTemporaryId,
 }
 
@@ -215,7 +216,8 @@ impl Channel<BoltExt> {
         self.active_channel_id().channel_id()
     }
 
-    /// Returns [`ChannelId`], if the channel already assigned it – or errors otherwise.
+    /// Returns [`ChannelId`], if the channel already assigned it – or errors
+    /// otherwise.
     #[inline]
     pub fn try_channel_id(&self) -> Result<ChannelId, Error> {
         self.channel_id().ok_or(Error::NoChanelId)
@@ -485,7 +487,8 @@ impl BoltChannel {
         self.active_channel_id.temp_channel_id()
     }
 
-    /// Returns [`ChannelId`], if the channel already assigned it – or errors otherwise.
+    /// Returns [`ChannelId`], if the channel already assigned it – or errors
+    /// otherwise.
     #[inline]
     pub fn try_channel_id(&self) -> Result<ChannelId, Error> {
         self.channel_id().ok_or(Error::NoChanelId)

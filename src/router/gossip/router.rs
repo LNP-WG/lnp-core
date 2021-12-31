@@ -212,15 +212,12 @@ impl RouterExtension<GossipExt> for DirectRouter {
                 return; // We do not have enough funds
             }
 
-            *route = vec![Hop::with(
-                payment.node_id,
-                PaymentOnion {
-                    // TODO: Choose realm basing on the destination configuration
-                    realm: HopRealm::Legacy(ShortChannelId::default()),
-                    amt_to_forward: payment.amount_msat,
-                    outgoing_cltv_value: payment.min_final_cltv_expiry,
-                },
-            )];
+            *route = vec![Hop::with(payment.node_id, PaymentOnion {
+                // TODO: Choose realm basing on the destination configuration
+                realm: HopRealm::Legacy(ShortChannelId::default()),
+                amt_to_forward: payment.amount_msat,
+                outgoing_cltv_value: payment.min_final_cltv_expiry,
+            })];
         }
     }
 }

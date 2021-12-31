@@ -11,11 +11,11 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
-use internet2::presentation::sphinx::Hop;
 use std::collections::BTreeMap;
 use std::convert::TryFrom;
 use std::fmt::Debug;
 
+use internet2::presentation::sphinx::Hop;
 use lnp2p::legacy::Messages;
 use lnpbp::chain::AssetId;
 use p2p::legacy::PaymentOnion;
@@ -27,8 +27,7 @@ use super::{AnchorOutputs, BoltChannel, ChannelState, Error, Htlc};
 use crate::channel::shared_ext::Bip96;
 use crate::channel::tx_graph::TxRole;
 use crate::channel::{self, Channel};
-use crate::extension;
-use crate::ChannelExtension;
+use crate::{extension, ChannelExtension};
 
 /// Shorthand for representing asset - amount pairs
 pub type AssetsBalance = BTreeMap<AssetId, u64>;

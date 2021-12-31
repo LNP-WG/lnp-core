@@ -13,10 +13,10 @@
 
 //! Routing extensions and data types
 
-use amplify::DumbDefault;
 use std::collections::{btree_map, BTreeMap};
 use std::io::{Read, Write};
 
+use amplify::DumbDefault;
 use internet2::presentation::sphinx::{Hop, SphinxPayload};
 use p2p::legacy::PaymentRequest;
 use strict_encoding::{StrictDecode, StrictEncode};
