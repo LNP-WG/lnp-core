@@ -1,6 +1,6 @@
 [package]
 name = "lnp-core"
-version = "0.5.3"
+version = "0.6.0-beta.1"
 license = "MIT"
 authors = ["Dr Maxim Orlovsky <orlovsky@pandoracore.com>"]
 description = "LNP Core Library: rust implementation of modular lightning channels architecture"
@@ -23,7 +23,7 @@ amplify = "3.10.0"
 strict_encoding = "1.7.8"
 lightning_encoding = ">=0.5.10"
 descriptor-wallet = { version = "0.5.1", features = ["keygen"] }
-lnp2p = { version = ">=0.5.3", path = "lnp2p", features = ["strict_encoding"] }
+lnp2p = { version = "0.6.0-beta.1", path = "lnp2p", features = ["strict_encoding"] }
 lnpbp = "0.5.0"
 bitcoin = { version = "0.27.1", features = ["rand"] }
 secp256k1 = { version = "0.20.3", features = ["global-context-less-secure"] }
