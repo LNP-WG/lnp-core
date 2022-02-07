@@ -689,3 +689,27 @@ impl DumbDefault for OpenChannel {
         }
     }
 }
+
+impl DumbDefault for AcceptChannel {
+    fn dumb_default() -> Self {
+        AcceptChannel {
+            temporary_channel_id: TempChannelId::dumb_default(),
+            dust_limit_satoshis: 0,
+            max_htlc_value_in_flight_msat: 0,
+            channel_reserve_satoshis: 0,
+            htlc_minimum_msat: 0,
+            minimum_depth: 0,
+            to_self_delay: 0,
+            max_accepted_htlcs: 0,
+            funding_pubkey: dumb_pubkey!(),
+            revocation_basepoint: dumb_pubkey!(),
+            payment_point: dumb_pubkey!(),
+            delayed_payment_basepoint: dumb_pubkey!(),
+            htlc_basepoint: dumb_pubkey!(),
+            first_per_commitment_point: dumb_pubkey!(),
+            shutdown_scriptpubkey: None,
+            channel_type: None,
+            unknown_tlvs: none!(),
+        }
+    }
+}
