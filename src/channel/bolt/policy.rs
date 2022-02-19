@@ -228,7 +228,7 @@ impl Policy {
             funding_satoshis_min: Some(10000),
             htlc_minimum_msat_max: None,
             max_htlc_value_in_flight_msat_min: Some(10000),
-            max_accepted_htlcs_min: Some(30),
+            max_accepted_htlcs_min: Some(10),
             channel_reserve_satoshis_max_abs: None,
             // c-lightning uses 10% of the channel funding as a reserve
             channel_reserve_satoshis_max_percent: Some(10),
@@ -246,7 +246,7 @@ impl Policy {
             funding_satoshis_min: Some(20000),
             htlc_minimum_msat_max: None,
             max_htlc_value_in_flight_msat_min: Some(10000),
-            max_accepted_htlcs_min: Some(483),
+            max_accepted_htlcs_min: Some(10),
             channel_reserve_satoshis_max_abs: None,
             // LND uses 1% of the channel funding as a reserve
             channel_reserve_satoshis_max_percent: Some(1),
@@ -267,10 +267,10 @@ impl Policy {
             maximum_depth: Some(6),
             funding_satoshis_min: Some(100000),
             htlc_minimum_msat_max: None,
-            max_htlc_value_in_flight_msat_min: Some(5000000000),
-            max_accepted_htlcs_min: Some(30),
+            max_htlc_value_in_flight_msat_min: Some(10000),
+            max_accepted_htlcs_min: Some(10),
             channel_reserve_satoshis_max_abs: None,
-            // LND uses 5% of the channel funding as a reserve
+            // Eclair uses 5% of the channel funding as a reserve
             channel_reserve_satoshis_max_percent: Some(5),
             dust_limit_satoshis_max: Some(546),
         }
@@ -330,8 +330,8 @@ impl Policy {
             }
         }
 
-        // if we consider `channel_reserve_satoshis` too large - in both abosute
-        // and relative values
+        // if we consider `channel_reserve_satoshis` too large in absolute
+        // values
         if let Some(limit) = self.channel_reserve_satoshis_max_abs {
             if params.channel_reserve_satoshis > limit {
                 return Err(PolicyError::ChannelReserveTooLarge {
@@ -401,10 +401,12 @@ impl Policy {
             }
         }
 
-        // if we consider `channel_reserve_satoshis` too large - in both abosute
-        // and relative values
+        // if we consider `channel_reserve_satoshis` too large in relative
+        // values
         if let Some(percents) = self.channel_reserve_satoshis_max_percent {
-            let limit = open_channel.funding_satoshis * percents as u64;
+            let limit =
+                open_channel.funding_satoshis as f32 * (percents as f32 / 100.);
+            let limit = limit as u64;
             if open_channel.channel_reserve_satoshis > limit {
                 return Err(PolicyError::ChannelReserveTooLarge {
                     proposed: open_channel.channel_reserve_satoshis,
@@ -656,5 +658,308 @@ impl From<&AcceptChannel> for PeerParams {
             channel_reserve_satoshis: accept_channel.channel_reserve_satoshis,
             max_accepted_htlcs: accept_channel.max_accepted_htlcs,
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use amplify::DumbDefault;
+    use p2p::legacy::OpenChannel;
+
+    use super::*;
+
+    // Returns a default open channel message.
+    fn get_open_channel() -> OpenChannel {
+        let mut open_channel = OpenChannel::dumb_default();
+        open_channel.to_self_delay = 250;
+        open_channel.max_accepted_htlcs = BOLT3_MAX_ACCEPTED_HTLC_LIMIT;
+        open_channel.channel_reserve_satoshis = 10000;
+        open_channel.max_htlc_value_in_flight_msat = 10000;
+        open_channel.dust_limit_satoshis = BOLT3_DUST_LIMIT;
+        open_channel.htlc_minimum_msat = 10;
+        open_channel.feerate_per_kw = 1;
+
+        open_channel
+    }
+
+    // Returns a default accept channel message.
+    fn get_accept_channel() -> AcceptChannel {
+        let mut accept_channel = AcceptChannel::dumb_default();
+        accept_channel.to_self_delay = 250;
+        accept_channel.max_accepted_htlcs = BOLT3_MAX_ACCEPTED_HTLC_LIMIT;
+        accept_channel.channel_reserve_satoshis = 10000;
+        accept_channel.max_htlc_value_in_flight_msat = 10000;
+        accept_channel.dust_limit_satoshis = BOLT3_DUST_LIMIT;
+        accept_channel.htlc_minimum_msat = 10;
+
+        accept_channel
+    }
+
+    #[test]
+    fn test_to_self_delay_too_large() {
+        let policy = Policy::default();
+        let mut open_channel = get_open_channel();
+
+        open_channel.to_self_delay = policy.to_self_delay_max + 1;
+
+        let params = PeerParams::from(&open_channel);
+        let error = policy.validate_peer_params(params);
+
+        assert_eq!(
+            error,
+            Err(PolicyError::ToSelfDelayUnreasonablyLarge {
+                proposed: params.to_self_delay,
+                allowed_maximum: policy.to_self_delay_max,
+            })
+        );
+    }
+
+    #[test]
+    fn test_max_accepted_htlc_limit_exceeded() {
+        let policy = Policy::default();
+        let mut open_channel = get_open_channel();
+
+        open_channel.max_accepted_htlcs = BOLT3_MAX_ACCEPTED_HTLC_LIMIT + 1;
+
+        let params = PeerParams::from(&open_channel);
+        let error = policy.validate_peer_params(params);
+
+        assert_eq!(
+            error,
+            Err(PolicyError::MaxAcceptedHtlcLimitExceeded(
+                params.max_accepted_htlcs,
+            ))
+        );
+    }
+
+    #[test]
+    fn test_channel_reserve_less_than_dust_limit() {
+        let policy = Policy::default();
+        let mut open_channel = get_open_channel();
+
+        open_channel.channel_reserve_satoshis =
+            open_channel.dust_limit_satoshis - 1;
+
+        let params = PeerParams::from(&open_channel);
+        let error = policy.validate_peer_params(params);
+
+        assert_eq!(
+            error,
+            Err(PolicyError::ChannelReserveLessDust {
+                dust_limit: params.dust_limit_satoshis,
+                reserve: params.channel_reserve_satoshis,
+            })
+        );
+    }
+
+    #[test]
+    fn test_dust_limit_is_too_small() {
+        let policy = Policy::default();
+        let mut open_channel = get_open_channel();
+
+        open_channel.dust_limit_satoshis = BOLT3_DUST_LIMIT - 1;
+
+        let params = PeerParams::from(&open_channel);
+        let error = policy.validate_peer_params(params);
+
+        assert_eq!(
+            error,
+            Err(PolicyError::DustLimitTooSmall(params.dust_limit_satoshis,))
+        );
+    }
+
+    #[test]
+    fn test_htlc_min_too_large() {
+        let mut policy = Policy::default();
+        let open_channel = get_open_channel();
+        let htlc_minimum_msat_max = open_channel.htlc_minimum_msat - 1;
+        policy.htlc_minimum_msat_max = Some(htlc_minimum_msat_max);
+
+        let params = PeerParams::from(&open_channel);
+        let error = policy.validate_peer_params(params);
+        assert_eq!(
+            error,
+            Err(PolicyError::HtlcMinimumTooLarge {
+                proposed: params.htlc_minimum_msat,
+                allowed_maximum: htlc_minimum_msat_max,
+            })
+        );
+    }
+
+    #[test]
+    fn test_htlc_in_flight_max_too_small() {
+        let policy = Policy::default();
+        let mut open_channel = get_open_channel();
+        let max_htlc_value_in_flight_msat_min =
+            policy.max_htlc_value_in_flight_msat_min.unwrap();
+        open_channel.max_htlc_value_in_flight_msat =
+            max_htlc_value_in_flight_msat_min - 1;
+        let params = PeerParams::from(&open_channel);
+        let error = policy.validate_peer_params(params);
+        assert_eq!(
+            error,
+            Err(PolicyError::HtlcInFlightMaximumTooSmall {
+                proposed: params.max_htlc_value_in_flight_msat,
+                required_minimum: max_htlc_value_in_flight_msat_min,
+            })
+        );
+    }
+
+    #[test]
+    fn test_channel_reserve_too_large_abs() {
+        let mut policy = Policy::default();
+        let open_channel = get_open_channel();
+        let channel_reserve_satoshis_max =
+            open_channel.channel_reserve_satoshis - 1;
+        policy.channel_reserve_satoshis_max_abs =
+            Some(channel_reserve_satoshis_max);
+        let params = PeerParams::from(&open_channel);
+        let error = policy.validate_peer_params(params);
+        assert_eq!(
+            error,
+            Err(PolicyError::ChannelReserveTooLarge {
+                proposed: params.channel_reserve_satoshis,
+                allowed_maximum: channel_reserve_satoshis_max,
+            })
+        );
+    }
+
+    #[test]
+    fn test_max_accepted_htlc_too_small() {
+        let policy = Policy::default();
+        let mut open_channel = get_open_channel();
+        let max_accepted_htlcs_min = policy.max_accepted_htlcs_min.unwrap();
+        open_channel.max_accepted_htlcs = max_accepted_htlcs_min - 1;
+        let params = PeerParams::from(&open_channel);
+        let error = policy.validate_peer_params(params);
+        assert_eq!(
+            error,
+            Err(PolicyError::MaxAcceptedHtlcsTooSmall {
+                proposed: params.max_accepted_htlcs,
+                required_minimum: max_accepted_htlcs_min,
+            })
+        );
+    }
+
+    #[test]
+    fn test_dust_limit_too_large() {
+        let policy = Policy::default();
+        let mut open_channel = get_open_channel();
+        let dust_limit_satoshis_max = policy.dust_limit_satoshis_max.unwrap();
+        open_channel.dust_limit_satoshis = dust_limit_satoshis_max + 1;
+        let params = PeerParams::from(&open_channel);
+        let error = policy.validate_peer_params(params);
+        assert_eq!(
+            error,
+            Err(PolicyError::DustLimitTooLarge {
+                proposed: params.dust_limit_satoshis,
+                allowed_maximum: dust_limit_satoshis_max,
+            })
+        );
+    }
+
+    #[test]
+    fn test_unreasonable_feerate_range_on_inbound() {
+        let policy = Policy::default();
+        let mut open_channel = get_open_channel();
+        open_channel.feerate_per_kw = policy.feerate_per_kw_range.end + 1;
+        let error = policy.validate_inbound(&open_channel);
+        assert_eq!(
+            error,
+            Err(PolicyError::FeeRateUnreasonable {
+                proposed: open_channel.feerate_per_kw,
+                lowest_accepted: policy.feerate_per_kw_range.start,
+                highest_accepted: policy.feerate_per_kw_range.end,
+            })
+        );
+    }
+
+    #[test]
+    fn test_channel_funding_too_small() {
+        let policy = Policy::default();
+        let mut open_channel = get_open_channel();
+        let funding_satoshis_min = policy.funding_satoshis_min.unwrap();
+        open_channel.funding_satoshis = funding_satoshis_min - 1;
+        let error = policy.validate_inbound(&open_channel);
+        assert_eq!(
+            error,
+            Err(PolicyError::ChannelFundingTooSmall {
+                proposed: open_channel.funding_satoshis,
+                required_minimum: funding_satoshis_min,
+            })
+        );
+    }
+
+    #[test]
+    fn test_channel_reserve_too_large_percent() {
+        let policy = Policy::default();
+        let mut open_channel = get_open_channel();
+        open_channel.funding_satoshis = 20000;
+        let percents = policy.channel_reserve_satoshis_max_percent.unwrap();
+        let channel_reserve_satoshis_max =
+            open_channel.funding_satoshis as f32 * (percents as f32 / 100.);
+        let channel_reserve_satoshis_max = channel_reserve_satoshis_max as u64;
+        let error = policy.validate_inbound(&open_channel);
+        assert_eq!(
+            error,
+            Err(PolicyError::ChannelReserveTooLarge {
+                proposed: open_channel.channel_reserve_satoshis,
+                allowed_maximum: channel_reserve_satoshis_max,
+            })
+        );
+    }
+
+    #[test]
+    fn test_unreasonable_min_depth() {
+        let policy = Policy::default();
+        let open_channel = get_open_channel();
+        let mut accept_channel = get_accept_channel();
+        let maximum_depth = policy.maximum_depth.unwrap();
+        accept_channel.minimum_depth = maximum_depth + 1;
+        let params = PeerParams::from(&open_channel);
+        let error = policy.confirm_outbound(params, &accept_channel);
+        assert_eq!(
+            error,
+            Err(PolicyError::UnreasonableMinDepth {
+                proposed: accept_channel.minimum_depth,
+                allowed_maximum: maximum_depth,
+            })
+        );
+    }
+
+    #[test]
+    fn test_local_dust_limit_exeeds_remote_reserve() {
+        let policy = Policy::default();
+        let open_channel = get_open_channel();
+        let mut accept_channel = get_accept_channel();
+        accept_channel.channel_reserve_satoshis =
+            open_channel.dust_limit_satoshis - 1;
+        let params = PeerParams::from(&open_channel);
+        let error = policy.confirm_outbound(params, &accept_channel);
+        assert_eq!(
+            error,
+            Err(PolicyError::LocalDustExceedsRemoteReserve {
+                channel_reserve: accept_channel.channel_reserve_satoshis,
+                dust_limit: params.dust_limit_satoshis,
+            })
+        );
+    }
+
+    #[test]
+    fn test_remote_dust_limit_exceeds_local_reserve() {
+        let policy = Policy::default();
+        let mut open_channel = get_open_channel();
+        let accept_channel = get_accept_channel();
+        open_channel.channel_reserve_satoshis =
+            accept_channel.dust_limit_satoshis - 1;
+        let params = PeerParams::from(&open_channel);
+        let error = policy.confirm_outbound(params, &accept_channel);
+        assert_eq!(
+            error,
+            Err(PolicyError::RemoteDustExceedsLocalReserve {
+                channel_reserve: params.channel_reserve_satoshis,
+                dust_limit: accept_channel.dust_limit_satoshis,
+            })
+        );
     }
 }
