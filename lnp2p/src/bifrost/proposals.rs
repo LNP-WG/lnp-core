@@ -22,14 +22,20 @@
 //! channel becomes operational.
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::hash::Hash;
+use std::sync::Arc;
 
 use bitcoin::hashes::sha256;
 use bitcoin::secp256k1::schnorrsig::{PublicKey, Signature};
-use bitcoin::{Amount, OutPoint, SigHashType, TxOut, Txid};
+use bitcoin::{Amount, OutPoint, Txid};
+use miniscript::Descriptor;
 use wallet::scripts::Witness;
 
 use crate::bifrost::ChannelId;
+
+// Temporary structs which need to be implemented at descriptor wallet level
+pub struct SegwitDescriptor;
+pub struct TaprootDescriptor;
+pub struct TaprootWitness;
 
 /// Flag for the transaction role in the channel.
 pub type TxRole = u8;
@@ -182,11 +188,8 @@ pub trait ChannelGraph {
     fn refund_tx(&self) -> &ChannelTx;
 }
 
-pub struct ChannelProposal<'a>
-where
-    Self: 'a,
-{
+pub struct ChannelProposal {
     channel: FundingTx,
     pub signatures: NodeSignatureMap, // signatures on the graph using node key
-    index: Option<BTreeMap<TxRole, Vec<&'a ChannelTx>>>,
+    index: Option<BTreeMap<TxRole, Vec<Arc<ChannelTx>>>>,
 }

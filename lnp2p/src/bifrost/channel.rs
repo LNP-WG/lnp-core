@@ -16,6 +16,7 @@
 use std::collections::BTreeMap;
 
 use bitcoin::secp256k1::schnorrsig::{PublicKey, Signature};
+use lnpbp::chain::Chain;
 use wallet::psbt::Psbt;
 
 use crate::bifrost::{ChannelId, ChannelProposal, ProtocolName};
@@ -37,7 +38,6 @@ pub enum CommonFeeAlgo {
 /// never changes, constituting the first part of the data for [`ChannelId`]
 /// (the second part comes from the channel coordinator node id).
 #[derive(
-    Copy,
     Clone,
     PartialOrd,
     Eq,
@@ -45,7 +45,7 @@ pub enum CommonFeeAlgo {
     Debug,
     Display,
     StrictEncode,
-    StrictDecode,
+    StrictDecode
 )]
 #[display("type: {channel_type:#x}, timestamp: {timestamp}")]
 pub struct ChannelParams {
@@ -60,7 +60,7 @@ pub struct ChannelParams {
     pub channel_type: u64,
 
     /// Chain on which the channel will operate
-    pub chain: lnpbp::Chain,
+    pub chain: Chain,
 
     /// Parent channel, if any.
     ///
@@ -110,7 +110,7 @@ pub struct PreChannel {
     pub channel_id: ChannelId,
     pub coordinator_node: PublicKey,
     pub channel_params: ChannelParams,
-    pub proposal: ChannelProposal<'_>,
+    pub proposal: ChannelProposal,
     pub finalized_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
@@ -135,7 +135,7 @@ pub struct ProposeChannel {
     ///
     /// *Channel coordinator* constructs first proposal; each peer has the
     /// right to update the channel proposal.
-    pub proposal: ChannelProposal<'_>,
+    pub proposal: ChannelProposal,
 
     pub pending: Vec<PublicKey>,
     pub accepted: BTreeMap<PublicKey, Signature>,
@@ -144,13 +144,13 @@ pub struct ProposeChannel {
 /// Response from a peer to a channel coordinator
 pub struct AcceptChannel {
     pub channel_id: ChannelId,
-    pub updated_proposal: ChannelProposal<'_>,
+    pub updated_proposal: ChannelProposal,
     pub signatures: BTreeMap<PublicKey, Signature>,
 }
 
 pub struct FinalizeChannel {
     pub channel_id: ChannelId,
-    pub proposal: ChannelProposal<'_>,
+    pub proposal: ChannelProposal,
 }
 
 pub struct MoveChannel {

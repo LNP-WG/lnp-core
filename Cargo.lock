@@ -627,6 +627,7 @@ dependencies = [
  "lazy_static",
  "lightning_encoding 0.5.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "lnpbp",
+ "miniscript",
  "serde",
  "serde_with",
  "strict_encoding",
