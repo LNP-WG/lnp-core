@@ -204,8 +204,14 @@ pub struct ChannelTx {
     pub children: BTreeMap<TxRole, ChannelLink>,
 }
 
+// TODO: Implement RoleIter
+pub struct RoleIter {}
+
+// TODO: Implement ChannelIter
+pub struct ChannelIter {}
+
 pub trait ChannelGraph {
-    fn tx_by_role(&self, role: TxChannelRole) -> RoleIter;
+    fn tx_by_role(&self, role: TxRole) -> RoleIter;
     fn iter(&self) -> ChannelIter;
     fn funding_tx(&self) -> &ChannelTx;
     fn refund_tx(&self) -> &ChannelTx;
