@@ -47,6 +47,9 @@ pub type ProtocolId = sha256::Hash;
 /// Flag for the transaction role in the channel.
 pub type TxRole = u8;
 
+/// Identifiers used to link channel transactions into a graph
+pub type LinkId = u16;
+
 /// Funding transaction flag value for [`TxRole`]
 pub const LN_TX_ROLE_FUNDING: u8 = 0x00;
 /// Refund transaction flag value for [`TxRole`]
@@ -153,7 +156,7 @@ pub struct ChannelLink {
     pub amount: Amount,
 
     /// Template for the channel internal transaction spending the output.
-    pub tx: ChannelTx,
+    pub link_id: LinkId,
 
     /// Miniscript-compatible taproot descriptor for the transaction output.
     ///
@@ -193,6 +196,8 @@ pub struct FundingTx {
 #[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
 #[derive(NetworkEncode, NetworkDecode)]
 pub struct ChannelTx {
+    pub link_id: LinkId,
+
     pub locktime: u32,
 
     /// Outputs not spent in the current channel, which may be spent only by
