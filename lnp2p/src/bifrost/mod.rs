@@ -267,11 +267,11 @@ impl StrictDecode for Messages {
     fn strict_decode<D: io::Read>(
         d: D,
     ) -> Result<Self, strict_encoding::Error> {
-        let message = &*LNP2P_BIFROST_UNMARSHALLER
-            .unmarshall(&Vec::<u8>::strict_decode(d)?)
-            .map_err(|_| {
-                strict_encoding::Error::DataIntegrityError(s!(
-                    "can't unmarshall Bifrost message"
+        let message =
+            &*LNP2P_BIFROST_UNMARSHALLER.unmarshall(d).map_err(|err| {
+                strict_encoding::Error::DataIntegrityError(format!(
+                    "can't unmarshall Bifrost LNP2P message. Details: {}",
+                    err
                 ))
             })?;
         Ok(message.clone())
