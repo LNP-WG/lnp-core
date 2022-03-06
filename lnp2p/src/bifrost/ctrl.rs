@@ -13,7 +13,8 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
-use std::collections::{BTreeMap, HashSet};
+use internet2::tlv;
+use std::collections::HashSet;
 use std::fmt::{self, Display, Formatter};
 
 use lnpbp::chain::AssetId;
@@ -22,25 +23,21 @@ use super::{ChannelId, ProtocolList};
 
 /// Once authentication is complete, the first message reveals the features
 /// supported or required by this node, even if this is a reconnection.
-#[derive(
-    Clone, PartialEq, Eq, Debug, Display, NetworkEncode, NetworkDecode,
-)]
+#[derive(Clone, PartialEq, Eq, Debug, Display, NetworkEncode, NetworkDecode)]
 #[network_encoding(use_tlv)]
 #[display("init({protocols}, {assets:#?})")]
 pub struct Init {
     pub protocols: ProtocolList,
     pub assets: HashSet<AssetId>,
     #[network_encoding(unknown_tlvs)]
-    pub unknown_tlvs: BTreeMap<usize, Box<[u8]>>,
+    pub unknown_tlvs: tlv::Stream,
 }
 
 /// In order to allow for the existence of long-lived TCP connections, at
 /// times it may be required that both ends keep alive the TCP connection
 /// at the application level. Such messages also allow obfuscation of
 /// traffic patterns.
-#[derive(
-    Clone, PartialEq, Eq, Debug, Display, NetworkEncode, NetworkDecode,
-)]
+#[derive(Clone, PartialEq, Eq, Debug, Display, NetworkEncode, NetworkDecode)]
 #[display("ping({pong_size})")]
 pub struct Ping {
     pub ignored: Vec<u8>,
@@ -57,7 +54,7 @@ pub struct Error {
     pub message: Option<String>,
     /// Any additiona error details
     #[network_encoding(unknown_tlvs)]
-    pub unknown_tlvs: BTreeMap<usize, Box<[u8]>>,
+    pub unknown_tlvs: tlv::Stream,
 }
 
 impl Display for Error {

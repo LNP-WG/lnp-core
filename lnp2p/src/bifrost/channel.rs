@@ -24,6 +24,8 @@ use crate::legacy;
 
 /// Algorithm for fee computing. Defines who pais the fees for common parts of
 /// the transactions (outputs/inputs used by all peers in a channel).
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug)]
+#[derive(NetworkEncode, NetworkDecode)]
 pub enum CommonFeeAlgo {
     /// Common fees are paid by the channel coordinator
     ByCoordinator,
@@ -37,16 +39,8 @@ pub enum CommonFeeAlgo {
 /// These parameters apply only during the channel construction workflow and
 /// never changes, constituting the first part of the data for [`ChannelId`]
 /// (the second part comes from the channel coordinator node id).
-#[derive(
-    Clone,
-    PartialOrd,
-    Eq,
-    PartialEq,
-    Debug,
-    Display,
-    StrictEncode,
-    StrictDecode
-)]
+#[derive(Clone, PartialOrd, Eq, PartialEq, Hash, Debug, Display)]
+#[derive(NetworkEncode, NetworkDecode)]
 #[display("type: {channel_type:#x}, timestamp: {timestamp}")]
 pub struct ChannelParams {
     /// Type of the channel.
@@ -90,6 +84,8 @@ pub struct ChannelParams {
     pub funding_timeout: Option<u32>,
 }
 
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display)]
+#[display(lowercase)]
 pub enum ChannelState {
     Proposed,
     Accepted,
@@ -104,6 +100,7 @@ pub enum ChannelState {
 /// Data structure maintained by each node during channel creation phase
 /// (before the funding transaction is mined or became a part of the most
 /// recent parent channel state)
+#[derive(Clone, PartialOrd, Eq, PartialEq, Debug)]
 pub struct PreChannel {
     /// Channel id, constructed out of [`ChannelParams`] and
     /// [`Self::coordinator_node`]
@@ -119,6 +116,9 @@ pub struct PreChannel {
 /// If a peer accepts the channel in the proposed – or updated – form, it MUST
 /// reply with [`AcceptChannel`] message. If the channel is not accepted, the
 /// peer must send [`super::Error`] message.
+#[derive(Clone, PartialOrd, Eq, PartialEq, Debug, Display)]
+#[derive(NetworkEncode, NetworkDecode)]
+#[display("propose_channel(...)")]
 pub struct ProposeChannel {
     /// Parameters for the channel, defined by the channel coordinator.
     ///
@@ -142,25 +142,40 @@ pub struct ProposeChannel {
 }
 
 /// Response from a peer to a channel coordinator
+#[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Debug, Display)]
+#[derive(NetworkEncode, NetworkDecode)]
+#[display("accept_channel({channel_id}, ...)")]
 pub struct AcceptChannel {
     pub channel_id: ChannelId,
     pub updated_proposal: ChannelProposal,
     pub signatures: BTreeMap<PublicKey, Signature>,
 }
 
+#[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Debug, Display)]
+#[derive(NetworkEncode, NetworkDecode)]
+#[display("finalize_channel({channel_id}, ...)")]
 pub struct FinalizeChannel {
     pub channel_id: ChannelId,
     pub proposal: ChannelProposal,
 }
 
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display)]
+#[derive(NetworkEncode, NetworkDecode)]
+#[display("move_channel({legacy_channel_id})")]
 pub struct MoveChannel {
     pub legacy_channel_id: legacy::ChannelId,
 }
 
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display)]
+#[derive(NetworkEncode, NetworkDecode)]
+#[display("remove_channel({channel_id})")]
 pub struct RemoveChannel {
     pub channel_id: ChannelId,
 }
 
+#[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Debug, Display)]
+#[derive(NetworkEncode, NetworkDecode)]
+#[display("update_channel_status({channel_id}, {new_status},  ...)")]
 pub struct UpdateChannelStatus {
     pub channel_id: ChannelId,
     pub new_status: ChannelStatusUpdate,
@@ -168,6 +183,9 @@ pub struct UpdateChannelStatus {
     pub accepted: BTreeMap<PublicKey, Signature>,
 }
 
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display)]
+#[derive(NetworkEncode, NetworkDecode)]
+#[display(lowercase)]
 pub enum ChannelStatusUpdate {
     Ready,
 
@@ -179,18 +197,27 @@ pub enum ChannelStatusUpdate {
     Pause,
 }
 
+#[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Debug, Display)]
+#[derive(NetworkEncode, NetworkDecode)]
+#[display("upgrade_channel({channel_id}, {protocol}, ...)")]
 pub struct UpgradeChannel {
     pub channel_id: ChannelId,
     pub protocol: ProtocolName,
     pub accepted: BTreeMap<PublicKey, Signature>,
 }
 
+#[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Debug, Display)]
+#[derive(NetworkEncode, NetworkDecode)]
+#[display("donwgrade_channel({channel_id}, {protocol}, ...)")]
 pub struct DowngradeChannel {
     pub channel_id: ChannelId,
     pub protocol: ProtocolName,
     pub accepted: BTreeMap<PublicKey, Signature>,
 }
 
+#[derive(Clone, PartialEq, Debug, Display)]
+#[derive(NetworkEncode, NetworkDecode)]
+#[display("close_channel({channel_id}, ...)")]
 pub struct CloseChannel {
     pub channel_id: ChannelId,
     pub closing_tx: Psbt,

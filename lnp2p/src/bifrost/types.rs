@@ -54,7 +54,7 @@ impl sha256t::Tag for ChannelIdTag {
 /// node; any two distinct channels are guaranteed (with SHA256 collision
 /// resistance level) to have a distinct channel ids.
 #[derive(
-    Wrapper, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default, From,
+    Wrapper, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default, From
 )]
 #[wrapper(Debug, LowerHex, Index, IndexRange, IndexFrom, IndexTo, IndexFull)]
 pub struct ChannelId(sha256t::Hash<ChannelIdTag>);
@@ -206,7 +206,7 @@ pub struct ProtocolNameError(pub String);
     serde(crate = "serde_crate", transparent)
 )]
 #[derive(
-    Wrapper, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default, From,
+    Wrapper, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default, From
 )]
 pub struct ProtocolList(Vec<ProtocolName>);
 
@@ -300,8 +300,9 @@ impl StrictDecode for ProtocolList {
     serde(crate = "serde_crate", transparent)
 )]
 #[derive(
-    Wrapper, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display, From,
+    Wrapper, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display, From
 )]
+#[derive(NetworkEncode, NetworkDecode)]
 #[display(inner)]
 pub struct ProtocolName(String);
 
@@ -458,19 +459,8 @@ impl strict_encoding::Strategy for AnnouncedNodeAddr {
     type Strategy = strict_encoding::strategies::UsingUniformAddr;
 }
 
-#[derive(
-    Wrapper,
-    Clone,
-    Debug,
-    Display,
-    Hash,
-    Default,
-    From,
-    PartialEq,
-    Eq,
-    StrictEncode,
-    StrictDecode,
-)]
+#[derive(Wrapper, Clone, Debug, Display, Hash, Default, From, PartialEq, Eq)]
+#[derive(NetworkEncode, NetworkDecode)]
 #[display(Debug)]
 pub struct AddressList(Vec<AnnouncedNodeAddr>);
 

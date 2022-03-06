@@ -22,7 +22,6 @@
 //! channel becomes operational.
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::Arc;
 
 use bitcoin::hashes::sha256;
 use bitcoin::secp256k1::schnorrsig::{PublicKey, Signature};
@@ -32,10 +31,18 @@ use wallet::scripts::Witness;
 
 use crate::bifrost::ChannelId;
 
-// Temporary structs which need to be implemented at descriptor wallet level
-pub struct SegwitDescriptor;
-pub struct TaprootDescriptor;
-pub struct TaprootWitness;
+// TODO: Temporary structs which need to be implemented at descriptor wallet level
+#[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug)]
+#[derive(NetworkEncode, NetworkDecode)]
+pub struct SegwitDescriptor(u8);
+#[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug)]
+#[derive(NetworkEncode, NetworkDecode)]
+pub struct TaprootDescriptor(u8);
+#[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug)]
+#[derive(NetworkEncode, NetworkDecode)]
+pub struct TaprootWitness(u8);
+// TODO: Use protocol id from client-side-validation library
+pub type ProtocolId = sha256::Hash;
 
 /// Flag for the transaction role in the channel.
 pub type TxRole = u8;
@@ -51,11 +58,17 @@ pub const LN_TX_ROLE_REFUND: u8 = 0x02;
 pub const LN_TX_ROLE_COMMITMENT: u8 = 0x02;
 
 /// Signature created by a single lightning node
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
+#[derive(NetworkEncode, NetworkDecode)]
 pub struct NodeSignature(pub PublicKey, pub Signature);
 /// Map of lightning node keys to their signatures over certain data
+#[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
+#[derive(NetworkEncode, NetworkDecode)]
 pub struct NodeSignatureMap(pub BTreeMap<PublicKey, Signature>);
 
 /// External transaction output. Must always be a v0 witness or a above
+#[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug)]
+#[derive(NetworkEncode, NetworkDecode)]
 pub struct ChannelInput {
     /// UTXO used for funding
     pub prev_outpoint: OutPoint,
@@ -75,9 +88,11 @@ pub struct ChannelInput {
 
 /// Information to construct external transaction output not used in the
 /// channel.
+#[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
+#[derive(NetworkEncode, NetworkDecode)]
 pub struct ChannelOutput {
     /// We have to expose full descriptor in order to allow P2C tweaks
-    pub output: Decriptor,
+    pub output: Descriptor<bitcoin::PublicKey>,
 
     /// P2C tweaks are used to construct DBC anchor, if needed.
     ///
@@ -103,6 +118,8 @@ pub struct ChannelOutput {
 ///
 /// Funding for a channel MUST either come from on-chain UTXO(s) – or from
 /// some other existing channel.
+#[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug)]
+#[derive(NetworkEncode, NetworkDecode)]
 pub enum ChannelFunding {
     /// Funds are coming from a set of on-chain UTXOs
     Blockchain(BTreeSet<ChannelInput>),
@@ -128,13 +145,15 @@ pub enum ChannelFunding {
 
 /// A link is a transaction output plus a input for a off-chain (internal
 /// channel) transaction spending that output.
+#[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
+#[derive(NetworkEncode, NetworkDecode)]
 pub struct ChannelLink {
     /// Amount allocated to the transaction outut and consumed by the child
     /// channel transaction
     pub amount: Amount,
 
     /// Template for the channel internal transaction spending the output.
-    pub tx: Box<ChannelTx>,
+    pub tx: ChannelTx,
 
     /// Miniscript-compatible taproot descriptor for the transaction output.
     ///
@@ -157,6 +176,8 @@ pub struct ChannelLink {
 }
 
 /// Information for constructing channel funding transaction
+#[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
+#[derive(NetworkEncode, NetworkDecode)]
 pub struct FundingTx {
     pub locktime: u32,
     pub funding: ChannelFunding,
@@ -169,6 +190,8 @@ pub struct FundingTx {
 /// Channel transactions always have just a single input, spending a
 /// parent transaction output. This is necessary due to a strict tree channel
 /// structure requirement.
+#[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
+#[derive(NetworkEncode, NetworkDecode)]
 pub struct ChannelTx {
     pub locktime: u32,
 
@@ -188,8 +211,10 @@ pub trait ChannelGraph {
     fn refund_tx(&self) -> &ChannelTx;
 }
 
+#[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
+#[derive(NetworkEncode, NetworkDecode)]
 pub struct ChannelProposal {
     channel: FundingTx,
     pub signatures: NodeSignatureMap, // signatures on the graph using node key
-    index: Option<BTreeMap<TxRole, Vec<Arc<ChannelTx>>>>,
+    index: Option<BTreeMap<TxRole, Vec<ChannelTx>>>,
 }

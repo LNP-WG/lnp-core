@@ -186,6 +186,7 @@ pub use types::{
 use std::io;
 
 use internet2::{CreateUnmarshaller, Payload, Unmarshall, Unmarshaller};
+use lnpbp::bech32::Blob;
 use strict_encoding::{self, StrictDecode, StrictEncode};
 
 /// Default legacy Lightning port number
@@ -227,7 +228,7 @@ pub enum Messages {
     /// bytes to be included within the data payload of the pong message.
     #[api(type = 19)]
     #[display("pong(...)")]
-    Pong(Vec<u8>),
+    Pong(Blob),
 
     #[api(type = 0x0020)]
     ProposeChannel(ProposeChannel),
