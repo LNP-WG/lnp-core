@@ -616,7 +616,7 @@ dependencies = [
 
 [[package]]
 name = "lnp2p"
-version = "0.6.0-beta.1"
+version = "0.6.0-beta.2"
 dependencies = [
  "amplify",
  "bitcoin",
