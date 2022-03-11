@@ -18,7 +18,6 @@ use std::fmt::{self, Display, Formatter};
 use std::io::{Read, Write};
 use std::str::FromStr;
 
-use crate::bifrost::ChannelParams;
 use amplify::Wrapper;
 use bitcoin::bech32::{self, FromBase32, ToBase32};
 use bitcoin::hashes::{sha256, sha256t, Hash, HashEngine};
@@ -27,6 +26,8 @@ use strict_encoding::net::{
     AddrFormat, DecodeError, RawAddr, Transport, Uniform, UniformAddr, ADDR_LEN,
 };
 use strict_encoding::{self, StrictDecode, StrictEncode};
+
+use crate::bifrost::ChannelParams;
 
 /// TODO: Replace
 const CHANNEL_ID_MIDSTATE: [u8; 32] = [
