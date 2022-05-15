@@ -330,9 +330,9 @@ dependencies = [
 
 [[package]]
 name = "descriptor-wallet"
-version = "0.6.0"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cae39ccc51fa599447008b64c911d251ded6a263745a3cc4901d469eddec478f"
+checksum = "16fcedcc9be4d1b3e2b7be22ddbc737facfaa8c6643261d7149ff7a93c61f5bd"
 dependencies = [
  "amplify",
  "bitcoin",
@@ -958,9 +958,9 @@ dependencies = [
 
 [[package]]
 name = "strict_encoding"
-version = "1.8.0"
+version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e015cca52367dd55ef4af01b5a3e9c0569394b1be0eedc87c95a1d8246565db"
+checksum = "92e4ef7c6fc77d2e1163fcaf02cd394c08c543923706e5972ca1d79a227c14ca"
 dependencies = [
  "amplify",
  "bitcoin",

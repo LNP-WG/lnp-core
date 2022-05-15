@@ -23,7 +23,6 @@ use lnp2p::legacy::{ChannelId, Messages};
 use p2p::legacy::ChannelType;
 use wallet::hlc::{HashLock, HashPreimage};
 use wallet::scripts::{LockScript, PubkeyScript, WitnessScript};
-use wallet::IntoPk;
 
 use crate::channel::bolt::util::UpdateReq;
 use crate::channel::bolt::{BoltExt, ChannelState, Error, TxType};
@@ -449,12 +448,14 @@ impl ScriptGenerators for LockScript {
         script::Builder::new()
             .push_opcode(OP_DUP)
             .push_opcode(OP_HASH160)
-            .push_slice(&revocationpubkey.into_pk().pubkey_hash())
+            .push_slice(
+                &bitcoin::PublicKey::new(revocationpubkey).pubkey_hash(),
+            )
             .push_opcode(OP_EQUAL)
             .push_opcode(OP_IF)
             .push_opcode(OP_CHECKSIG)
             .push_opcode(OP_ELSE)
-            .push_key(&remote_htlcpubkey.into_pk())
+            .push_key(&bitcoin::PublicKey::new(remote_htlcpubkey))
             .push_opcode(OP_SWAP)
             .push_opcode(OP_SIZE)
             .push_int(32)
@@ -463,7 +464,7 @@ impl ScriptGenerators for LockScript {
             .push_opcode(OP_DROP)
             .push_int(2)
             .push_opcode(OP_SWAP)
-            .push_key(&local_htlcpubkey.into_pk())
+            .push_key(&bitcoin::PublicKey::new(local_htlcpubkey))
             .push_int(2)
             .push_opcode(OP_CHECKMULTISIG)
             .push_opcode(OP_ELSE)
@@ -488,12 +489,14 @@ impl ScriptGenerators for LockScript {
         script::Builder::new()
             .push_opcode(OP_DUP)
             .push_opcode(OP_HASH160)
-            .push_slice(&revocationpubkey.into_pk().pubkey_hash())
+            .push_slice(
+                &bitcoin::PublicKey::new(revocationpubkey).pubkey_hash(),
+            )
             .push_opcode(OP_EQUAL)
             .push_opcode(OP_IF)
             .push_opcode(OP_CHECKSIG)
             .push_opcode(OP_ELSE)
-            .push_key(&remote_htlcpubkey.into_pk())
+            .push_key(&bitcoin::PublicKey::new(remote_htlcpubkey))
             .push_opcode(OP_SWAP)
             .push_opcode(OP_SIZE)
             .push_int(32)
@@ -504,7 +507,7 @@ impl ScriptGenerators for LockScript {
             .push_opcode(OP_EQUALVERIFY)
             .push_int(2)
             .push_opcode(OP_SWAP)
-            .push_key(&local_htlcpubkey.into_pk())
+            .push_key(&bitcoin::PublicKey::new(local_htlcpubkey))
             .push_int(2)
             .push_opcode(OP_CHECKMULTISIG)
             .push_opcode(OP_ELSE)
@@ -527,12 +530,12 @@ impl ScriptGenerators for LockScript {
     ) -> Self {
         script::Builder::new()
             .push_opcode(OP_IF)
-            .push_key(&revocationpubkey.into_pk())
+            .push_key(&bitcoin::PublicKey::new(revocationpubkey))
             .push_opcode(OP_ELSE)
             .push_int(to_self_delay as i64)
             .push_opcode(OP_CSV)
             .push_opcode(OP_DROP)
-            .push_key(&local_delayedpubkey.into_pk())
+            .push_key(&bitcoin::PublicKey::new(local_delayedpubkey))
             .push_opcode(OP_ENDIF)
             .push_opcode(OP_CHECKSIG)
             .into_script()

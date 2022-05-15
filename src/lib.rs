@@ -40,7 +40,7 @@ macro_rules! dumb_pubkey {
     () => {
         secp256k1::PublicKey::from_secret_key(
             secp256k1::SECP256K1,
-            &secp256k1::key::ONE_KEY,
+            &secp256k1::ONE_KEY,
         )
     };
 }

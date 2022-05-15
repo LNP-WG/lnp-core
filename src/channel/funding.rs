@@ -145,15 +145,15 @@ impl PsbtLnpFunding for Psbt {
         let vout = self
             .channel_funding_output()
             .ok_or(Error::NoFundingOutput)?;
-        Ok(OutPoint::new(self.global.unsigned_tx.txid(), vout as u32))
+        Ok(OutPoint::new(self.unsigned_tx.txid(), vout as u32))
     }
 
     fn extract_channel_funding(self) -> Result<Funding, Error> {
         let vout = self
             .channel_funding_output()
             .ok_or(Error::NoFundingOutput)?;
-        let amount = self.global.unsigned_tx.output[vout].value;
-        let txid = self.global.unsigned_tx.txid();
+        let amount = self.unsigned_tx.output[vout].value;
+        let txid = self.unsigned_tx.txid();
         // TODO: Parse number of signing parties and signing threshold from
         //       witness script attached to the funding output
         Ok(Funding {
