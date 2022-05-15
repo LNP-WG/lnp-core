@@ -1,6 +1,6 @@
 [package]
 name = "lnp2p"
-version = "0.6.0-beta.1"
+version = "0.6.0-beta.2"
 license = "MIT"
 authors = ["Dr Maxim Orlovsky <orlovsky@pandoracore.com>"]
 description = "LN P2P Library: rust implementation of lightning network peer protocols (BOLT-1, 2, 7, 9, Bifrost)"
@@ -18,14 +18,14 @@ path = "src/lib.rs"
 crate-type = ["rlib", "staticlib"]
 
 [dependencies]
-amplify = { version = "3.9.1", features = ["hex", "rand"] }
-lnpbp = "0.5.0"
-bp-core = "0.5.0"
-strict_encoding = { version = "1.7.9", optional = true, features = ["chrono"] }
-lightning_encoding = "0.5.13"
-descriptor-wallet = "0.5.0"
-bitcoin = "0.27.1"
-internet2 = { version = ">=0.5.18", default-features = false, features = ["derive"] }
+amplify = { version = "3.12.0", features = ["hex", "rand"] }
+lnpbp = "0.6.0"
+strict_encoding = { version = "1.8.0", optional = true, features = ["chrono"] }
+lightning_encoding = "0.6.1"
+bitcoin_scripts = "0.6.0"
+bitcoin = "0.28.1"
+secp256k1 = { version = "0.22.1", features = ["global-context"] }
+internet2 = { version = "0.6.0", default-features = false, features = ["derive"] }
 serde_crate = { package = "serde", version = "1", features = ["derive"], optional = true }
 serde_with = { version = "1.5", features = ["hex"], optional = true }
 lazy_static = "1.4"

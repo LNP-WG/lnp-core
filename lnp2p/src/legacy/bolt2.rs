@@ -19,13 +19,13 @@ use std::str::FromStr;
 use amplify::flags::FlagVec;
 use amplify::{DumbDefault, Slice32};
 use bitcoin::hashes::sha256;
-use bitcoin::secp256k1::{PublicKey, SecretKey, Signature};
 use bitcoin::Txid;
+use bitcoin_scripts::hlc::{HashLock, HashPreimage};
+use bitcoin_scripts::PubkeyScript;
 use internet2::presentation::sphinx::Onion;
 use internet2::tlv;
-use lnpbp::bech32::Blob;
-use wallet::hlc::{HashLock, HashPreimage};
-use wallet::scripts::PubkeyScript;
+use secp256k1::ecdsa::Signature;
+use secp256k1::{PublicKey, SecretKey};
 
 use super::{ChannelId, TempChannelId};
 use crate::legacy::PaymentOnion;
@@ -569,7 +569,7 @@ pub struct UpdateFailHtlc {
     /// special malformed failure variant for the case where the peer couldn't
     /// parse it: in this case the current node instead takes action,
     /// encrypting it into a update_fail_htlc for relaying.
-    pub reason: Blob,
+    pub reason: Vec<u8>,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Display)]

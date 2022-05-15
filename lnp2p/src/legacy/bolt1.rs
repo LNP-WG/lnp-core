@@ -21,7 +21,6 @@ use amplify::Wrapper;
 use bitcoin::hashes::Hash;
 use internet2::tlv;
 use lightning_encoding::{LightningDecode, LightningEncode};
-use lnpbp::bech32::Blob;
 use lnpbp::chain::AssetId;
 
 use super::{ChannelId, InitFeatures};
@@ -108,7 +107,7 @@ pub struct Init {
 #[display("ping({pong_size})")]
 pub struct Ping {
     pub pong_size: u16,
-    pub ignored: Blob,
+    pub ignored: Vec<u8>,
 }
 
 /// For simplicity of diagnosis, it's often useful to tell a peer that something
@@ -124,7 +123,7 @@ pub struct Error {
     pub channel_id: ChannelId,
 
     /// Any specific error details, either as string or binary data
-    pub data: Blob,
+    pub data: Vec<u8>,
 }
 
 impl Display for Error {
@@ -138,7 +137,7 @@ impl Display for Error {
         // NB: if data is not composed solely of printable ASCII characters (For
         // reference: the printable character set includes byte values 32
         // through 126, inclusive) SHOULD NOT print out data verbatim.
-        if let Ok(msg) = String::from_utf8(self.data.clone().into_inner()) {
+        if let Ok(msg) = String::from_utf8(self.data.clone()) {
             write!(f, ": {}", msg)?;
         }
         Ok(())

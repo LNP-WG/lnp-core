@@ -18,10 +18,10 @@
 use std::io;
 
 use amplify::Wrapper;
+use bitcoin_scripts::hlc::HashPreimage;
 use internet2::presentation::sphinx::SphinxPayload;
 use internet2::tlv;
 use lightning_encoding::{BigSize, LightningDecode, LightningEncode};
-use wallet::hlc::HashPreimage;
 
 use crate::legacy::ShortChannelId;
 
