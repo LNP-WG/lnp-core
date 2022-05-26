@@ -26,13 +26,14 @@ use lnpbp::chain::Chain;
 use p2p::legacy::{
     ChannelReestablish, FundingLocked, PaymentOnion, UpdateAddHtlc,
 };
-use secp256k1::{Secp256k1, Signature};
+use secp256k1::ecdsa::Signature;
+use secp256k1::Secp256k1;
 use strict_encoding::StrictDecode;
 use wallet::hlc::HashLock;
 use wallet::lex_order::LexOrder;
+use wallet::psbt;
 use wallet::psbt::Psbt;
 use wallet::scripts::{LockScript, PubkeyScript, WitnessScript};
-use wallet::{psbt, IntoPk};
 
 use super::keyset::{LocalKeyset, LocalPubkey, RemoteKeyset};
 use super::policy::{CommonParams, PeerParams, Policy};
@@ -1128,8 +1129,11 @@ impl ScriptGenerators for LockScript {
         local_pubkey: &LocalPubkey,
         remote_pubkey: PublicKey,
     ) -> Self {
-        let pk = vec![local_pubkey.key.into_pk(), remote_pubkey.into_pk()]
-            .lex_ordered();
+        let pk = vec![
+            local_pubkey.to_bitcoin_pk(),
+            bitcoin::PublicKey::new(remote_pubkey),
+        ]
+        .lex_ordered();
 
         script::Builder::new()
             .push_int(2)
@@ -1149,12 +1153,12 @@ impl ScriptGenerators for LockScript {
     ) -> Self {
         script::Builder::new()
             .push_opcode(OP_IF)
-            .push_key(&revocationpubkey.into_pk())
+            .push_key(&bitcoin::PublicKey::new(revocationpubkey))
             .push_opcode(OP_ELSE)
             .push_int(to_self_delay as i64)
             .push_opcode(OP_CSV)
             .push_opcode(OP_DROP)
-            .push_key(&local_delayedpubkey.into_pk())
+            .push_key(&bitcoin::PublicKey::new(local_delayedpubkey))
             .push_opcode(OP_ENDIF)
             .push_opcode(OP_CHECKSIG)
             .into_script()
@@ -1167,7 +1171,7 @@ impl ScriptGenerators for LockScript {
 
     fn ln_to_remote_v2(_: u64, remote_pubkey: PublicKey) -> Self {
         script::Builder::new()
-            .push_key(&remote_pubkey.into_pk())
+            .push_key(&bitcoin::PublicKey::new(remote_pubkey))
             .push_opcode(OP_CHECKSIGVERIFY)
             .push_int(1)
             .push_opcode(OP_CSV)
@@ -1243,8 +1247,7 @@ impl ScriptGenerators for PubkeyScript {
 
     #[inline]
     fn ln_to_remote_v1(_: u64, remote_pubkey: PublicKey) -> Self {
-        remote_pubkey
-            .into_pk()
+        bitcoin::PublicKey::new(remote_pubkey)
             .wpubkey_hash()
             .expect("We just generated non-compressed key")
             .into()
@@ -1256,7 +1259,7 @@ impl ScriptGenerators for PubkeyScript {
     }
 }
 
-impl ScriptGenerators for (TxOut, psbt::Output) {
+impl ScriptGenerators for psbt::Output {
     #[inline]
     fn ln_funding(
         amount: u64,
@@ -1273,12 +1276,12 @@ impl ScriptGenerators for (TxOut, psbt::Output) {
             value: amount,
             script_pubkey,
         };
-        let output = psbt::Output {
+        let output = bitcoin::psbt::Output {
             witness_script: Some(witness_script),
             bip32_derivation: local_pubkey.to_bip32_derivation_map(),
             ..Default::default()
         };
-        (txout, output)
+        psbt::Output::with(0, output, txout)
     }
 
     #[inline]
@@ -1306,11 +1309,11 @@ impl ScriptGenerators for (TxOut, psbt::Output) {
             value: amount,
             script_pubkey,
         };
-        let output = psbt::Output {
+        let output = bitcoin::psbt::Output {
             witness_script: Some(witness_script),
             ..Default::default()
         };
-        (txout, output)
+        psbt::Output::with(1, output, txout)
     }
 
     #[inline]
@@ -1320,7 +1323,7 @@ impl ScriptGenerators for (TxOut, psbt::Output) {
             script_pubkey: PubkeyScript::ln_to_remote_v1(amount, remote_pubkey)
                 .into(),
         };
-        (txout, psbt::Output::default())
+        psbt::Output::new(2, txout)
     }
 
     #[inline]
@@ -1333,11 +1336,11 @@ impl ScriptGenerators for (TxOut, psbt::Output) {
             value: amount,
             script_pubkey,
         };
-        let output = psbt::Output {
+        let output = bitcoin::psbt::Output {
             witness_script: Some(witness_script),
             ..Default::default()
         };
-        (txout, output)
+        psbt::Output::with(3, output, txout)
     }
 }
 

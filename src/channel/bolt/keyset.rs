@@ -37,10 +37,13 @@ pub struct LocalPubkey {
 
 impl LocalPubkey {
     #[inline]
-    pub fn to_bip32_derivation_map(
-        &self,
-    ) -> BTreeMap<bitcoin::PublicKey, KeySource> {
-        bmap! { bitcoin::PublicKey::new(self.key) => self.source.clone() }
+    pub fn to_bip32_derivation_map(&self) -> BTreeMap<PublicKey, KeySource> {
+        bmap! { self.key => self.source.clone() }
+    }
+
+    #[inline]
+    pub fn to_bitcoin_pk(&self) -> bitcoin::PublicKey {
+        bitcoin::PublicKey::new(self.key)
     }
 }
 
@@ -212,8 +215,7 @@ impl LocalKeyset {
                 let seckey = channel_xpriv
                     .derive_priv(secp, &path)
                     .expect("negligible probability")
-                    .private_key
-                    .key;
+                    .private_key;
                 LocalPubkey {
                     key: PublicKey::from_secret_key(secp, &seckey),
                     source: (fingerpint, derivation_path),

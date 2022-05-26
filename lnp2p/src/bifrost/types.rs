@@ -21,7 +21,7 @@ use std::str::FromStr;
 use amplify::Wrapper;
 use bitcoin::bech32::{self, FromBase32, ToBase32};
 use bitcoin::hashes::{sha256, sha256t, Hash, HashEngine};
-use bitcoin::secp256k1::schnorrsig::PublicKey;
+use bitcoin::secp256k1::XOnlyPublicKey;
 use strict_encoding::net::{
     AddrFormat, DecodeError, RawAddr, Transport, Uniform, UniformAddr, ADDR_LEN,
 };
@@ -62,7 +62,10 @@ pub struct ChannelId(sha256t::Hash<ChannelIdTag>);
 
 impl ChannelId {
     /// Computes ChannelId from the provided data
-    pub fn with(params: ChannelParams, node_pubkey: PublicKey) -> ChannelId {
+    pub fn with(
+        params: ChannelParams,
+        node_pubkey: XOnlyPublicKey,
+    ) -> ChannelId {
         let mut engine = ChannelId::engine();
         params
             .strict_encode(&mut engine)
@@ -467,8 +470,9 @@ pub struct AddressList(Vec<AnnouncedNodeAddr>);
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use bitcoin::hashes::hex::FromHex;
+
+    use super::*;
 
     #[test]
     fn test_address_encodings() {

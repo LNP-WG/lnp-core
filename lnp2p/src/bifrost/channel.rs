@@ -15,9 +15,10 @@
 
 use std::collections::BTreeMap;
 
-use bitcoin::secp256k1::schnorrsig::{PublicKey, Signature};
+use bitcoin::secp256k1::schnorr::Signature;
+use bitcoin::secp256k1::XOnlyPublicKey;
 use lnpbp::chain::Chain;
-use wallet::psbt::Psbt;
+use psbt::Psbt;
 
 use crate::bifrost::{ChannelId, ChannelProposal, ProtocolName};
 use crate::legacy;
@@ -105,7 +106,7 @@ pub struct PreChannel {
     /// Channel id, constructed out of [`ChannelParams`] and
     /// [`Self::coordinator_node`]
     pub channel_id: ChannelId,
-    pub coordinator_node: PublicKey,
+    pub coordinator_node: XOnlyPublicKey,
     pub channel_params: ChannelParams,
     pub proposal: ChannelProposal,
     pub finalized_at: Option<chrono::DateTime<chrono::Utc>>,
@@ -137,8 +138,8 @@ pub struct ProposeChannel {
     /// right to update the channel proposal.
     pub proposal: ChannelProposal,
 
-    pub pending: Vec<PublicKey>,
-    pub accepted: BTreeMap<PublicKey, Signature>,
+    pub pending: Vec<XOnlyPublicKey>,
+    pub accepted: BTreeMap<XOnlyPublicKey, Signature>,
 }
 
 /// Response from a peer to a channel coordinator
@@ -148,7 +149,7 @@ pub struct ProposeChannel {
 pub struct AcceptChannel {
     pub channel_id: ChannelId,
     pub updated_proposal: ChannelProposal,
-    pub signatures: BTreeMap<PublicKey, Signature>,
+    pub signatures: BTreeMap<XOnlyPublicKey, Signature>,
 }
 
 #[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Debug, Display)]
@@ -179,8 +180,8 @@ pub struct RemoveChannel {
 pub struct UpdateChannelStatus {
     pub channel_id: ChannelId,
     pub new_status: ChannelStatusUpdate,
-    pub pending: Vec<PublicKey>,
-    pub accepted: BTreeMap<PublicKey, Signature>,
+    pub pending: Vec<XOnlyPublicKey>,
+    pub accepted: BTreeMap<XOnlyPublicKey, Signature>,
 }
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display)]
@@ -203,7 +204,7 @@ pub enum ChannelStatusUpdate {
 pub struct UpgradeChannel {
     pub channel_id: ChannelId,
     pub protocol: ProtocolName,
-    pub accepted: BTreeMap<PublicKey, Signature>,
+    pub accepted: BTreeMap<XOnlyPublicKey, Signature>,
 }
 
 #[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Debug, Display)]
@@ -212,7 +213,7 @@ pub struct UpgradeChannel {
 pub struct DowngradeChannel {
     pub channel_id: ChannelId,
     pub protocol: ProtocolName,
-    pub accepted: BTreeMap<PublicKey, Signature>,
+    pub accepted: BTreeMap<XOnlyPublicKey, Signature>,
 }
 
 #[derive(Clone, PartialEq, Debug, Display)]
@@ -221,5 +222,5 @@ pub struct DowngradeChannel {
 pub struct CloseChannel {
     pub channel_id: ChannelId,
     pub closing_tx: Psbt,
-    pub accepted: BTreeMap<PublicKey, Signature>,
+    pub accepted: BTreeMap<XOnlyPublicKey, Signature>,
 }

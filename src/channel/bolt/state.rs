@@ -17,7 +17,8 @@ use std::collections::BTreeMap;
 use amplify::ToYamlString;
 use amplify::{DumbDefault, Slice32};
 use p2p::legacy::{ActiveChannelId, TempChannelId};
-use secp256k1::{PublicKey, Signature};
+use secp256k1::ecdsa::Signature;
+use secp256k1::PublicKey;
 
 use super::{
     CommonParams, Direction, HtlcKnown, HtlcSecret, Lifecycle, LocalKeyset,

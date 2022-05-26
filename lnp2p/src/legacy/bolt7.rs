@@ -16,7 +16,8 @@
 //! Bolt 7 Gossip messages
 
 use amplify::Slice32;
-use bitcoin::secp256k1::{PublicKey, Signature};
+use secp256k1::ecdsa::Signature;
+use secp256k1::PublicKey;
 
 use super::{
     AddressList, Alias, ChannelId, InitFeatures, NodeColor, ShortChannelId,

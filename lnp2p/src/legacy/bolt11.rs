@@ -13,8 +13,8 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
-use bitcoin::secp256k1::PublicKey;
-use wallet::hlc::HashLock;
+use bitcoin_scripts::hlc::HashLock;
+use secp256k1::PublicKey;
 
 /// Payment request as it may be extracted from BOLT-11 invoice and used for
 /// route construction.

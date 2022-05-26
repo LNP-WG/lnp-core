@@ -24,14 +24,15 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use bitcoin::hashes::sha256;
-use bitcoin::secp256k1::schnorrsig::{PublicKey, Signature};
-use bitcoin::{Amount, OutPoint, Txid};
+use bitcoin::secp256k1::schnorr::Signature;
+use bitcoin::secp256k1::XOnlyPublicKey;
+use bitcoin::{Amount, OutPoint, Txid, Witness};
 use miniscript::Descriptor;
-use wallet::scripts::Witness;
 
 use crate::bifrost::ChannelId;
 
-// TODO: Temporary structs which need to be implemented at descriptor wallet level
+// TODO: Temporary structs which need to be implemented at descriptor wallet
+// level
 #[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug)]
 #[derive(NetworkEncode, NetworkDecode)]
 pub struct SegwitDescriptor(u8);
@@ -63,11 +64,11 @@ pub const LN_TX_ROLE_COMMITMENT: u8 = 0x02;
 /// Signature created by a single lightning node
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
 #[derive(NetworkEncode, NetworkDecode)]
-pub struct NodeSignature(pub PublicKey, pub Signature);
+pub struct NodeSignature(pub XOnlyPublicKey, pub Signature);
 /// Map of lightning node keys to their signatures over certain data
 #[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
 #[derive(NetworkEncode, NetworkDecode)]
-pub struct NodeSignatureMap(pub BTreeMap<PublicKey, Signature>);
+pub struct NodeSignatureMap(pub BTreeMap<XOnlyPublicKey, Signature>);
 
 /// External transaction output. Must always be a v0 witness or a above
 #[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug)]

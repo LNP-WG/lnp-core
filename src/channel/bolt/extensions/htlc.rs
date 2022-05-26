@@ -16,14 +16,13 @@ use std::collections::BTreeMap;
 use bitcoin::blockdata::opcodes::all::*;
 use bitcoin::blockdata::script;
 use bitcoin::secp256k1::PublicKey;
-use bitcoin::util::psbt;
-use bitcoin::util::psbt::PartiallySignedTransaction as Psbt;
 use bitcoin::{OutPoint, Transaction, TxIn, TxOut};
 use lnp2p::legacy::{ChannelId, Messages};
 use p2p::legacy::ChannelType;
 use wallet::hlc::{HashLock, HashPreimage};
+use wallet::psbt;
+use wallet::psbt::{Psbt, PsbtVersion};
 use wallet::scripts::{LockScript, PubkeyScript, WitnessScript};
-use wallet::IntoPk;
 
 use crate::channel::bolt::util::UpdateReq;
 use crate::channel::bolt::{BoltExt, ChannelState, Error, TxType};
@@ -449,12 +448,14 @@ impl ScriptGenerators for LockScript {
         script::Builder::new()
             .push_opcode(OP_DUP)
             .push_opcode(OP_HASH160)
-            .push_slice(&revocationpubkey.into_pk().pubkey_hash())
+            .push_slice(
+                &bitcoin::PublicKey::new(revocationpubkey).pubkey_hash(),
+            )
             .push_opcode(OP_EQUAL)
             .push_opcode(OP_IF)
             .push_opcode(OP_CHECKSIG)
             .push_opcode(OP_ELSE)
-            .push_key(&remote_htlcpubkey.into_pk())
+            .push_key(&bitcoin::PublicKey::new(remote_htlcpubkey))
             .push_opcode(OP_SWAP)
             .push_opcode(OP_SIZE)
             .push_int(32)
@@ -463,7 +464,7 @@ impl ScriptGenerators for LockScript {
             .push_opcode(OP_DROP)
             .push_int(2)
             .push_opcode(OP_SWAP)
-            .push_key(&local_htlcpubkey.into_pk())
+            .push_key(&bitcoin::PublicKey::new(local_htlcpubkey))
             .push_int(2)
             .push_opcode(OP_CHECKMULTISIG)
             .push_opcode(OP_ELSE)
@@ -488,12 +489,14 @@ impl ScriptGenerators for LockScript {
         script::Builder::new()
             .push_opcode(OP_DUP)
             .push_opcode(OP_HASH160)
-            .push_slice(&revocationpubkey.into_pk().pubkey_hash())
+            .push_slice(
+                &bitcoin::PublicKey::new(revocationpubkey).pubkey_hash(),
+            )
             .push_opcode(OP_EQUAL)
             .push_opcode(OP_IF)
             .push_opcode(OP_CHECKSIG)
             .push_opcode(OP_ELSE)
-            .push_key(&remote_htlcpubkey.into_pk())
+            .push_key(&bitcoin::PublicKey::new(remote_htlcpubkey))
             .push_opcode(OP_SWAP)
             .push_opcode(OP_SIZE)
             .push_int(32)
@@ -504,7 +507,7 @@ impl ScriptGenerators for LockScript {
             .push_opcode(OP_EQUALVERIFY)
             .push_int(2)
             .push_opcode(OP_SWAP)
-            .push_key(&local_htlcpubkey.into_pk())
+            .push_key(&bitcoin::PublicKey::new(local_htlcpubkey))
             .push_int(2)
             .push_opcode(OP_CHECKMULTISIG)
             .push_opcode(OP_ELSE)
@@ -527,12 +530,12 @@ impl ScriptGenerators for LockScript {
     ) -> Self {
         script::Builder::new()
             .push_opcode(OP_IF)
-            .push_key(&revocationpubkey.into_pk())
+            .push_key(&bitcoin::PublicKey::new(revocationpubkey))
             .push_opcode(OP_ELSE)
             .push_int(to_self_delay as i64)
             .push_opcode(OP_CSV)
             .push_opcode(OP_DROP)
-            .push_key(&local_delayedpubkey.into_pk())
+            .push_key(&bitcoin::PublicKey::new(local_delayedpubkey))
             .push_opcode(OP_ENDIF)
             .push_opcode(OP_CHECKSIG)
             .into_script()
@@ -734,10 +737,18 @@ impl ScriptGenerators for psbt::Output {
             payment_hash,
         )
         .into();
-        psbt::Output {
+        let txout = TxOut::ln_offered_htlc(
+            amount,
+            revocationpubkey,
+            local_htlcpubkey,
+            remote_htlcpubkey,
+            payment_hash,
+        );
+        let output = bitcoin::psbt::Output {
             witness_script: Some(witness_script),
             ..Default::default()
-        }
+        };
+        psbt::Output::with(0, output, txout)
     }
 
     #[inline]
@@ -758,10 +769,19 @@ impl ScriptGenerators for psbt::Output {
             payment_hash,
         )
         .into();
-        psbt::Output {
+        let txout = TxOut::ln_received_htlc(
+            amount,
+            revocationpubkey,
+            local_htlcpubkey,
+            remote_htlcpubkey,
+            cltv_expiry,
+            payment_hash,
+        );
+        let output = bitcoin::psbt::Output {
             witness_script: Some(witness_script),
             ..Default::default()
-        }
+        };
+        psbt::Output::with(0, output, txout)
     }
 
     #[inline]
@@ -778,87 +798,17 @@ impl ScriptGenerators for psbt::Output {
             to_self_delay,
         )
         .into();
-        psbt::Output {
+        let txout = TxOut::ln_htlc_output(
+            amount,
+            revocationpubkey,
+            local_delayedpubkey,
+            to_self_delay,
+        );
+        let output = bitcoin::psbt::Output {
             witness_script: Some(witness_script),
             ..Default::default()
-        }
-    }
-}
-
-impl ScriptGenerators for (TxOut, psbt::Output) {
-    fn ln_offered_htlc(
-        amount: u64,
-        revocationpubkey: PublicKey,
-        local_htlcpubkey: PublicKey,
-        remote_htlcpubkey: PublicKey,
-        payment_hash: HashLock,
-    ) -> Self {
-        (
-            TxOut::ln_offered_htlc(
-                amount,
-                revocationpubkey,
-                local_htlcpubkey,
-                remote_htlcpubkey,
-                payment_hash,
-            ),
-            psbt::Output::ln_offered_htlc(
-                amount,
-                revocationpubkey,
-                local_htlcpubkey,
-                remote_htlcpubkey,
-                payment_hash,
-            ),
-        )
-    }
-
-    fn ln_received_htlc(
-        amount: u64,
-        revocationpubkey: PublicKey,
-        local_htlcpubkey: PublicKey,
-        remote_htlcpubkey: PublicKey,
-        cltv_expiry: u32,
-        payment_hash: HashLock,
-    ) -> Self {
-        (
-            TxOut::ln_received_htlc(
-                amount,
-                revocationpubkey,
-                local_htlcpubkey,
-                remote_htlcpubkey,
-                cltv_expiry,
-                payment_hash,
-            ),
-            psbt::Output::ln_received_htlc(
-                amount,
-                revocationpubkey,
-                local_htlcpubkey,
-                remote_htlcpubkey,
-                cltv_expiry,
-                payment_hash,
-            ),
-        )
-    }
-
-    fn ln_htlc_output(
-        amount: u64,
-        revocationpubkey: PublicKey,
-        local_delayedpubkey: PublicKey,
-        to_self_delay: u16,
-    ) -> Self {
-        (
-            TxOut::ln_htlc_output(
-                amount,
-                revocationpubkey,
-                local_delayedpubkey,
-                to_self_delay,
-            ),
-            psbt::Output::ln_htlc_output(
-                amount,
-                revocationpubkey,
-                local_delayedpubkey,
-                to_self_delay,
-            ),
-        )
+        };
+        psbt::Output::with(0, output, txout)
     }
 }
 
@@ -920,14 +870,17 @@ impl TxGenerators for Psbt {
             to_self_delay,
         );
 
-        let mut psbt = Psbt::from_unsigned_tx(Transaction::ln_htlc(
-            amount,
-            outpoint,
-            cltv_expiry,
-            revocationpubkey,
-            local_delayedpubkey,
-            to_self_delay,
-        ))
+        let mut psbt = Psbt::with(
+            Transaction::ln_htlc(
+                amount,
+                outpoint,
+                cltv_expiry,
+                revocationpubkey,
+                local_delayedpubkey,
+                to_self_delay,
+            ),
+            PsbtVersion::V0,
+        )
         .expect("Tx has empty sigs so PSBT creation does not fail");
         psbt.outputs[0] = output;
         psbt
