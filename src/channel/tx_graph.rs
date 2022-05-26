@@ -17,7 +17,7 @@
 use std::collections::BTreeMap;
 
 use bitcoin::{Transaction, TxIn, TxOut};
-use wallet::psbt::{self, Psbt};
+use wallet::psbt::{self, Psbt, PsbtVersion};
 
 use crate::channel::Funding;
 
@@ -34,7 +34,7 @@ pub struct TxGraph<'channel> {
     pub cmt_version: i32,
     pub cmt_locktime: u32,
     pub cmt_sequence: u32,
-    pub cmt_outs: Vec<(TxOut, psbt::Output)>,
+    pub cmt_outs: Vec<psbt::Output>,
     graph: BTreeMap<u16, BTreeMap<u64, Psbt>>,
 }
 
@@ -115,12 +115,6 @@ where
     }
 
     pub fn render_cmt(&self) -> Psbt {
-        let outputs = self
-            .cmt_outs
-            .clone()
-            .into_iter()
-            .map(|(txout, _)| txout)
-            .collect();
         let cmt_tx = Transaction {
             version: self.cmt_version,
             lock_time: self.cmt_locktime,
@@ -130,23 +124,24 @@ where
                 sequence: self.cmt_sequence,
                 witness: empty!(),
             }],
-            output: outputs,
+            output: vec![default!(); self.cmt_outs.len()],
         };
-        let mut psbt = Psbt::from_unsigned_tx(cmt_tx).expect(
+        let mut psbt = Psbt::with(cmt_tx, PsbtVersion::V0).expect(
             "PSBT construction fails only if script_sig and witness are not \
              empty; which is not the case here",
         );
         let funding_psbt = self.funding.psbt();
-        let funding_output = self.funding.output() as usize;
-        psbt.inputs[0].witness_utxo =
-            Some(funding_psbt.unsigned_tx.output[funding_output].clone());
-        psbt.inputs[0].witness_script =
-            funding_psbt.outputs[funding_output].witness_script.clone();
-        psbt.inputs[0].bip32_derivation = funding_psbt.outputs[funding_output]
-            .bip32_derivation
-            .clone();
+        let funding_vout = self.funding.output() as usize;
+        let funding_output = &funding_psbt.outputs[funding_vout];
+        psbt.inputs[0].witness_utxo = Some(TxOut {
+            value: funding_output.amount,
+            script_pubkey: funding_output.script.clone(),
+        });
+        psbt.inputs[0].witness_script = funding_output.witness_script.clone();
+        psbt.inputs[0].bip32_derivation =
+            funding_output.bip32_derivation.clone();
         for (index, output) in psbt.outputs.iter_mut().enumerate() {
-            *output = self.cmt_outs[index].1.clone();
+            *output = self.cmt_outs[index].clone();
         }
         psbt
     }

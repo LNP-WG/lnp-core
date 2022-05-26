@@ -13,7 +13,7 @@
 
 use bitcoin::util::psbt::raw::ProprietaryKey;
 use bitcoin::{OutPoint, Transaction, TxOut, Txid};
-use wallet::psbt::Psbt;
+use wallet::psbt::{Psbt, PsbtVersion};
 
 pub const PSBT_LNP_PROPRIETARY_PREFIX: &[u8] = b"LNP";
 pub const PSBT_OUT_LNP_CHANNEL_FUNDING: u8 = 0x01;
@@ -72,15 +72,18 @@ impl Funding {
     /// channel setup.
     #[inline]
     pub(super) fn new() -> Funding {
-        let mut psbt = Psbt::from_unsigned_tx(Transaction {
-            version: 2,
-            lock_time: 0,
-            input: vec![],
-            output: vec![TxOut {
-                value: 0,
-                script_pubkey: Default::default(),
-            }],
-        })
+        let mut psbt = Psbt::with(
+            Transaction {
+                version: 2,
+                lock_time: 0,
+                input: vec![],
+                output: vec![TxOut {
+                    value: 0,
+                    script_pubkey: Default::default(),
+                }],
+            },
+            PsbtVersion::V0,
+        )
         .expect("dumb manual PSBT creation");
         psbt.outputs[0]
             .proprietary
@@ -145,15 +148,15 @@ impl PsbtLnpFunding for Psbt {
         let vout = self
             .channel_funding_output()
             .ok_or(Error::NoFundingOutput)?;
-        Ok(OutPoint::new(self.unsigned_tx.txid(), vout as u32))
+        Ok(OutPoint::new(self.to_txid(), vout as u32))
     }
 
     fn extract_channel_funding(self) -> Result<Funding, Error> {
         let vout = self
             .channel_funding_output()
             .ok_or(Error::NoFundingOutput)?;
-        let amount = self.unsigned_tx.output[vout].value;
-        let txid = self.unsigned_tx.txid();
+        let amount = self.outputs[vout].amount;
+        let txid = self.to_txid();
         // TODO: Parse number of signing parties and signing threshold from
         //       witness script attached to the funding output
         Ok(Funding {

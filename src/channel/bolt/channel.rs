@@ -1259,7 +1259,7 @@ impl ScriptGenerators for PubkeyScript {
     }
 }
 
-impl ScriptGenerators for (TxOut, psbt::Output) {
+impl ScriptGenerators for psbt::Output {
     #[inline]
     fn ln_funding(
         amount: u64,
@@ -1276,12 +1276,12 @@ impl ScriptGenerators for (TxOut, psbt::Output) {
             value: amount,
             script_pubkey,
         };
-        let output = psbt::Output {
+        let output = bitcoin::psbt::Output {
             witness_script: Some(witness_script),
             bip32_derivation: local_pubkey.to_bip32_derivation_map(),
             ..Default::default()
         };
-        (txout, output)
+        psbt::Output::with(0, output, txout)
     }
 
     #[inline]
@@ -1309,11 +1309,11 @@ impl ScriptGenerators for (TxOut, psbt::Output) {
             value: amount,
             script_pubkey,
         };
-        let output = psbt::Output {
+        let output = bitcoin::psbt::Output {
             witness_script: Some(witness_script),
             ..Default::default()
         };
-        (txout, output)
+        psbt::Output::with(1, output, txout)
     }
 
     #[inline]
@@ -1323,7 +1323,7 @@ impl ScriptGenerators for (TxOut, psbt::Output) {
             script_pubkey: PubkeyScript::ln_to_remote_v1(amount, remote_pubkey)
                 .into(),
         };
-        (txout, psbt::Output::default())
+        psbt::Output::new(2, txout)
     }
 
     #[inline]
@@ -1336,11 +1336,11 @@ impl ScriptGenerators for (TxOut, psbt::Output) {
             value: amount,
             script_pubkey,
         };
-        let output = psbt::Output {
+        let output = bitcoin::psbt::Output {
             witness_script: Some(witness_script),
             ..Default::default()
         };
-        (txout, output)
+        psbt::Output::with(3, output, txout)
     }
 }
 

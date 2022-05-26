@@ -16,8 +16,8 @@ use std::collections::BTreeMap;
 use std::io::{Read, Write};
 
 use amplify::DumbDefault;
-use bitcoin::util::psbt::PartiallySignedTransaction as Psbt;
 use strict_encoding::{StrictDecode, StrictEncode};
+use wallet::psbt::Psbt;
 
 use super::tx_graph::TxGraph;
 use super::Funding;
