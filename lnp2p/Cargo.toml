@@ -20,9 +20,12 @@ crate-type = ["rlib", "staticlib"]
 [dependencies]
 amplify = { version = "3.12.0", features = ["hex", "rand"] }
 lnpbp = "0.7.0"
+bp-core = "0.7.0-beta.3"
 strict_encoding = { version = "1.8.1", optional = true, features = ["chrono"] }
 lightning_encoding = "0.7.1"
 bitcoin_scripts = "0.7.0"
+psbt = "0.7.1"
+miniscript = "7.0.0"
 bitcoin = "0.28.1"
 secp256k1 = { version = "0.22.1", features = ["global-context"] }
 internet2 = { version = "0.7.0-rc.1", default-features = false, features = ["derive"] }

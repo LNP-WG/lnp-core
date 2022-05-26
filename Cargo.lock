@@ -126,6 +126,7 @@ checksum = "1d080f88bdc1827e569d305765bc407a7cc9b5d464d25e1d36fe2294f274507f"
 dependencies = [
  "amplify",
  "bitcoin",
+ "miniscript",
  "serde",
  "serde_with",
  "slip132",
@@ -143,6 +144,7 @@ dependencies = [
  "bitcoin_hd",
  "chrono",
  "descriptors",
+ "miniscript",
  "strict_encoding",
 ]
 
@@ -154,6 +156,7 @@ checksum = "d8ef0ceaddc4fc71a8c6c923201abbf269f36ae7d7e50ee2d93fd4c32537e113"
 dependencies = [
  "amplify",
  "bitcoin",
+ "miniscript",
  "secp256k1",
  "serde",
  "serde_with",
@@ -166,6 +169,51 @@ name = "bitflags"
 version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
+
+[[package]]
+name = "bp-core"
+version = "0.7.0-beta.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "942a4572d661acd9adfea579795ff42aaadaf3db069e8247bd4b571ef8351508"
+dependencies = [
+ "amplify",
+ "bitcoin",
+ "bp-dbc",
+ "bp-seals",
+ "commit_verify",
+ "single_use_seals",
+ "strict_encoding",
+]
+
+[[package]]
+name = "bp-dbc"
+version = "0.7.0-beta.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3b629692049758af1d4c2a528e5a50a31fd63c5ce61cd3147373ed0e33b30c3f"
+dependencies = [
+ "amplify",
+ "bitcoin",
+ "bitcoin_scripts",
+ "commit_verify",
+ "secp256k1",
+ "strict_encoding",
+]
+
+[[package]]
+name = "bp-seals"
+version = "0.7.0-beta.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e35b87e4f98b5ab0374e9184abcaebe7e0595706b3a3c9885c705f5ce104480d"
+dependencies = [
+ "amplify",
+ "bitcoin",
+ "bitcoin_onchain",
+ "bp-dbc",
+ "commit_verify",
+ "lnpbp_bech32 0.6.0",
+ "single_use_seals",
+ "strict_encoding",
+]
 
 [[package]]
 name = "byteorder"
@@ -260,6 +308,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "commit_verify"
+version = "0.7.0-beta.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed90e2ac9f0250e1132b8de1a61b6281de1db18b05e71becdf6a10f8a2cda030"
+dependencies = [
+ "amplify",
+ "bitcoin_hashes",
+ "rand 0.8.5",
+ "strict_encoding",
+]
+
+[[package]]
 name = "cpufeatures"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -349,6 +409,7 @@ dependencies = [
  "bitcoin_hd",
  "bitcoin_scripts",
  "chrono",
+ "miniscript",
  "strict_encoding",
 ]
 
@@ -550,11 +611,14 @@ dependencies = [
  "amplify",
  "bitcoin",
  "bitcoin_scripts",
+ "bp-core",
  "chrono",
  "internet2",
  "lazy_static",
  "lightning_encoding",
  "lnpbp",
+ "miniscript",
+ "psbt",
  "secp256k1",
  "serde",
  "serde_with",
@@ -568,8 +632,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "79c8405e2d0eec3f9898d9a2fbbd2c9b2dcc80d64c3efde987e2b1075822e72d"
 dependencies = [
  "amplify",
- "lnpbp_bech32",
+ "lnpbp_bech32 0.7.0",
  "lnpbp_chain",
+]
+
+[[package]]
+name = "lnpbp_bech32"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df3dd0d4d712b845b2981058cffb359202464a6f127dd78fa24951e1df882551"
+dependencies = [
+ "amplify",
+ "bech32",
+ "bitcoin_hashes",
+ "strict_encoding",
 ]
 
 [[package]]
@@ -598,6 +674,15 @@ dependencies = [
  "lightning_encoding",
  "once_cell",
  "strict_encoding",
+]
+
+[[package]]
+name = "miniscript"
+version = "7.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da39fc7a8adea97a677337b0091779dd86349226b869053af496584a9b9e5847"
+dependencies = [
+ "bitcoin",
 ]
 
 [[package]]
@@ -668,6 +753,7 @@ dependencies = [
  "bitcoin_onchain",
  "bitcoin_scripts",
  "descriptors",
+ "miniscript",
  "serde",
  "serde_with",
  "strict_encoding",
@@ -937,6 +1023,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "single_use_seals"
+version = "0.7.0-beta.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a7e6c23fec0a6a3fca871002edada4a23e58b730eff60ed4126eadba2d4333c0"
+dependencies = [
+ "amplify_derive",
+]
+
+[[package]]
 name = "slip132"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -969,6 +1064,7 @@ dependencies = [
  "bitcoin",
  "bitcoin_hashes",
  "chrono",
+ "miniscript",
  "strict_encoding_derive",
 ]
 
