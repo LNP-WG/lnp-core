@@ -14,6 +14,9 @@
 // If not, see <https://opensource.org/licenses/MIT>.
 
 /// Message specific to a particular Bifrost application (Layer 3).
+#[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display)]
+#[derive(StrictEncode, StrictDecode)]
+#[display("message({application:#08X}, {message_type:#08X}, ...)")]
 pub struct Message {
     /// Application identifier.
     ///

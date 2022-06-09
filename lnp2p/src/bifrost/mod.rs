@@ -205,19 +205,19 @@ pub enum Messages {
     // ===============================================================
     /// Once authentication is complete, the first message reveals the features
     /// supported or required by this node, even if this is a reconnection.
-    #[api(type = 16)]
+    #[api(type = 0x0010)]
     Init(Init),
 
     /// For simplicity of diagnosis, it's often useful to tell a peer that
     /// something is incorrect.
-    #[api(type = 17)]
+    #[api(type = 0x0011)]
     Error(Error),
 
     /// In order to allow for the existence of long-lived TCP connections, at
     /// times it may be required that both ends keep alive the TCP connection
     /// at the application level. Such messages also allow obfuscation of
     /// traffic patterns.
-    #[api(type = 18)]
+    #[api(type = 0x0012)]
     Ping(Ping),
 
     /// The pong message is to be sent whenever a ping message is received. It
@@ -225,9 +225,13 @@ pub enum Messages {
     /// explicitly notifying the other end that the receiver is still active.
     /// Within the received ping message, the sender will specify the number of
     /// bytes to be included within the data payload of the pong message.
-    #[api(type = 19)]
+    #[api(type = 0x0013)]
     #[display("pong(...)")]
     Pong(Blob),
+
+    #[api(type = 0x0014)]
+    #[display(inner)]
+    Message(Message),
 
     #[api(type = 0x0020)]
     ProposeChannel(ProposeChannel),
