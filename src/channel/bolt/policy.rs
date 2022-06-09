@@ -16,7 +16,7 @@ use std::ops::Range;
 
 #[cfg(feature = "serde")]
 use amplify::ToYamlString;
-use lnp2p::legacy::{AcceptChannel, ChannelType, OpenChannel};
+use lnp2p::bolt::{AcceptChannel, ChannelType, OpenChannel};
 
 /// Limit for the maximum number of the accepted HTLCs towards some node
 pub const BOLT3_MAX_ACCEPTED_HTLC_LIMIT: u16 = 483;
@@ -664,7 +664,7 @@ impl From<&AcceptChannel> for PeerParams {
 #[cfg(test)]
 mod test {
     use amplify::DumbDefault;
-    use p2p::legacy::OpenChannel;
+    use p2p::bolt::OpenChannel;
 
     use super::*;
 

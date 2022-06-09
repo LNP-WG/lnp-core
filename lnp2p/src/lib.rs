@@ -1,4 +1,4 @@
-// LNP P2P library, plmeneting both legacy (BOLT) and Bifrost P2P messaging
+// LNP P2P library, plmeneting both bolt (BOLT) and Bifrost P2P messaging
 // system for Lightning network protocol (LNP)
 //
 // Written in 2020-2022 by
@@ -53,5 +53,5 @@ macro_rules! dumb_pubkey {
 
 #[cfg(feature = "bifrost")]
 pub mod bifrost;
-#[cfg(feature = "legacy")]
-pub mod legacy;
+#[cfg(feature = "bolt")]
+pub mod bolt;

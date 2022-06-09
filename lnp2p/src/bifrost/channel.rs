@@ -1,4 +1,4 @@
-// LNP P2P library, plmeneting both legacy (BOLT) and Bifrost P2P messaging
+// LNP P2P library, plmeneting both bolt (BOLT) and Bifrost P2P messaging
 // system for Lightning network protocol (LNP)
 //
 // Written in 2020-2021 by
@@ -21,7 +21,7 @@ use lnpbp::chain::Chain;
 use psbt::Psbt;
 
 use crate::bifrost::{ChannelId, ChannelProposal, ProtocolName};
-use crate::legacy;
+use crate::bolt;
 
 /// Algorithm for fee computing. Defines who pais the fees for common parts of
 /// the transactions (outputs/inputs used by all peers in a channel).
@@ -164,7 +164,7 @@ pub struct FinalizeChannel {
 #[derive(NetworkEncode, NetworkDecode)]
 #[display("move_channel({legacy_channel_id})")]
 pub struct MoveChannel {
-    pub legacy_channel_id: legacy::ChannelId,
+    pub legacy_channel_id: bolt::ChannelId,
 }
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display)]

@@ -11,7 +11,7 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
-use lnp2p::legacy::Messages;
+use lnp2p::bolt::Messages;
 use wallet::lex_order::LexOrder;
 
 use crate::channel::bolt::{BoltExt, ChannelState, Error};

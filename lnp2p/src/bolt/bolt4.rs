@@ -1,4 +1,4 @@
-// LNP P2P library, plmeneting both legacy (BOLT) and Bifrost P2P messaging
+// LNP P2P library, plmeneting both bolt (BOLT) and Bifrost P2P messaging
 // system for Lightning network protocol (LNP)
 //
 // Written in 2020-2022 by
@@ -23,7 +23,7 @@ use internet2::presentation::sphinx::SphinxPayload;
 use internet2::tlv;
 use lightning_encoding::{BigSize, LightningDecode, LightningEncode};
 
-use crate::legacy::ShortChannelId;
+use crate::bolt::ShortChannelId;
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]

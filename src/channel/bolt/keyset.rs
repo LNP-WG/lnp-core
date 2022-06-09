@@ -17,7 +17,7 @@ use amplify::DumbDefault;
 #[cfg(feature = "serde")]
 use amplify::ToYamlString;
 use bitcoin::util::bip32::{ChildNumber, ExtendedPrivKey, KeySource};
-use p2p::legacy::{AcceptChannel, ChannelType, OpenChannel};
+use p2p::bolt::{AcceptChannel, ChannelType, OpenChannel};
 use secp256k1::{PublicKey, Secp256k1};
 use wallet::hd::HardenedIndex;
 use wallet::scripts::PubkeyScript;

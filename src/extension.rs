@@ -17,7 +17,7 @@ use std::hash::Hash;
 
 use amplify::DumbDefault;
 use internet2::presentation::sphinx::Hop;
-use p2p::legacy::PaymentRequest;
+use p2p::bolt::PaymentRequest;
 use wallet::psbt::Psbt;
 
 use crate::channel::tx_graph::TxGraph;

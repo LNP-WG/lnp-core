@@ -11,7 +11,7 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
-use p2p::legacy::Messages;
+use p2p::bolt::Messages;
 
 use crate::channel::bolt::{BoltExt, ChannelState, Error};
 use crate::channel::tx_graph::TxGraph;

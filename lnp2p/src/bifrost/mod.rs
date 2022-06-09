@@ -1,4 +1,4 @@
-// LNP P2P library, plmeneting both legacy (BOLT) and Bifrost P2P messaging
+// LNP P2P library, plmeneting both bolt (BOLT) and Bifrost P2P messaging
 // system for Lightning network protocol (LNP)
 //
 // Written in 2020-2022 by
@@ -22,8 +22,8 @@
 //!
 //! For funding onchain transactions and funding outputs of channel level 1
 //! this requirement is released to witness v0 or above. The reason for lower
-//! requirement is the interoperability with the legacy lightning network,
-//! allowing migration of existing channels opened in legacy network to
+//! requirement is the interoperability with the bolt lightning network,
+//! allowing migration of existing channels opened in bolt network to
 //! Bifrost.
 //!
 //!
@@ -53,8 +53,8 @@
 //! peers.
 //!
 //! - Channel creation
-//! - Moving channel from legacy to Bifrost LN
-//! - Removing channel from Bifrost to legacy LN
+//! - Moving channel from bolt to Bifrost LN
+//! - Removing channel from Bifrost to bolt LN
 //! - Changing channel status (pausing etc)
 //! - Upgrading channel to support more protocols
 //! - Downgrading channel by removing specific protocol
@@ -96,7 +96,7 @@
 //!    channel (for nested channels above level 1). Peers track upper level
 //!    channel or blockchain to detect funding transaction, and upon transaction
 //!    mining starts operate channel in active mode, not requiring any other
-//!    messages from the channel coordinator (NB: this differs from the legacy
+//!    messages from the channel coordinator (NB: this differs from the bolt
 //!    LN channel creation workflow).
 //!  
 //! 3. Replacing funding by fee (RBF): channel coordinator SHOULD initiate RBF
@@ -174,22 +174,21 @@ mod msg;
 mod proposals;
 mod types;
 
+use std::io;
+
 pub use channel::*;
 pub use ctrl::*;
+use internet2::{CreateUnmarshaller, Payload, Unmarshall, Unmarshaller};
+use lnpbp::bech32::Blob;
 pub use msg::*;
 pub use proposals::*;
+use strict_encoding::{self, StrictDecode, StrictEncode};
 pub use types::{
     AddressList, AnnouncedNodeAddr, ChannelId, ProtocolList, ProtocolName,
     ProtocolNameError,
 };
 
-use std::io;
-
-use internet2::{CreateUnmarshaller, Payload, Unmarshall, Unmarshaller};
-use lnpbp::bech32::Blob;
-use strict_encoding::{self, StrictDecode, StrictEncode};
-
-/// Default legacy Lightning port number
+/// Default bolt Lightning port number
 pub const LNP2P_BIFROST_PORT: u16 = 9999;
 
 lazy_static! {

@@ -1,4 +1,4 @@
-// LNP P2P library, plmeneting both legacy (BOLT) and Bifrost P2P messaging
+// LNP P2P library, plmeneting both bolt (BOLT) and Bifrost P2P messaging
 // system for Lightning network protocol (LNP)
 //
 // Written in 2020-2021 by
@@ -13,10 +13,10 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
-use internet2::tlv;
 use std::collections::HashSet;
 use std::fmt::{self, Display, Formatter};
 
+use internet2::tlv;
 use lnpbp::chain::AssetId;
 
 use super::{ChannelId, ProtocolList};
@@ -75,10 +75,11 @@ impl Display for Error {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use crate::bifrost::Messages;
     use amplify::hex::FromHex;
     use internet2::TypedEnum;
+
+    use super::*;
+    use crate::bifrost::Messages;
 
     #[test]
     fn bolt1_testvec() {

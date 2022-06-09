@@ -12,7 +12,7 @@
 // If not, see <https://opensource.org/licenses/MIT>.
 
 use amplify::Slice32;
-use p2p::legacy::{ChannelFeatures, ChannelId, ShortChannelId};
+use p2p::bolt::{ChannelFeatures, ChannelId, ShortChannelId};
 use secp256k1::PublicKey;
 
 #[derive(Clone, Copy, Eq, PartialEq, Hash, Debug)]

@@ -1,4 +1,4 @@
-// LNP P2P library, plmeneting both legacy (BOLT) and Bifrost P2P messaging
+// LNP P2P library, plmeneting both bolt (BOLT) and Bifrost P2P messaging
 // system for Lightning network protocol (LNP)
 //
 // Written in 2020-2022 by
@@ -151,7 +151,7 @@ mod test {
     use lightning_encoding::LightningDecode;
 
     use super::*;
-    use crate::legacy::Messages;
+    use crate::bolt::Messages;
 
     #[test]
     fn bolt1_testvec() {

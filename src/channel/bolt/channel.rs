@@ -18,12 +18,12 @@ use bitcoin::hashes::{sha256, Hash, HashEngine};
 use bitcoin::secp256k1::PublicKey;
 use bitcoin::{Network, TxOut};
 use internet2::presentation::sphinx::{self, Hop, Onion, OnionPacket};
-use lnp2p::legacy::{
+use lnp2p::bolt::{
     AcceptChannel, ActiveChannelId, ChannelId, Messages, OpenChannel,
     TempChannelId,
 };
 use lnpbp::chain::Chain;
-use p2p::legacy::{
+use p2p::bolt::{
     ChannelReestablish, FundingLocked, PaymentOnion, UpdateAddHtlc,
 };
 use secp256k1::ecdsa::Signature;

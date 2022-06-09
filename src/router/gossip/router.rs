@@ -13,7 +13,7 @@
 
 use amplify::DumbDefault;
 use internet2::presentation::sphinx::Hop;
-use p2p::legacy::{
+use p2p::bolt::{
     ChannelId, HopRealm, Messages, PaymentOnion, PaymentRequest, ShortChannelId,
 };
 use strict_encoding::{strict_deserialize, strict_serialize};
@@ -79,7 +79,7 @@ impl TryFrom<u16> for GossipExt {
 impl extension::Nomenclature for GossipExt {
     type State = RouterState;
     type Error = Error;
-    type PeerMessage = lnp2p::legacy::Messages;
+    type PeerMessage = lnp2p::bolt::Messages;
     type UpdateMessage = UpdateMsg;
     type UpdateRequest = ();
 }
@@ -112,7 +112,7 @@ pub enum UpdateMsg {
 }
 
 /// Router for direct channels (between this node and other nodes) for
-/// legacy BOLT lightning channels
+/// bolt BOLT lightning channels
 #[derive(Getters, Clone, PartialEq, Eq, Debug, Default)]
 pub struct DirectRouter {
     channels: Vec<LocalChannelInfo>,

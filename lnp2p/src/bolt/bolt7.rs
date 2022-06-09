@@ -1,4 +1,4 @@
-// LNP P2P library, plmeneting both legacy (BOLT) and Bifrost P2P messaging
+// LNP P2P library, plmeneting both bolt (BOLT) and Bifrost P2P messaging
 // system for Lightning network protocol (LNP)
 //
 // Written in 2020-2022 by
@@ -22,7 +22,7 @@ use secp256k1::PublicKey;
 use super::{
     AddressList, Alias, ChannelId, InitFeatures, NodeColor, ShortChannelId,
 };
-use crate::legacy::ChannelFeatures;
+use crate::bolt::ChannelFeatures;
 
 /// This is a direct message between the two endpoints of a channel and serves
 /// as an opt-in mechanism to allow the announcement of the channel to the rest

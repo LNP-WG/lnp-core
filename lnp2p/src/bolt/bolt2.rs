@@ -1,4 +1,4 @@
-// LNP P2P library, plmeneting both legacy (BOLT) and Bifrost P2P messaging
+// LNP P2P library, plmeneting both bolt (BOLT) and Bifrost P2P messaging
 // system for Lightning network protocol (LNP)
 //
 // Written in 2020-2022 by
@@ -28,7 +28,7 @@ use secp256k1::ecdsa::Signature;
 use secp256k1::{PublicKey, SecretKey};
 
 use super::{ChannelId, TempChannelId};
-use crate::legacy::PaymentOnion;
+use crate::bolt::PaymentOnion;
 
 /// Total length of payment Sphinx package
 pub const PAYMENT_SPHINX_LEN: usize = 1300;

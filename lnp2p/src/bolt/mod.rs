@@ -1,4 +1,4 @@
-// LNP P2P library, plmeneting both legacy (BOLT) and Bifrost P2P messaging
+// LNP P2P library, plmeneting both bolt (BOLT) and Bifrost P2P messaging
 // system for Lightning network protocol (LNP)
 //
 // Written in 2020-2022 by
@@ -35,7 +35,7 @@ use internet2::{CreateUnmarshaller, Payload, Unmarshall, Unmarshaller};
 use lightning_encoding::{self, LightningDecode, LightningEncode};
 pub use types::*;
 
-/// Default legacy Lightning port number
+/// Default bolt Lightning port number
 pub const LNP2P_LEGACY_PORT: u16 = 9735;
 
 lazy_static! {
@@ -220,7 +220,7 @@ impl LightningDecode for Messages {
         let message =
             &*LNP2P_LEGACY_UNMARSHALLER.unmarshall(d).map_err(|err| {
                 lightning_encoding::Error::DataIntegrityError(format!(
-                    "can't unmarshall legacy LNP2P message. Details: {}",
+                    "can't unmarshall bolt LNP2P message. Details: {}",
                     err
                 ))
             })?;

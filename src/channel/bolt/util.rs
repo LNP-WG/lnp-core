@@ -16,9 +16,9 @@ use std::convert::TryFrom;
 use std::fmt::Debug;
 
 use internet2::presentation::sphinx::Hop;
-use lnp2p::legacy::Messages;
+use lnp2p::bolt::Messages;
 use lnpbp::chain::AssetId;
-use p2p::legacy::PaymentOnion;
+use p2p::bolt::PaymentOnion;
 use strict_encoding::{
     self, strict_deserialize, strict_serialize, StrictDecode, StrictEncode,
 };
@@ -88,7 +88,7 @@ impl TryFrom<u16> for BoltExt {
 impl extension::Nomenclature for BoltExt {
     type State = ChannelState;
     type Error = Error;
-    type PeerMessage = lnp2p::legacy::Messages;
+    type PeerMessage = lnp2p::bolt::Messages;
     type UpdateMessage = ();
     type UpdateRequest = UpdateReq;
 }

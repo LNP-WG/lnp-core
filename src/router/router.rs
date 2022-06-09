@@ -18,7 +18,7 @@ use std::io::{Read, Write};
 
 use amplify::DumbDefault;
 use internet2::presentation::sphinx::{Hop, SphinxPayload};
-use p2p::legacy::PaymentRequest;
+use p2p::bolt::PaymentRequest;
 use strict_encoding::{StrictDecode, StrictEncode};
 
 use crate::{extension, Extension, RouterExtension};
