@@ -1,6 +1,6 @@
 [package]
 name = "lnp2p"
-version = "0.7.0-alpha.1"
+version = "0.7.0-beta.1"
 license = "MIT"
 authors = ["Dr Maxim Orlovsky <orlovsky@pandoracore.com>"]
 description = "LN P2P Library: rust implementation of lightning network peer protocols (BOLT and Bifrost)"
@@ -20,7 +20,7 @@ crate-type = ["rlib", "staticlib"]
 [dependencies]
 amplify = { version = "3.12.0", features = ["hex", "rand"] }
 lnpbp = "0.7.0"
-bp-core = "0.7.0-beta.3"
+bp-core = "0.7.0-beta.5"
 strict_encoding = { version = "1.8.1", optional = true, features = ["chrono"] }
 lightning_encoding = "0.7.1"
 bitcoin_scripts = "0.7.0"
