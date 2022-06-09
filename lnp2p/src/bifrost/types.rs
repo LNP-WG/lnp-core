@@ -346,14 +346,6 @@ pub enum AnnouncedNodeAddr {
     OnionV3 {
         /// The ed25519 long-term public key of the peer
         ed25519_pubkey: [u8; 32],
-        /// The checksum of the pubkey and version, as included in the onion
-        /// address
-        // Optional values taken here to be compatible with Uniform encoding
-        checksum: Option<u16>,
-        /// The version byte, as defined by the Tor Onion v3 spec.
-        version: Option<u8>,
-        /// The port on which the node is listening
-        port: u16,
     },
 }
 
@@ -393,7 +385,7 @@ impl Uniform for AnnouncedNodeAddr {
             // How to remove these unused variables?
             AnnouncedNodeAddr::IpV4 { port, .. } => Some(port.clone()),
             AnnouncedNodeAddr::IpV6 { port, .. } => Some(port.clone()),
-            AnnouncedNodeAddr::OnionV3 { port, .. } => Some(port.clone()),
+            AnnouncedNodeAddr::OnionV3 { .. } => None,
         }
     }
 
@@ -434,17 +426,7 @@ impl Uniform for AnnouncedNodeAddr {
             AddrFormat::OnionV3 => {
                 let mut ip = [0u8; 32];
                 ip.copy_from_slice(&addr.addr[1..]);
-                Ok(AnnouncedNodeAddr::OnionV3 {
-                    ed25519_pubkey: ip,
-                    // Converting from Uniform encoding will always lead these
-                    // values to be None
-                    checksum: None,
-                    version: None,
-                    port: match addr.port {
-                        Some(p) => p,
-                        _ => return Err(DecodeError::InsufficientData),
-                    },
-                })
+                Ok(AnnouncedNodeAddr::OnionV3 { ed25519_pubkey: ip })
             }
 
             _ => Err(DecodeError::InvalidAddr),
@@ -496,16 +478,13 @@ mod test {
                 243, 242, 241, 240, 239, 238, 237, 236, 235, 234, 233, 232,
                 231, 230, 229, 228, 227, 226, 225, 224,
             ],
-            checksum: Some(32),
-            version: Some(16),
-            port: 9999,
         };
 
         let ipv4_target = Vec::<u8>::from_hex("000000000000000000000000000000000000000000000000000000000000fffefdfc260701").unwrap();
         let ipv6_target =
             Vec::<u8>::from_hex("010000000000000000000000000000000000fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0260701")
                 .unwrap();
-        let onionv3_target = Vec::<u8>::from_hex("0300fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0efeeedecebeae9e8e7e6e5e4e3e2e1e0260701").unwrap();
+        let onionv3_target = Vec::<u8>::from_hex("0300fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0efeeedecebeae9e8e7e6e5e4e3e2e1e0000001").unwrap();
 
         // Check strict encoding/decoding
         let ipv4_encoded = ipv4.strict_serialize().unwrap();
@@ -550,15 +529,16 @@ mod test {
                 243, 242, 241, 240, 239, 238, 237, 236, 235, 234, 233, 232,
                 231, 230, 229, 228, 227, 226, 225, 224,
             ],
-            checksum: None,
-            version: None,
-            port: 9735,
         };
         assert_eq!(uniform_v3_target, uniform_onionv3_decoded);
 
         // AddressList encoding/decoding
         let address_list = AddressList(vec![ipv4, ipv6, onion_v3]);
-        let address_list_target = Vec::<u8>::from_hex("000401fffefdfc260702fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0260703fffefdfcfbfaf9f8f7f6260704fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0efeeedecebeae9e8e7e6e5e4e3e2e1e00020102607").unwrap();
+        let address_list_target = Vec::<u8>::from_hex(
+            "0300000000000000000000000000000000000000000000000000000000000000\
+            fffefdfc260701010000000000000000000000000000000000fffefdfcfbfaf9f8f\
+            7f6f5f4f3f2f1f02607010300fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0efeeedeceb\
+            eae9e8e7e6e5e4e3e2e1e0000001").unwrap();
 
         let address_list_encoded = address_list.strict_serialize().unwrap();
 

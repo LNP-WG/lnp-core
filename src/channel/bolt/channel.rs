@@ -1351,6 +1351,7 @@ mod test {
     use amplify::hex::ToHex;
     use bitcoin::hashes::hex::FromHex;
     use bitcoin::{OutPoint, Script, Transaction, TxIn, Txid};
+    use wallet::psbt::PsbtVersion;
 
     use super::*;
     use crate::channel::shared_ext::Bip96;
@@ -1388,7 +1389,7 @@ mod test {
         let local_funding_pubkey = pk!("023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb");
         let remote_funding_pubkey = pk!("030e9f7b623d2ccc7c9bd44d66d5ce21ce504c0acf6385a132cec6d3c39fa711c1");
 
-        let (txout, _) = <(TxOut, psbt::Output)>::ln_funding(
+        let output = psbt::Output::ln_funding(
             10000000,
             &LocalPubkey {
                 key: local_funding_pubkey,
@@ -1411,10 +1412,13 @@ mod test {
                     dc9868d9836f6ba94dd5a63be16d875069184"
                 ).unwrap(),
                 sequence: 4294967295,
-                witness: vec![],
+                witness: empty!(),
             }],
             output: vec![
-                txout,
+                TxOut {
+                    value: output.amount,
+                    script_pubkey: output.script,
+                },
                 TxOut {
                     value: 4989986080,
                     script_pubkey: Script::from_str("00143ca33c2e4446f4a305f23c80df8ad1afdcf652f9").unwrap()
@@ -1482,13 +1486,13 @@ mod test {
 
         let mut funding_tx = tx_for_tests();
         funding_tx.input[0].script_sig = Script::default();
-        let mut funding_psbt = Psbt::from_unsigned_tx(funding_tx).unwrap();
+        let mut funding_psbt = Psbt::with(funding_tx, PsbtVersion::V0).unwrap();
         funding_psbt.set_channel_funding_output(0).unwrap();
 
         let mut channel =
             Channel::<BoltExt>::new(core.clone(), [], [Bip96::new()]);
         let psbt = channel.refund_tx(funding_psbt, true).unwrap();
-        let mut tx = psbt.global.unsigned_tx;
+        let mut tx = psbt.into_transaction();
 
         let mut testvec_tx: Transaction = bitcoin::consensus::deserialize(&Vec::from_hex(
             "02000000000101bef67e4e2fb9ddeeb3461973cd4c62abb35050b1add772995b\
@@ -1504,7 +1508,7 @@ mod test {
             11c152ae3e195220"
         ).unwrap()).unwrap();
         // We can't produce proper input since we do not have funding PSBT
-        testvec_tx.input[0].witness = vec![];
+        testvec_tx.input[0].witness = empty!();
         tx.input[0].previous_output = testvec_tx.input[0].previous_output;
         // We need to manually re-generate outputs since we do not have test
         // basepoints and only final keys
