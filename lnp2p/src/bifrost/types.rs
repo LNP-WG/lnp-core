@@ -29,10 +29,10 @@ use strict_encoding::{self, StrictDecode, StrictEncode};
 
 use crate::bifrost::ChannelParams;
 
-/// TODO: Replace
+// SHA256("bifrost:channel")
 const CHANNEL_ID_MIDSTATE: [u8; 32] = [
-    156, 224, 228, 230, 124, 17, 108, 57, 56, 179, 202, 242, 195, 15, 80, 137,
-    211, 243, 147, 108, 71, 99, 110, 96, 125, 179, 62, 234, 221, 198, 240, 201,
+    0, 79, 153, 191, 3, 7, 224, 35, 234, 47, 114, 213, 138, 22, 15, 17, 27,
+    122, 131, 124, 85, 22, 92, 114, 24, 218, 119, 230, 233, 173, 106, 218,
 ];
 
 /// Bech32m prefix for channel id encoding
@@ -199,7 +199,7 @@ impl FromStr for ChannelId {
 
 #[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Display, Debug, Error)]
 #[display(doc_comments)]
-/// incorrect naminng for protocol {0}: protocol name in Bifrost can contain
+/// incorrect naming for protocol {0}: protocol name in Bifrost can contain
 /// only ASCII alphanumeric characters and dashes
 pub struct ProtocolNameError(pub String);
 
