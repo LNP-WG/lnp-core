@@ -17,6 +17,7 @@ use bitcoin::blockdata::script;
 use bitcoin::hashes::{sha256, Hash, HashEngine};
 use bitcoin::secp256k1::PublicKey;
 use bitcoin::{Network, TxOut};
+use internet2::addr::NodeId;
 use internet2::presentation::sphinx::{self, Hop, Onion, OnionPacket};
 use lnp2p::bolt::{
     AcceptChannel, ActiveChannelId, ChannelId, Messages, OpenChannel,
@@ -317,7 +318,7 @@ impl Channel<BoltExt> {
         None
     }
 
-    pub fn channel_info(&self, remote_node: PublicKey) -> LocalChannelInfo {
+    pub fn channel_info(&self, remote_node: NodeId) -> LocalChannelInfo {
         // TODO: Fill with the real data
         LocalChannelInfo {
             remote_node,

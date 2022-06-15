@@ -14,7 +14,7 @@
 // If not, see <https://opensource.org/licenses/MIT>.
 
 use bitcoin_scripts::hlc::HashLock;
-use secp256k1::PublicKey;
+use internet2::addr::NodeId;
 
 /// Payment request as it may be extracted from BOLT-11 invoice and used for
 /// route construction.
@@ -28,7 +28,7 @@ pub struct PaymentRequest {
     pub payment_hash: HashLock,
 
     /// Destination node id
-    pub node_id: PublicKey,
+    pub node_id: NodeId,
 
     /// Minimal CLTV expiry that should be used at the destination.
     ///

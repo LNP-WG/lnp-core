@@ -16,8 +16,8 @@
 //! Bolt 7 Gossip messages
 
 use amplify::Slice32;
+use internet2::addr::NodeId;
 use secp256k1::ecdsa::Signature;
-use secp256k1::PublicKey;
 
 use super::{
     AddressList, Alias, ChannelId, InitFeatures, NodeColor, ShortChannelId,
@@ -79,16 +79,16 @@ pub struct ChannelAnnouncement {
     pub short_channel_id: ShortChannelId,
 
     /// Node Id 1
-    pub node_id_1: PublicKey,
+    pub node_id_1: NodeId,
 
     /// Node Id 2
-    pub node_id_2: PublicKey,
+    pub node_id_2: NodeId,
 
     /// Bitcoin key 1
-    pub bitcoin_key_1: PublicKey,
+    pub bitcoin_key_1: NodeId,
 
     /// Bitcoin key 2
-    pub bitcoin_key_2: PublicKey,
+    pub bitcoin_key_2: NodeId,
 }
 
 /// This gossip message allows a node to indicate extra data associated with it,
@@ -109,7 +109,7 @@ pub struct NodeAnnouncements {
     pub timestamp: u32,
 
     /// Node Id
-    pub node_id: PublicKey,
+    pub node_id: NodeId,
 
     /// RGB colour code
     pub rgb_color: NodeColor,

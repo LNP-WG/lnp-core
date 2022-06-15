@@ -28,7 +28,7 @@ psbt = "0.7.1"
 miniscript = "7.0.0"
 bitcoin = "0.28.1"
 secp256k1 = { version = "0.22.1", features = ["global-context"] }
-internet2 = { version = "0.8.0-beta.1", default-features = false, features = ["derive"] }
+internet2 = { version = "0.8.0-rc.1", default-features = false, features = ["derive"] }
 serde_crate = { package = "serde", version = "1", features = ["derive"], optional = true }
 serde_with = { version = "1.5", features = ["hex"], optional = true }
 lazy_static = "1.4"

@@ -12,8 +12,8 @@
 // If not, see <https://opensource.org/licenses/MIT>.
 
 use amplify::Slice32;
+use internet2::addr::NodeId;
 use p2p::bolt::{ChannelFeatures, ChannelId, ShortChannelId};
-use secp256k1::PublicKey;
 
 #[derive(Clone, Copy, Eq, PartialEq, Hash, Debug)]
 #[derive(StrictEncode, StrictDecode)]
@@ -52,7 +52,7 @@ pub struct DirectionalInfo {
 #[display("{short_channel_id}")]
 pub struct GossipChannelInfo {
     /// Node identities constituting channel
-    pub nodes: (PublicKey, PublicKey),
+    pub nodes: (NodeId, NodeId),
 
     /// Chainhash
     pub chain_hash: Slice32,
@@ -82,7 +82,7 @@ pub struct GossipChannelInfo {
 #[display("{channel_id}@{remote_node}")]
 pub struct LocalChannelInfo {
     /// Other node identity
-    pub remote_node: PublicKey,
+    pub remote_node: NodeId,
 
     /// Full channel id
     pub channel_id: ChannelId,
