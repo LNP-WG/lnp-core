@@ -27,7 +27,7 @@ lnp2p = { version = "0.8.0", path = "lnp2p", default-features = false }
 lnpbp = "0.7.0"
 bitcoin = { version = "0.28.1", features = ["rand"] }
 secp256k1 = { version = "0.22.1", features = ["global-context-less-secure"] }
-internet2 = { version = "0.7.0", default-features = false, features = ["keygen"] }
+internet2 = { version = "0.8.0-beta.1", default-features = false, features = ["keygen"] }
 serde_crate = { package = "serde", version = "1", features = ["derive"], optional = true }
 serde_with = { version = "1.8", features = ["hex"], optional = true }
 
