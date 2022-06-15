@@ -170,7 +170,7 @@
 
 mod channel;
 mod ctrl;
-mod msg;
+pub mod msg;
 mod proposals;
 mod types;
 
@@ -180,13 +180,14 @@ pub use channel::*;
 pub use ctrl::*;
 use internet2::{CreateUnmarshaller, Payload, Unmarshall, Unmarshaller};
 use lnpbp::bech32::Blob;
-pub use msg::*;
 pub use proposals::*;
 use strict_encoding::{self, StrictDecode, StrictEncode};
 pub use types::{
     AddressList, AnnouncedNodeAddr, ChannelId, ProtocolList, ProtocolName,
     ProtocolNameError,
 };
+
+use crate::bifrost::msg::Msg;
 
 /// Default bolt Lightning port number
 pub const LNP2P_BIFROST_PORT: u16 = 9999;
@@ -231,7 +232,7 @@ pub enum Messages {
 
     #[api(type = 0x0014)]
     #[display(inner)]
-    Message(Message),
+    Message(Msg),
 
     #[api(type = 0x0020)]
     ProposeChannel(ProposeChannel),
