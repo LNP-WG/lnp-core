@@ -22,6 +22,7 @@ mod bolt9;
 mod types;
 
 use std::io;
+use std::ops::Deref;
 
 pub use bolt1::*;
 pub use bolt11::*;
@@ -33,15 +34,14 @@ pub use bolt9::{
 };
 use internet2::{CreateUnmarshaller, Payload, Unmarshall, Unmarshaller};
 use lightning_encoding::{self, LightningDecode, LightningEncode};
+use once_cell::sync::Lazy;
 pub use types::*;
 
 /// Default bolt Lightning port number
 pub const LNP2P_LEGACY_PORT: u16 = 9735;
 
-lazy_static! {
-    pub static ref LNP2P_LEGACY_UNMARSHALLER: Unmarshaller<Messages> =
-        Messages::create_unmarshaller();
-}
+pub static LNP2P_LEGACY_UNMARSHALLER: Lazy<Unmarshaller<Messages>> =
+    Lazy::new(|| Messages::create_unmarshaller());
 
 // TODO: Add unknown TLVs to all of the messages
 
@@ -218,12 +218,12 @@ impl LightningDecode for Messages {
         d: D,
     ) -> Result<Self, lightning_encoding::Error> {
         let message =
-            &*LNP2P_LEGACY_UNMARSHALLER.unmarshall(d).map_err(|err| {
+            LNP2P_LEGACY_UNMARSHALLER.unmarshall(d).map_err(|err| {
                 lightning_encoding::Error::DataIntegrityError(format!(
                     "can't unmarshall bolt LNP2P message. Details: {}",
                     err
                 ))
             })?;
-        Ok(message.clone())
+        Ok(message.deref().clone())
     }
 }

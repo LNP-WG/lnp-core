@@ -175,11 +175,13 @@ mod proposals;
 mod types;
 
 use std::io;
+use std::ops::Deref;
 
 pub use channel::*;
 pub use ctrl::*;
 use internet2::{CreateUnmarshaller, Payload, Unmarshall, Unmarshaller};
 use lnpbp::bech32::Blob;
+use once_cell::sync::Lazy;
 pub use proposals::*;
 use strict_encoding::{self, StrictDecode, StrictEncode};
 pub use types::{
@@ -192,10 +194,8 @@ use crate::bifrost::msg::Msg;
 /// Default bolt Lightning port number
 pub const LNP2P_BIFROST_PORT: u16 = 9999;
 
-lazy_static! {
-    pub static ref LNP2P_BIFROST_UNMARSHALLER: Unmarshaller<Messages> =
-        Messages::create_unmarshaller();
-}
+pub static LNP2P_BIFROST_UNMARSHALLER: Lazy<Unmarshaller<Messages>> =
+    Lazy::new(|| Messages::create_unmarshaller());
 
 #[derive(Clone, Debug, Display, Api)]
 #[api(encoding = "strict")]
@@ -272,12 +272,12 @@ impl StrictDecode for Messages {
         d: D,
     ) -> Result<Self, strict_encoding::Error> {
         let message =
-            &*LNP2P_BIFROST_UNMARSHALLER.unmarshall(d).map_err(|err| {
+            LNP2P_BIFROST_UNMARSHALLER.unmarshall(d).map_err(|err| {
                 strict_encoding::Error::DataIntegrityError(format!(
                     "can't unmarshall Bifrost LNP2P message. Details: {}",
                     err
                 ))
             })?;
-        Ok(message.clone())
+        Ok(message.deref().clone())
     }
 }
