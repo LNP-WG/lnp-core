@@ -168,19 +168,22 @@
 //!
 //! [`Error`]: [struct@Error]
 
+mod app;
 mod channel;
 mod ctrl;
-pub mod msg;
+mod msg;
 mod proposals;
 mod types;
 
 use std::io;
 use std::ops::Deref;
 
+pub use app::{BifrostApp, BIFROST_APP_STORM, BIFROST_APP_VENDOR_MASK};
 pub use channel::*;
 pub use ctrl::*;
 use internet2::{CreateUnmarshaller, Payload, Unmarshall, Unmarshaller};
 use lnpbp::bech32::Blob;
+pub use msg::Msg;
 use once_cell::sync::Lazy;
 pub use proposals::*;
 use strict_encoding::{self, StrictDecode, StrictEncode};
@@ -188,8 +191,6 @@ pub use types::{
     AddressList, AnnouncedNodeAddr, ChannelId, ProtocolList, ProtocolName,
     ProtocolNameError,
 };
-
-use crate::bifrost::msg::Msg;
 
 /// Default bolt Lightning port number
 pub const LNP2P_BIFROST_PORT: u16 = 9999;
