@@ -1493,7 +1493,7 @@ mod test {
         let mut channel =
             Channel::<BoltExt>::new(core.clone(), [], [Bip96::new()]);
         let psbt = channel.refund_tx(funding_psbt, true).unwrap();
-        let mut tx = psbt.into_transaction();
+        let mut tx = psbt.into_unsigned_tx();
 
         let mut testvec_tx: Transaction = bitcoin::consensus::deserialize(&Vec::from_hex(
             "02000000000101bef67e4e2fb9ddeeb3461973cd4c62abb35050b1add772995b\
