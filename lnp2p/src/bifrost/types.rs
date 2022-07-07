@@ -57,7 +57,8 @@ impl sha256t::Tag for ChannelIdTag {
 #[derive(
     Wrapper, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default, From
 )]
-#[wrapper(Debug, LowerHex, Index, IndexRange, IndexFrom, IndexTo, IndexFull)]
+#[wrapper(Debug, LowerHex, BorrowSlice)]
+#[wrapper(Index, IndexRange, IndexFrom, IndexTo, IndexFull)]
 pub struct ChannelId(sha256t::Hash<ChannelIdTag>);
 
 impl ChannelId {
@@ -83,13 +84,6 @@ impl ChannelId {
     /// Returns fixed-size array of inner representation of the library id
     #[inline]
     pub fn as_bytes(&self) -> &[u8; 32] {
-        self.0.as_inner()
-    }
-}
-
-impl Borrow<[u8]> for ChannelId {
-    #[inline]
-    fn borrow(&self) -> &[u8] {
         self.0.as_inner()
     }
 }

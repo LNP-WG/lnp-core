@@ -135,7 +135,7 @@ impl ActiveChannelId {
 )]
 #[cfg_attr(feature = "strict_encoding", derive(StrictEncode, StrictDecode))]
 #[display(LowerHex)]
-#[wrapper(FromStr, LowerHex, UpperHex)]
+#[wrapper(FromStr, LowerHex, UpperHex, BorrowSlice)]
 pub struct ChannelId(
     #[cfg_attr(feature = "serde", serde(with = "As::<DisplayFromStr>"))]
     Slice32,
@@ -193,7 +193,7 @@ impl ChannelId {
 )]
 #[cfg_attr(feature = "strict_encoding", derive(StrictEncode, StrictDecode))]
 #[display(LowerHex)]
-#[wrapper(FromStr, LowerHex, UpperHex)]
+#[wrapper(FromStr, LowerHex, UpperHex, BorrowSlice)]
 pub struct TempChannelId(
     #[cfg_attr(feature = "serde", serde(with = "As::<DisplayFromStr>"))]
     Slice32,
@@ -313,7 +313,7 @@ impl StrictDecode for NodeColor {
 )]
 #[cfg_attr(feature = "strict_encoding", derive(StrictEncode, StrictDecode))]
 #[display(LowerHex)]
-#[wrapper(FromStr, LowerHex, UpperHex)]
+#[wrapper(FromStr, LowerHex, UpperHex, BorrowSlice)]
 pub struct Alias(
     #[cfg_attr(feature = "serde", serde(with = "As::<DisplayFromStr>"))]
     Slice32,
