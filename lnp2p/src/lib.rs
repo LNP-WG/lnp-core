@@ -53,3 +53,16 @@ macro_rules! dumb_pubkey {
 pub mod bifrost;
 #[cfg(feature = "bolt")]
 pub mod bolt;
+
+/// Version of the lightning network P2P protocol
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display)]
+#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
+pub enum Protocol {
+    /// Protocol based on BOLT specifications.
+    #[display("bolt")]
+    Bolt,
+
+    /// Protocol based on LNPBP Bifrost specifications.
+    #[display("bifrost")]
+    Bifrost,
+}
