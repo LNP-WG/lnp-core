@@ -40,9 +40,8 @@ extern crate strict_encoding;
 #[macro_use]
 extern crate serde_with;
 
-use std::str::FromStr;
-
-use internet2::addr::{AddrParseError, NodeAddr, NodeAddrParseError};
+use crate::bifrost::LNP2P_BIFROST_PORT;
+use crate::bolt::LNP2P_BOLT_PORT;
 
 macro_rules! dumb_pubkey {
     () => {
@@ -60,67 +59,20 @@ pub mod bolt;
 
 /// Version of the lightning network P2P protocol
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display)]
-#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
+#[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode), network_encoding( by_value, repr = u16))]
+#[repr(u16)]
 pub enum Protocol {
     /// Protocol based on BOLT specifications.
     #[display("bolt")]
-    Bolt,
+    Bolt = LNP2P_BOLT_PORT,
 
     /// Protocol based on LNPBP Bifrost specifications.
     #[display("bifrost")]
-    Bifrost,
+    Bifrost = LNP2P_BIFROST_PORT,
 }
 
-/// LNP node address containing both node address and the used protocol
-#[derive(Clone, PartialEq, Eq, Debug, Display, NetworkEncode, NetworkDecode)]
-#[display("{protocol}://{addr}")]
-pub struct LnpAddr {
-    /// Protocol used for connection.
-    pub protocol: Protocol,
-
-    /// Remote peer address for connecting to.
-    pub addr: NodeAddr,
-}
-
-impl LnpAddr {
-    /// Construct BOLT-compatible node address.
-    pub fn bolt(addr: NodeAddr) -> LnpAddr {
-        LnpAddr {
-            protocol: Protocol::Bolt,
-            addr,
-        }
-    }
-
-    /// Construct Bifrost-compatible node address.
-    pub fn bifrost(addr: NodeAddr) -> LnpAddr {
-        LnpAddr {
-            protocol: Protocol::Bifrost,
-            addr,
-        }
-    }
-}
-
-impl FromStr for LnpAddr {
-    type Err = NodeAddrParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut split = s.split("://");
-        match (
-            split.next().map(str::to_lowercase).as_deref(),
-            split.next(),
-            split.next(),
-        ) {
-            (Some("bolt"), Some(addr), None) => {
-                NodeAddr::from_str(addr).map(LnpAddr::bolt)
-            }
-            (Some("bifrost"), Some(addr), None) => {
-                NodeAddr::from_str(addr).map(LnpAddr::bifrost)
-            }
-            (Some(unknown), ..) => {
-                Err(AddrParseError::UnknownProtocolError(unknown.to_owned())
-                    .into())
-            }
-            _ => Err(AddrParseError::WrongAddrFormat(s.to_owned()).into()),
-        }
+impl Protocol {
+    pub fn default_port(self) -> u16 {
+        self as u16
     }
 }

@@ -37,6 +37,7 @@ macro_rules! dumb_pubkey {
     };
 }
 
+pub mod addr;
 pub mod channel;
 pub mod extension;
 pub mod router;

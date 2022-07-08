@@ -38,7 +38,7 @@ use once_cell::sync::Lazy;
 pub use types::*;
 
 /// Default bolt Lightning port number
-pub const LNP2P_LEGACY_PORT: u16 = 9735;
+pub const LNP2P_BOLT_PORT: u16 = 9735;
 
 pub static LNP2P_LEGACY_UNMARSHALLER: Lazy<Unmarshaller<Messages>> =
     Lazy::new(|| Messages::create_unmarshaller());
