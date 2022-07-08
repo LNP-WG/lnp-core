@@ -40,6 +40,10 @@ extern crate strict_encoding;
 #[macro_use]
 extern crate serde_with;
 
+use std::str::FromStr;
+
+use internet2::addr::{AddrParseError, NodeAddr, NodeAddrParseError};
+
 macro_rules! dumb_pubkey {
     () => {
         secp256k1::PublicKey::from_secret_key(
@@ -65,4 +69,58 @@ pub enum Protocol {
     /// Protocol based on LNPBP Bifrost specifications.
     #[display("bifrost")]
     Bifrost,
+}
+
+/// LNP node address containing both node address and the used protocol
+#[derive(Clone, PartialEq, Eq, Debug, Display, NetworkEncode, NetworkDecode)]
+#[display("{protocol}://{addr}")]
+pub struct LnpAddr {
+    /// Protocol used for connection.
+    pub protocol: Protocol,
+
+    /// Remote peer address for connecting to.
+    pub addr: NodeAddr,
+}
+
+impl LnpAddr {
+    /// Construct BOLT-compatible node address.
+    pub fn bolt(addr: NodeAddr) -> LnpAddr {
+        LnpAddr {
+            protocol: Protocol::Bolt,
+            addr,
+        }
+    }
+
+    /// Construct Bifrost-compatible node address.
+    pub fn bifrost(addr: NodeAddr) -> LnpAddr {
+        LnpAddr {
+            protocol: Protocol::Bifrost,
+            addr,
+        }
+    }
+}
+
+impl FromStr for LnpAddr {
+    type Err = NodeAddrParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut split = s.split("://");
+        match (
+            split.next().map(str::to_lowercase).as_deref(),
+            split.next(),
+            split.next(),
+        ) {
+            (Some("bolt"), Some(addr), None) => {
+                NodeAddr::from_str(addr).map(LnpAddr::bolt)
+            }
+            (Some("bifrost"), Some(addr), None) => {
+                NodeAddr::from_str(addr).map(LnpAddr::bifrost)
+            }
+            (Some(unknown), ..) => {
+                Err(AddrParseError::UnknownProtocolError(unknown.to_owned())
+                    .into())
+            }
+            _ => Err(AddrParseError::WrongAddrFormat(s.to_owned()).into()),
+        }
+    }
 }
