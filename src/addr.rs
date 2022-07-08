@@ -11,6 +11,7 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
+use std::fmt::{self, Display, Formatter};
 use std::str::FromStr;
 
 use internet2::addr::{
@@ -23,14 +24,14 @@ use p2p::Protocol;
 /// LNP node address containing both node address and the used protocol.
 /// When parsed from string or displayed, it may omit port information and use
 /// the protocol default port.
-#[derive(Clone, PartialEq, Eq, Debug, Display, NetworkEncode, NetworkDecode)]
-#[display("{protocol}://{addr}")]
+#[derive(Copy, Clone, PartialEq, Eq, Ord, PartialOrd, Hash, Debug)]
+#[derive(NetworkEncode, NetworkDecode)]
 pub struct LnpAddr {
     /// Protocol used for connection.
     pub protocol: Protocol,
 
     /// Remote peer address for connecting to.
-    pub addr: NodeAddr,
+    pub node_addr: NodeAddr,
 }
 
 impl LnpAddr {
@@ -38,7 +39,7 @@ impl LnpAddr {
     pub fn bolt(addr: PartialNodeAddr) -> LnpAddr {
         LnpAddr {
             protocol: Protocol::Bolt,
-            addr: addr.node_addr(LNP2P_BOLT_PORT),
+            node_addr: addr.node_addr(LNP2P_BOLT_PORT),
         }
     }
 
@@ -46,8 +47,32 @@ impl LnpAddr {
     pub fn bifrost(addr: PartialNodeAddr) -> LnpAddr {
         LnpAddr {
             protocol: Protocol::Bifrost,
-            addr: addr.node_addr(LNP2P_BIFROST_PORT),
+            node_addr: addr.node_addr(LNP2P_BIFROST_PORT),
         }
+    }
+
+    /// Returns used port address.
+    pub fn port(self) -> u16 {
+        self.node_addr
+            .addr
+            .port()
+            .expect("port information always present in NodeAddr")
+    }
+}
+
+impl Display for LnpAddr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}://{}@{}",
+            self.protocol,
+            self.node_addr.id,
+            self.node_addr.addr.address()
+        )?;
+        if self.protocol.default_port() != self.port() {
+            write!(f, ":{}", self.port())?;
+        }
+        Ok(())
     }
 }
 
