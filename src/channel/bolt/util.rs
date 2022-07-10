@@ -110,6 +110,7 @@ impl channel::Nomenclature for BoltExt {
         channel: &mut Channel<Self>,
         message: &Messages,
     ) -> Result<(), Error> {
+        #[allow(clippy::single_match)] // We'll add more code in the future
         match message {
             Messages::OpenChannel(open_channel) => {
                 if open_channel.has_anchor_outputs() {

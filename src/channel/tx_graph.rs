@@ -96,6 +96,10 @@ where
             .fold(0usize, |sum, (_, map)| sum + map.len())
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.graph.len() == 0
+    }
+
     pub fn last_index<R>(&self, role: R) -> usize
     where
         R: TxRole,

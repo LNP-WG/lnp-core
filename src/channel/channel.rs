@@ -161,14 +161,18 @@ where
 
     /// Gets extender by extension identifier
     #[inline]
-    pub fn extender(&self, id: N) -> Option<&Box<dyn ChannelExtension<N>>> {
-        self.extenders.get(&id)
+    pub fn extender(&self, id: N) -> Option<&dyn ChannelExtension<N>> {
+        self.extenders
+            .get(&id)
+            .map(|e| e.as_ref() as &dyn ChannelExtension<N>)
     }
 
     /// Gets modifier by extension identifier
     #[inline]
-    pub fn modifier(&self, id: N) -> Option<&Box<dyn ChannelExtension<N>>> {
-        self.modifiers.get(&id)
+    pub fn modifier(&self, id: N) -> Option<&dyn ChannelExtension<N>> {
+        self.modifiers
+            .get(&id)
+            .map(|e| e.as_ref() as &dyn ChannelExtension<N>)
     }
 
     /// Gets mutable extender by extension identifier
@@ -176,8 +180,10 @@ where
     pub fn extender_mut(
         &mut self,
         id: N,
-    ) -> Option<&mut Box<dyn ChannelExtension<N>>> {
-        self.extenders.get_mut(&id)
+    ) -> Option<&mut dyn ChannelExtension<N>> {
+        self.extenders
+            .get_mut(&id)
+            .map(|e| e.as_mut() as &mut dyn ChannelExtension<N>)
     }
 
     /// Gets mutable modifier by extension identifier
@@ -185,8 +191,10 @@ where
     pub fn modifier_mut(
         &mut self,
         id: N,
-    ) -> Option<&mut Box<dyn ChannelExtension<N>>> {
-        self.modifiers.get_mut(&id)
+    ) -> Option<&mut dyn ChannelExtension<N>> {
+        self.modifiers
+            .get_mut(&id)
+            .map(|e| e.as_mut() as &mut dyn ChannelExtension<N>)
     }
 
     /// Adds new extension to the channel.

@@ -41,7 +41,7 @@ pub use types::*;
 pub const LNP2P_BOLT_PORT: u16 = 9735;
 
 pub static LNP2P_LEGACY_UNMARSHALLER: Lazy<Unmarshaller<Messages>> =
-    Lazy::new(|| Messages::create_unmarshaller());
+    Lazy::new(Messages::create_unmarshaller);
 
 // TODO: Add unknown TLVs to all of the messages
 

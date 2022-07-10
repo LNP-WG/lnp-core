@@ -12,6 +12,7 @@
 // If not, see <https://opensource.org/licenses/MIT>.
 
 pub mod bolt;
+#[allow(clippy::module_inception)]
 mod channel;
 mod funding;
 pub mod shared_ext;

@@ -12,6 +12,7 @@
 // If not, see <https://opensource.org/licenses/MIT>.
 
 pub mod gossip;
+#[allow(clippy::module_inception)]
 mod router;
 
 pub use router::{ExtensionQueue, Nomenclature, Router};

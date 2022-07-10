@@ -403,8 +403,8 @@ impl Uniform for AnnouncedNodeAddr {
     fn port(&self) -> Option<u16> {
         match self {
             // How to remove these unused variables?
-            AnnouncedNodeAddr::IpV4 { port, .. } => Some(port.clone()),
-            AnnouncedNodeAddr::IpV6 { port, .. } => Some(port.clone()),
+            AnnouncedNodeAddr::IpV4 { port, .. } => Some(*port),
+            AnnouncedNodeAddr::IpV6 { port, .. } => Some(*port),
             AnnouncedNodeAddr::OnionV3 { .. } => None,
         }
     }

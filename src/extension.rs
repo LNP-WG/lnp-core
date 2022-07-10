@@ -90,6 +90,7 @@ where
 {
     /// Constructs boxed extension objects which can be inserted into router
     /// extension pipeline
+    #[allow(clippy::new_ret_no_self)]
     fn new() -> Box<dyn RouterExtension<N>>
     where
         Self: Sized;
@@ -109,6 +110,7 @@ where
 {
     /// Constructs boxed extension objects which can be inserted into channel
     /// extension pipeline
+    #[allow(clippy::new_ret_no_self)]
     fn new() -> Box<dyn ChannelExtension<N>>
     where
         Self: Sized;

@@ -196,7 +196,7 @@ pub use types::{
 pub const LNP2P_BIFROST_PORT: u16 = 9999;
 
 pub static LNP2P_BIFROST_UNMARSHALLER: Lazy<Unmarshaller<Messages>> =
-    Lazy::new(|| Messages::create_unmarshaller());
+    Lazy::new(Messages::create_unmarshaller);
 
 #[derive(Clone, Debug, Display, Api)]
 #[api(encoding = "strict")]

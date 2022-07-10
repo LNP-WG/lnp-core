@@ -151,6 +151,7 @@ impl Extension<GossipExt> for DirectRouter {
     }
 
     fn update_from_peer(&mut self, message: &Messages) -> Result<(), Error> {
+        #[allow(clippy::match_single_binding)] // temporarily
         match message {
             /*
             Messages::FundingLocked(FundingLocked { channel_id, .. }) => {}
