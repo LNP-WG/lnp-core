@@ -235,6 +235,32 @@ impl FromIterator<ProtocolName> for ProtocolList {
 }
 
 impl ProtocolList {
+    pub fn new(protocol: impl Into<ProtocolName>) -> Self {
+        Self(vec![protocol.into()])
+    }
+
+    pub fn with<I>(list: I) -> Self
+    where
+        I: IntoIterator,
+        I::Item: Into<ProtocolName>,
+    {
+        Self(list.into_iter().map(I::Item::into).collect())
+    }
+
+    pub fn add(&mut self, protocol: impl Into<ProtocolName>) {
+        self.0.push(protocol.into())
+    }
+
+    pub fn extend<I>(&mut self, list: I)
+    where
+        I: IntoIterator,
+        I::Item: Into<ProtocolName>,
+    {
+        for protocol in list {
+            self.add(protocol)
+        }
+    }
+
     #[inline]
     pub fn iter(&self) -> std::slice::Iter<ProtocolName> {
         self.0.iter()
@@ -262,7 +288,7 @@ impl FromStr for ProtocolList {
     #[inline]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         s.split(' ')
-            .into_iter()
+            .filter(|s| !s.is_empty())
             .map(ProtocolName::from_str)
             .collect()
     }
