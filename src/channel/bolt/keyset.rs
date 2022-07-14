@@ -47,9 +47,8 @@ impl LocalPubkey {
     }
 }
 
-/// Set of keys used by the core of the channel (in fact, [`Bolt3`]). It does
-/// not include HTLC basepoint which is managed separately by
-/// [`self::htlc::Htlc`] extension.
+/// Set of keys used by the core of the channel. It does not include HTLC
+/// basepoint which is managed separately by [`super::Htlc`] extension.
 #[derive(Clone, PartialEq, Eq, Debug, StrictEncode, StrictDecode)]
 #[cfg_attr(
     feature = "serde",
@@ -80,9 +79,8 @@ pub struct LocalKeyset {
     pub static_remotekey: bool,
 }
 
-/// Set of keys used by the core of the channel (in fact, [`Bolt3`]). It does
-/// not include HTLC basepoint which is managed separately by
-/// [`self::htlc::Htlc`] extension.
+/// Set of keys used by the core of the channel. It does not include HTLC
+/// basepoint which is managed separately by [`super::Htlc`] extension.
 #[derive(Clone, PartialEq, Eq, Debug, StrictEncode, StrictDecode)]
 #[cfg_attr(
     feature = "serde",

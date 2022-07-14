@@ -34,7 +34,7 @@ pub enum Error {
 }
 
 /// Information about channel funding
-#[derive(Getters, Clone, PartialEq, Debug, StrictEncode, StrictDecode)]
+#[derive(Getters, Clone, PartialEq, Eq, Debug, StrictEncode, StrictDecode)]
 #[cfg_attr(
     feature = "serde",
     derive(Serialize, Deserialize),

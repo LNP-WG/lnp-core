@@ -216,7 +216,7 @@ pub struct DowngradeChannel {
     pub accepted: BTreeMap<XOnlyPublicKey, Signature>,
 }
 
-#[derive(Clone, PartialEq, Debug, Display)]
+#[derive(Clone, PartialEq, Eq, Debug, Display)]
 #[derive(NetworkEncode, NetworkDecode)]
 #[display("close_channel({channel_id}, ...)")]
 pub struct CloseChannel {

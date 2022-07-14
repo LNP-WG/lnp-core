@@ -130,9 +130,9 @@ pub enum PolicyError {
 
 /// Policy to validate channel parameters proposed by a remote peer.
 ///
-/// By default, [`Channel::new`] uses reasonable default policy created by
-/// [`Policy::default()`] method. Channel creator may provide a custom policy by
-/// using [`Channel::with`] method.
+/// By default, [`crate::Channel::new`] uses reasonable default policy created
+/// by [`Policy::default()`] method. Channel creator may provide a custom policy
+/// by using [`crate::Channel::with`] method.
 #[derive(Clone, Eq, PartialEq, Hash, Debug, StrictEncode, StrictDecode)]
 #[cfg_attr(
     feature = "serde",
@@ -525,9 +525,9 @@ impl Default for CommonParams {
     /// Sets reasonable values for the common channel parameters used in
     /// constructing `open_channel` message.
     ///
-    /// Usually this should not be used and instead [`Channel::with`] should be
-    /// provided with custom channel parameters basing on the current state of
-    /// the bitcoin mempool and hash rate.
+    /// Usually this should not be used and instead [`crate::Channel::with`]
+    /// should be provided with custom channel parameters basing on the
+    /// current state of the bitcoin mempool and hash rate.
     fn default() -> Self {
         CommonParams {
             minimum_depth: 3,
@@ -562,19 +562,20 @@ impl CommonParams {
 ///
 /// Should be instantiated from the node
 /// configuration persistent storage and/or command line parameters and provided
-/// to the channel constructor via [`Channel::with`].
+/// to the channel constructor via [`crate::Channel::with`].
 ///
 /// Later, when creating new channels, it should be copied from the local
 /// channel defaults object and updated / checked against local policies upon
-/// receiving `accept_channel` reply by setting [`Bolt3::remote_params`] to a
-/// value returned from
-/// [`Bolt3::local_params`][`.confirm_outbound`](Policy::confirm_outbound)
-/// method.
+/// receiving `accept_channel` reply by setting
+/// [`super::BoltChannel::remote_params`] to a value returned from
+/// [`super::BoltChannel::local_params`][`.confirm_outbound`](Policy::
+/// confirm_outbound) method.
 ///
 /// Upon receiving `open_channel` message from the remote node must validate the
 /// proposed parameters against local policy with
-/// [`Bolt3::policy`][`.validate_inbound`](Policy::validate_inbound) method and
-/// assign the return value to [`Bolt3::remote_params`].
+/// [`super::BoltChannel::policy`][`.validate_inbound`](Policy::
+/// validate_inbound) method and assign the return value to
+/// [`super::BoltChannel::remote_params`].
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, StrictEncode, StrictDecode)]
 #[cfg_attr(
     feature = "serde",
@@ -613,8 +614,9 @@ impl Default for PeerParams {
     /// Sets reasonable values for the channel parameters requested from the
     /// other peer in sent `open_channel` or `accept_channel` messages.
     ///
-    /// Usually this should not be used and instead [`Channel::with`] should be
-    /// provided with custom channel parameters basing on the user preferences.
+    /// Usually this should not be used and instead [`crate::Channel::with`]
+    /// should be provided with custom channel parameters basing on the user
+    /// preferences.
     fn default() -> Self {
         PeerParams {
             dust_limit_satoshis: BOLT3_DUST_LIMIT,

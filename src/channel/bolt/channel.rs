@@ -235,7 +235,8 @@ impl Channel<BoltExt> {
     /// Composes `open_channel` message used for proposing channel opening to a
     /// remote peer. The message is composed basing on the local channel
     /// parameters set with [`Channel::with`] or [`Channel::set_local_params`]
-    /// (see [`Bolt3::local_params`] for details on local parameters).
+    /// (see [`super::BoltChannel::local_params`] for details on local
+    /// parameters).
     ///
     /// Fails if the node is not in [`Lifecycle::Initial`] or
     /// [`Lifecycle::Reestablishing`] state.
@@ -262,8 +263,8 @@ impl Channel<BoltExt> {
     /// Composes `accept_channel` message used for accepting channel opening
     /// from a remote peer. The message is composed basing on the local
     /// channel parameters set with [`Channel::with`] or
-    /// [`Channel::set_local_params`] (see [`Bolt3::local_params`] for
-    /// details on local parameters).
+    /// [`Channel::set_local_params`] (see [`super::BoltChannel::local_params`]
+    /// for details on local parameters).
     ///
     /// Fails if the node is not in [`Lifecycle::Initial`] or
     /// [`Lifecycle::Reestablishing`] state.

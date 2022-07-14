@@ -27,7 +27,7 @@ pub trait TxIndex: Clone + From<u64> + Into<u64> {}
 impl TxRole for u16 {}
 impl TxIndex for u64 {}
 
-#[derive(Getters, Clone, PartialEq)]
+#[derive(Getters, Clone, Eq, PartialEq)]
 pub struct TxGraph<'channel> {
     /// Read-only data for extensions on the number of channel parties
     funding: &'channel Funding,

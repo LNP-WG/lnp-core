@@ -29,6 +29,7 @@
 extern crate amplify;
 #[macro_use]
 extern crate internet2;
+#[cfg(feature = "bolt")]
 #[macro_use]
 extern crate lightning_encoding;
 #[cfg(feature = "serde")]

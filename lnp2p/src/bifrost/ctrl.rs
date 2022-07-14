@@ -46,7 +46,7 @@ pub struct Ping {
 
 /// For simplicity of diagnosis, it's often useful to tell a peer that something
 /// is incorrect.
-#[derive(Clone, PartialEq, Debug, Error, NetworkEncode, NetworkDecode)]
+#[derive(Clone, PartialEq, Eq, Debug, Error, NetworkEncode, NetworkDecode)]
 #[network_encoding(use_tlv)]
 pub struct Error {
     pub channel_id: Option<ChannelId>,

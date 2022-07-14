@@ -63,8 +63,8 @@ pub struct GossipChannelInfo {
     /// Information about each channel direction.
     ///
     /// The first tuple field corresponds to the direction from the first
-    /// node id (see [`ChannelInfo::nodes`]) to the second one – and the second
-    /// tuple field to the opposite direction.
+    /// node id (see [`GossipChannelInfo::nodes`]) to the second one – and the
+    /// second tuple field to the opposite direction.
     pub directions: (Option<DirectionalInfo>, Option<DirectionalInfo>),
 
     /// The channel capacity, known only for local channels - or if it can be
