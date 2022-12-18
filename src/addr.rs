@@ -17,7 +17,9 @@ use std::str::FromStr;
 use internet2::addr::{
     AddrParseError, NodeAddr, NodeAddrParseError, PartialNodeAddr,
 };
+#[cfg(feature = "bifrost")]
 use p2p::bifrost::LNP2P_BIFROST_PORT;
+#[cfg(feature = "bolt")]
 use p2p::bolt::LNP2P_BOLT_PORT;
 use p2p::Protocol;
 
@@ -35,6 +37,7 @@ pub struct LnpAddr {
 }
 
 impl LnpAddr {
+    #[cfg(feature = "bolt")]
     /// Construct BOLT-compatible node address.
     pub fn bolt(addr: PartialNodeAddr) -> LnpAddr {
         LnpAddr {
@@ -43,6 +46,7 @@ impl LnpAddr {
         }
     }
 
+    #[cfg(feature = "bifrost")]
     /// Construct Bifrost-compatible node address.
     pub fn bifrost(addr: PartialNodeAddr) -> LnpAddr {
         LnpAddr {
@@ -86,9 +90,11 @@ impl FromStr for LnpAddr {
             split.next(),
             split.next(),
         ) {
+            #[cfg(feature = "bolt")]
             (Some("bolt"), Some(addr), None) => {
                 PartialNodeAddr::from_str(addr).map(LnpAddr::bolt)
             }
+            #[cfg(feature = "bifrost")]
             (Some("bifrost"), Some(addr), None) => {
                 PartialNodeAddr::from_str(addr).map(LnpAddr::bifrost)
             }

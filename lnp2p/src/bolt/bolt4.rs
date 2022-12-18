@@ -194,6 +194,7 @@ impl LightningDecode for PaymentOnion {
     }
 }
 
+// TODO: Remove Strict encode/decode requirement on SphinxPayload type
 impl SphinxPayload for PaymentOnion {
     type DecodeError = lightning_encoding::Error;
 

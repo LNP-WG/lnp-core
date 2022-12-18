@@ -41,7 +41,9 @@ extern crate strict_encoding;
 #[macro_use]
 extern crate serde_with;
 
+#[cfg(feature = "bifrost")]
 use crate::bifrost::LNP2P_BIFROST_PORT;
+#[cfg(feature = "bolt")]
 use crate::bolt::LNP2P_BOLT_PORT;
 
 macro_rules! dumb_pubkey {
@@ -63,10 +65,12 @@ pub mod bolt;
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode), network_encoding( by_value, repr = u16))]
 #[repr(u16)]
 pub enum Protocol {
+    #[cfg(feature = "bolt")]
     /// Protocol based on BOLT specifications.
     #[display("bolt")]
     Bolt = LNP2P_BOLT_PORT,
 
+    #[cfg(feature = "bifrost")]
     /// Protocol based on LNPBP Bifrost specifications.
     #[display("bifrost")]
     Bifrost = LNP2P_BIFROST_PORT,

@@ -35,7 +35,7 @@ once_cell = "1.12.0"
 chrono = "0.4"
 
 [features]
-default = ["bolt"]
+default = ["bolt", "strict_encoding"] # Remove strict encoding requirement
 all = ['bifrost', "serde"]
 bolt = ["lightning_encoding"]
 bifrost = ["strict_encoding"]
