@@ -612,7 +612,7 @@ checksum = "0717cef1bc8b636c6e1c1bbdefc09e6322da8a9321966e8928ef80d20f7f770f"
 
 [[package]]
 name = "lnp-core"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "amplify",
  "bitcoin",
@@ -629,7 +629,7 @@ dependencies = [
 
 [[package]]
 name = "lnp2p"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "amplify",
  "bitcoin",
