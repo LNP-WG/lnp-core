@@ -38,6 +38,10 @@ serde = ["serde_crate", "serde_with", "amplify/serde", "bitcoin/use-serde", "lnp
 bolt = ["lnp2p/bolt"]
 bifrost = ["lnp2p/bifrost"]
 
+[package.metadata.docs.rs]
+all-features = true
+rustc-args = ["--cfg", "docsrs"]
+
 [workspace]
 members = [".", "lnp2p"]
 exclude = ["contrib"]

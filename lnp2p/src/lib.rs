@@ -13,7 +13,6 @@
 // along with this software.
 // If not, see <https://opensource.org/licenses/MIT>.
 
-#![recursion_limit = "256"]
 // Coding conventions
 #![deny(
     non_upper_case_globals,
@@ -24,6 +23,7 @@
     dead_code,
     //missing_docs
 )]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 #[macro_use]
 extern crate amplify;

@@ -40,3 +40,7 @@ all = ['bifrost', "serde"]
 bolt = ["lightning_encoding"]
 bifrost = ["strict_encoding"]
 serde = ["serde_crate", "serde_with", "amplify/serde", "bitcoin/use-serde"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustc-args = ["--cfg", "docsrs"]
