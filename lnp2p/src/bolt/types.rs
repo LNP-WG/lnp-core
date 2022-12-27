@@ -755,13 +755,18 @@ impl Default for Timestamp {
 
 impl From<Timestamp> for DateTime<Utc> {
     fn from(ts: Timestamp) -> DateTime<Utc> {
-        Utc.timestamp(ts.0 as i64, 0)
+        Utc.timestamp_opt(ts.0 as i64, 0)
+            .latest()
+            .expect("conversion between time types")
     }
 }
 
 impl From<Timestamp> for DateTime<Local> {
     fn from(ts: Timestamp) -> DateTime<Local> {
-        Local.timestamp(ts.0 as i64, 0)
+        Local
+            .timestamp_opt(ts.0 as i64, 0)
+            .latest()
+            .expect("conversion between time types")
     }
 }
 

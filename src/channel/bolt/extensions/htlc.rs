@@ -17,12 +17,12 @@ use bitcoin::blockdata::opcodes::all::*;
 use bitcoin::blockdata::script;
 use bitcoin::secp256k1::PublicKey;
 use bitcoin::{OutPoint, Transaction, TxIn, TxOut};
+use bitcoin_scripts::hlc::{HashLock, HashPreimage};
+use bitcoin_scripts::{LockScript, PubkeyScript, WitnessScript};
 use lnp2p::bolt::{ChannelId, Messages};
 use p2p::bolt::ChannelType;
-use wallet::hlc::{HashLock, HashPreimage};
 use wallet::psbt;
 use wallet::psbt::{Psbt, PsbtVersion};
-use wallet::scripts::{LockScript, PubkeyScript, WitnessScript};
 
 use crate::channel::bolt::util::UpdateReq;
 use crate::channel::bolt::{BoltExt, ChannelState, Error, TxType};
@@ -842,11 +842,11 @@ impl TxGenerators for Transaction {
         );
         Transaction {
             version: 2,
-            lock_time: cltv_expiry,
+            lock_time: bitcoin::PackedLockTime(cltv_expiry),
             input: vec![TxIn {
                 previous_output: outpoint,
                 script_sig: none!(),
-                sequence: 0,
+                sequence: bitcoin::Sequence(0),
                 witness: empty!(),
             }],
             output: vec![txout],

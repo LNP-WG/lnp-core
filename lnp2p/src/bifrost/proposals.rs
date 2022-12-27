@@ -96,7 +96,7 @@ pub struct ChannelInput {
 #[derive(NetworkEncode, NetworkDecode)]
 pub struct ChannelOutput {
     /// We have to expose full descriptor in order to allow P2C tweaks
-    pub output: Descriptor<bitcoin::PublicKey>,
+    pub output: Descriptor<secp256k1::PublicKey>,
 
     /// P2C tweaks are used to construct DBC anchor, if needed.
     ///

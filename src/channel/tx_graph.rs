@@ -121,11 +121,11 @@ where
     pub fn render_cmt(&self) -> Psbt {
         let cmt_tx = Transaction {
             version: self.cmt_version,
-            lock_time: self.cmt_locktime,
+            lock_time: bitcoin::PackedLockTime(self.cmt_locktime),
             input: vec![TxIn {
                 previous_output: self.funding.outpoint(),
                 script_sig: empty!(),
-                sequence: self.cmt_sequence,
+                sequence: bitcoin::Sequence(self.cmt_sequence),
                 witness: empty!(),
             }],
             output: vec![default!(); self.cmt_outs.len()],
@@ -139,7 +139,7 @@ where
         let funding_output = &funding_psbt.outputs[funding_vout];
         psbt.inputs[0].witness_utxo = Some(TxOut {
             value: funding_output.amount,
-            script_pubkey: funding_output.script.clone(),
+            script_pubkey: funding_output.script.clone().into(),
         });
         psbt.inputs[0].witness_script = funding_output.witness_script.clone();
         psbt.inputs[0].bip32_derivation =

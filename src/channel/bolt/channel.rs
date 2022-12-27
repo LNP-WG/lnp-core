@@ -17,6 +17,8 @@ use bitcoin::blockdata::script;
 use bitcoin::hashes::{sha256, Hash, HashEngine};
 use bitcoin::secp256k1::PublicKey;
 use bitcoin::{Network, TxOut};
+use bitcoin_scripts::hlc::HashLock;
+use bitcoin_scripts::{LockScript, PubkeyScript, WitnessScript};
 use internet2::addr::NodeId;
 use internet2::presentation::sphinx::{self, Hop, Onion, OnionPacket};
 use lnp2p::bolt::{
@@ -30,11 +32,9 @@ use p2p::bolt::{
 use secp256k1::ecdsa::Signature;
 use secp256k1::Secp256k1;
 use strict_encoding::StrictDecode;
-use wallet::hlc::HashLock;
 use wallet::lex_order::LexOrder;
 use wallet::psbt;
 use wallet::psbt::Psbt;
-use wallet::scripts::{LockScript, PubkeyScript, WitnessScript};
 
 use super::keyset::{LocalKeyset, LocalPubkey, RemoteKeyset};
 use super::policy::{CommonParams, PeerParams, Policy};
@@ -936,12 +936,13 @@ impl BoltChannel {
         engine.input(&per_commitment_point.serialize());
         engine.input(&payment_basepoint.serialize());
         let tweak = sha256::Hash::from_engine(engine);
-
-        let mut payment_pubkey = payment_basepoint;
-        payment_pubkey
-            .add_exp_assign(&secp, tweak.as_ref())
+        let tweak = secp256k1::Scalar::from_be_bytes(tweak.into_inner())
             .expect("negligible probability");
+
+        let payment_pubkey = payment_basepoint;
         payment_pubkey
+            .add_exp_tweak(&secp, &tweak)
+            .expect("negligible probability")
     }
 
     fn local_delayedpubkey(&self, as_remote_node: bool) -> PublicKey {
@@ -963,12 +964,13 @@ impl BoltChannel {
         engine.input(&per_commitment_point.serialize());
         engine.input(&delayed_payment_basepoint.serialize());
         let tweak = sha256::Hash::from_engine(engine);
-
-        let mut delayed_pubkey = delayed_payment_basepoint;
-        delayed_pubkey
-            .add_exp_assign(&secp, tweak.as_ref())
+        let tweak = secp256k1::Scalar::from_be_bytes(tweak.into_inner())
             .expect("negligible probability");
+
+        let delayed_pubkey = delayed_payment_basepoint;
         delayed_pubkey
+            .add_exp_tweak(&secp, &tweak)
+            .expect("negligible probability")
     }
 
     fn remote_revocationpubkey(&self, as_remote_node: bool) -> PublicKey {
@@ -991,8 +993,11 @@ impl BoltChannel {
         engine.input(&revocation_basepoint.serialize());
         engine.input(&per_commitment_point.serialize());
         let revocation_tweak = sha256::Hash::from_engine(engine);
-        tweaked_revocation_basepoint
-            .mul_assign(&secp, revocation_tweak.as_ref())
+        let revocation_tweak =
+            secp256k1::Scalar::from_be_bytes(revocation_tweak.into_inner())
+                .expect("negligible probability");
+        tweaked_revocation_basepoint = tweaked_revocation_basepoint
+            .mul_tweak(&secp, &revocation_tweak)
             .expect("negligible probability");
 
         let mut tweaked_per_commitment_point = self.remote_per_commitment_point;
@@ -1000,8 +1005,11 @@ impl BoltChannel {
         engine.input(&per_commitment_point.serialize());
         engine.input(&revocation_basepoint.serialize());
         let per_commitment_tweak = sha256::Hash::from_engine(engine);
-        tweaked_per_commitment_point
-            .mul_assign(&secp, per_commitment_tweak.as_ref())
+        let per_commitment_tweak =
+            secp256k1::Scalar::from_be_bytes(per_commitment_tweak.into_inner())
+                .expect("negligible probability");
+        tweaked_per_commitment_point = tweaked_per_commitment_point
+            .mul_tweak(&secp, &per_commitment_tweak)
             .expect("negligible probability");
 
         tweaked_revocation_basepoint
@@ -1083,14 +1091,11 @@ impl ChannelConstructor<BoltExt> for BoltChannel {
         let vout = psbt
             .channel_funding_output()
             .ok_or(funding::Error::NoFundingOutput)?;
-        psbt.outputs[vout].witness_script = Some(
-            WitnessScript::ln_funding(
-                funding.amount(),
-                &self.local_keys.funding_pubkey,
-                self.remote_keys.funding_pubkey,
-            )
-            .into_inner(),
-        );
+        psbt.outputs[vout].witness_script = Some(WitnessScript::ln_funding(
+            funding.amount(),
+            &self.local_keys.funding_pubkey,
+            self.remote_keys.funding_pubkey,
+        ));
         psbt.outputs[vout].bip32_derivation =
             self.local_keys.funding_pubkey.to_bip32_derivation_map();
         Ok(())
@@ -1402,7 +1407,7 @@ mod test {
 
         Transaction {
             version: 2,
-            lock_time: 0,
+            lock_time: bitcoin::PackedLockTime(0),
             input: vec![TxIn {
                 previous_output: OutPoint::new(Txid::from_str(
                     "fd2105607605d2302994ffea703b09f66b6351816ee737a93e42a841ea20bbad"
@@ -1413,13 +1418,13 @@ mod test {
                     9ef6e214c90fcaab0454d84b3b012103535b32d5eb0a6ed0982a0479bba\
                     dc9868d9836f6ba94dd5a63be16d875069184"
                 ).unwrap(),
-                sequence: 4294967295,
+                sequence: bitcoin::Sequence(4294967295),
                 witness: empty!(),
             }],
             output: vec![
                 TxOut {
                     value: output.amount,
-                    script_pubkey: output.script,
+                    script_pubkey: output.script.into_inner(),
                 },
                 TxOut {
                     value: 4989986080,

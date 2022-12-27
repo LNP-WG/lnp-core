@@ -75,7 +75,7 @@ impl Funding {
         let mut psbt = Psbt::with(
             Transaction {
                 version: 2,
-                lock_time: 0,
+                lock_time: bitcoin::PackedLockTime(0),
                 input: vec![],
                 output: vec![TxOut {
                     value: 0,

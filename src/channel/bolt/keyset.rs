@@ -17,10 +17,10 @@ use amplify::DumbDefault;
 #[cfg(feature = "serde")]
 use amplify::ToYamlString;
 use bitcoin::util::bip32::{ChildNumber, ExtendedPrivKey, KeySource};
+use bitcoin_scripts::PubkeyScript;
 use p2p::bolt::{AcceptChannel, ChannelType, OpenChannel};
 use secp256k1::{PublicKey, Secp256k1};
 use wallet::hd::HardenedIndex;
-use wallet::scripts::PubkeyScript;
 
 /// Key + information about its derivation
 #[derive(Clone, PartialEq, Eq, Debug, StrictEncode, StrictDecode)]

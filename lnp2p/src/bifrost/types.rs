@@ -124,6 +124,10 @@ impl Hash for ChannelId {
     fn from_inner(inner: Self::Inner) -> Self {
         Self(sha256t::Hash::from_inner(inner))
     }
+
+    fn all_zeros() -> Self {
+        Self(sha256t::Hash::all_zeros())
+    }
 }
 
 impl strict_encoding::Strategy for ChannelId {
@@ -193,7 +197,7 @@ impl FromStr for ChannelId {
 
 #[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Display, Debug, Error)]
 #[display(doc_comments)]
-/// incorrect naming for protocol {0}: protocol name in Bifrost can contain
+/// incorrect naming for protocol {_0}: protocol name in Bifrost can contain
 /// only ASCII alphanumeric characters and dashes
 pub struct ProtocolNameError(pub String);
 
