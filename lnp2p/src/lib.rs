@@ -23,6 +23,7 @@
     dead_code,
     //missing_docs
 )]
+#![allow(clippy::uninlined_format_args)] // Required b/c of MSRV
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 #[macro_use]

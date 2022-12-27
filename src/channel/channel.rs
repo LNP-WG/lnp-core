@@ -136,12 +136,12 @@ where
     pub fn extension<E>(&'static self, id: N) -> Option<&E> {
         self.extenders
             .get(&id)
-            .map(|ext| &*ext as &dyn Any)
+            .map(|ext| ext as &dyn Any)
             .and_then(|ext| ext.downcast_ref())
             .or_else(|| {
                 self.modifiers
                     .get(&id)
-                    .map(|ext| &*ext as &dyn Any)
+                    .map(|ext| ext as &dyn Any)
                     .and_then(|ext| ext.downcast_ref())
             })
     }
