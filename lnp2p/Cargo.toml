@@ -35,10 +35,10 @@ once_cell = "1.12.0"
 chrono = "0.4"
 
 [features]
-default = ["bolt", "strict_encoding"] # Remove strict encoding requirement
+default = ["bolt", "strict_encoding"]
 all = ['bifrost', "serde"]
-bolt = ["lightning_encoding"]
-bifrost = ["strict_encoding"]
+bolt = ["lightning_encoding", "strict_encoding"] # Remove strict encoding requirement
+bifrost = ["strict_encoding", "bolt"]
 serde = ["serde_crate", "serde_with", "amplify/serde", "bitcoin/serde"]
 
 [package.metadata.docs.rs]
