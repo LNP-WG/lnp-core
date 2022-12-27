@@ -795,7 +795,7 @@ impl BoltChannel {
             htlc_basepoint: local_keyset.htlc_basepoint.key,
             first_per_commitment_point: self.local_per_commitment_point,
             shutdown_scriptpubkey: local_keyset.shutdown_scriptpubkey,
-            channel_flags: if common_params.announce_channel { 1 } else { 0 },
+            channel_flags: u8::from(common_params.announce_channel),
             channel_type: common_params.channel_type.into_option(),
             unknown_tlvs: none!(),
         })
@@ -1021,7 +1021,7 @@ impl BoltChannel {
 impl ChannelExtension<BoltExt> for BoltChannel {
     #[inline]
     fn new() -> Box<dyn ChannelExtension<BoltExt>> {
-        Box::new(BoltChannel::default())
+        Box::default() as Box<BoltChannel>
     }
 
     fn build_graph(

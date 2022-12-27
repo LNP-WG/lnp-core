@@ -52,7 +52,7 @@ impl ChannelExtension<BoltExt> for AnchorOutputs {
     where
         Self: Sized,
     {
-        Box::new(AnchorOutputs::default())
+        Box::default() as Box<AnchorOutputs>
     }
 
     #[inline]

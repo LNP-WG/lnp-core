@@ -21,6 +21,7 @@
     dead_code,
     //missing_docs
 )]
+#![allow(clippy::box_default)] // Required since otherwise we need very elaborate conversions
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 #[macro_use]

@@ -72,7 +72,7 @@ impl TryFrom<u16> for GossipExt {
     type Error = strict_encoding::Error;
 
     fn try_from(value: u16) -> Result<Self, Self::Error> {
-        strict_deserialize(&value.to_be_bytes())
+        strict_deserialize(value.to_be_bytes())
     }
 }
 
