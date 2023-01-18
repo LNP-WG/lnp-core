@@ -927,9 +927,9 @@ impl BoltChannel {
             self.local_per_commitment_point
         };
         let payment_basepoint = if as_remote_node {
-            self.remote_keys.payment_basepoint
-        } else {
             self.local_keys.payment_basepoint.key
+        } else {
+            self.remote_keys.payment_basepoint
         };
 
         let mut engine = sha256::Hash::engine();
@@ -950,9 +950,9 @@ impl BoltChannel {
         let secp = Secp256k1::verification_only();
 
         let per_commitment_point = if as_remote_node {
-            self.remote_per_commitment_point
-        } else {
             self.local_per_commitment_point
+        } else {
+            self.remote_per_commitment_point
         };
         let delayed_payment_basepoint = if as_remote_node {
             self.remote_keys.delayed_payment_basepoint
@@ -978,9 +978,9 @@ impl BoltChannel {
         let secp = Secp256k1::verification_only();
 
         let revocation_basepoint = if as_remote_node {
-            self.remote_keys.revocation_basepoint
-        } else {
             self.local_keys.revocation_basepoint.key
+        } else {
+            self.remote_keys.revocation_basepoint
         };
         let per_commitment_point = if as_remote_node {
             self.remote_per_commitment_point
@@ -1054,9 +1054,9 @@ impl ChannelExtension<BoltExt> for BoltChannel {
             self.local_amount_msat
         };
         let to_remote_amount = if as_remote_node {
-            self.remote_amount_msat
-        } else {
             self.local_amount_msat
+        } else {
+            self.remote_amount_msat
         };
         let to_self_delay = if as_remote_node {
             self.remote_params.to_self_delay
