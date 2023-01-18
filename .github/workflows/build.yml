@@ -16,7 +16,10 @@ jobs:
       fail-fast: false
       matrix:
         feature:
-          - serde
+          - bolt
+          - bifrost
+          - serde,bolt
+          - serde,bifrost
     steps:
       - uses: actions/checkout@v2
       - name: Install rust stable

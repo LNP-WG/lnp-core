@@ -26,6 +26,9 @@
 #![allow(clippy::uninlined_format_args)] // Required b/c of MSRV
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
+#[cfg(not(any(feature = "bolt", feature = "bifrost")))]
+compile_error!("either `bolt` or `bifrost` feature must be specified");
+
 #[macro_use]
 extern crate amplify;
 #[macro_use]
