@@ -163,6 +163,30 @@ pub enum Feature {
     /// Anchor outputs
     #[display("option_anchor_outputs", alt = "20/21")]
     OptionAnchorOutputs = 20,
+
+    /// Anchor commitment type with zero fee HTLC transactions
+    #[display("option_anchors_zero_fee_htlc_tx", alt = "22/23")]
+    OptionAnchorZeroFeeHtlcTx = 22,
+
+    /// Future segwit versions allowed in shutdown
+    #[display("option_shutdown_anysegwit", alt = "26/27")]
+    OptionShutdownAnySegwit = 26,
+
+    /// Node supports the channel_type field in open/accept
+    #[display("option_channel_type", alt = "44/45")]
+    OptionChannelType = 44,
+
+    /// Supply channel aliases for routing
+    #[display("option_scid_alias", alt = "46/47")]
+    OptionScidAlias = 46,
+
+    /// Payment metadata in tlv record
+    #[display("option_payment_metadata", alt = "48/49")]
+    OptionPaymentMetadata = 48,
+
+    /// Understands zeroconf channel types
+    #[display("option_zeroconf", alt = "50/51")]
+    OptionZeroConf = 50,
     // NB: When adding new feature INCLUDE it into Feature::all
 }
 
@@ -180,6 +204,12 @@ impl Feature {
             Feature::BasicMpp,
             Feature::OptionSupportLargeChannel,
             Feature::OptionAnchorOutputs,
+            Feature::OptionAnchorZeroFeeHtlcTx,
+            Feature::OptionShutdownAnySegwit,
+            Feature::OptionChannelType,
+            Feature::OptionScidAlias,
+            Feature::OptionPaymentMetadata,
+            Feature::OptionZeroConf,
         ]
     }
 
@@ -243,6 +273,24 @@ impl FromStr for Feature {
             }
             s if s == Feature::OptionAnchorOutputs.to_string() => {
                 Feature::OptionAnchorOutputs
+            }
+            s if s == Feature::OptionAnchorZeroFeeHtlcTx.to_string() => {
+                Feature::OptionAnchorZeroFeeHtlcTx
+            }
+            s if s == Feature::OptionShutdownAnySegwit.to_string() => {
+                Feature::OptionShutdownAnySegwit
+            }
+            s if s == Feature::OptionChannelType.to_string() => {
+                Feature::OptionChannelType
+            }
+            s if s == Feature::OptionScidAlias.to_string() => {
+                Feature::OptionScidAlias
+            }
+            s if s == Feature::OptionPaymentMetadata.to_string() => {
+                Feature::OptionPaymentMetadata
+            }
+            s if s == Feature::OptionZeroConf.to_string() => {
+                Feature::OptionZeroConf
             }
             other => return Err(UnknownFeatureError(other.to_owned())),
         };
@@ -341,6 +389,48 @@ pub struct InitFeatures {
     )]
     pub option_anchor_outputs: Option<bool>,
 
+    /// Anchor commitment type with zero fee HTLC transactions
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "As::<Option<DisplayFromStr>>")
+    )]
+    pub option_anchors_zero_fee_htlc_tx: Option<bool>,
+
+    /// Future segwit versions allowed in shutdown
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "As::<Option<DisplayFromStr>>")
+    )]
+    pub option_shutdown_anysegwit: Option<bool>,
+
+    /// Node supports the channel_type field in open/accept
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "As::<Option<DisplayFromStr>>")
+    )]
+    pub option_channel_type: Option<bool>,
+
+    /// Supply channel aliases for routing
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "As::<Option<DisplayFromStr>>")
+    )]
+    pub option_scid_alias: Option<bool>,
+
+    /// Payment metadata in tlv record
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "As::<Option<DisplayFromStr>>")
+    )]
+    pub option_payment_metadata: Option<bool>,
+
+    /// Understands zeroconf channel types
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "As::<Option<DisplayFromStr>>")
+    )]
+    pub option_zeroconf: Option<bool>,
+
     /// Rest of feature flags which are unknown to the current implementation
     #[cfg_attr(feature = "serde", serde(with = "As::<DisplayFromStr>"))]
     pub unknown: FlagVec,
@@ -437,6 +527,24 @@ impl InitFeatures {
         if let Some(required) = self.option_anchor_outputs {
             map.insert(Feature::OptionAnchorOutputs, required);
         }
+        if let Some(required) = self.option_anchors_zero_fee_htlc_tx {
+            map.insert(Feature::OptionAnchorZeroFeeHtlcTx, required);
+        }
+        if let Some(required) = self.option_shutdown_anysegwit {
+            map.insert(Feature::OptionShutdownAnySegwit, required);
+        }
+        if let Some(required) = self.option_channel_type {
+            map.insert(Feature::OptionChannelType, required);
+        }
+        if let Some(required) = self.option_scid_alias {
+            map.insert(Feature::OptionScidAlias, required);
+        }
+        if let Some(required) = self.option_payment_metadata {
+            map.insert(Feature::OptionPaymentMetadata, required);
+        }
+        if let Some(required) = self.option_zeroconf {
+            map.insert(Feature::OptionZeroConf, required);
+        }
         map
     }
 }
@@ -478,6 +586,18 @@ impl TryFrom<FlagVec> for InitFeatures {
                 Feature::OptionSupportLargeChannel,
             ),
             option_anchor_outputs: requirements(Feature::OptionAnchorOutputs),
+            option_anchors_zero_fee_htlc_tx: requirements(
+                Feature::OptionAnchorZeroFeeHtlcTx,
+            ),
+            option_shutdown_anysegwit: requirements(
+                Feature::OptionShutdownAnySegwit,
+            ),
+            option_channel_type: requirements(Feature::OptionChannelType),
+            option_scid_alias: requirements(Feature::OptionScidAlias),
+            option_payment_metadata: requirements(
+                Feature::OptionPaymentMetadata,
+            ),
+            option_zeroconf: requirements(Feature::OptionZeroConf),
             unknown: none!(),
         };
 
