@@ -803,11 +803,16 @@ impl BoltChannel {
 
     fn compose_accept_channel(&mut self) -> Result<AcceptChannel, Error> {
         if self.stage != Lifecycle::Initial
+            && self.stage != Lifecycle::Proposed
             && self.stage != Lifecycle::Reestablishing
         {
             return Err(Error::LifecycleMismatch {
                 current: self.stage,
-                required: &[Lifecycle::Initial, Lifecycle::Reestablishing],
+                required: &[
+                    Lifecycle::Initial,
+                    Lifecycle::Proposed,
+                    Lifecycle::Reestablishing,
+                ],
             });
         }
 
