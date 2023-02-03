@@ -326,6 +326,11 @@ pub struct Alias(
 )]
 #[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
 #[display("{block_height}x{tx_index}x{output_index}")]
 pub struct ShortChannelId {
     pub block_height: u24,

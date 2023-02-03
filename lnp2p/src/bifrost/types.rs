@@ -59,6 +59,12 @@ impl sha256t::Tag for ChannelIdTag {
 )]
 #[wrapper(Debug, LowerHex, BorrowSlice)]
 #[wrapper(Index, IndexRange, IndexFrom, IndexTo, IndexFull)]
+#[cfg_attr(
+    feature = "serde",
+    serde_as,
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate", transparent)
+)]
 pub struct ChannelId(sha256t::Hash<ChannelIdTag>);
 
 impl ChannelId {
