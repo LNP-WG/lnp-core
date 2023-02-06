@@ -685,7 +685,7 @@ dependencies = [
 
 [[package]]
 name = "lnp-core"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "amplify",
  "bitcoin",
@@ -703,7 +703,7 @@ dependencies = [
 
 [[package]]
 name = "lnp2p"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "amplify",
  "bitcoin",
