@@ -209,7 +209,7 @@ impl RouterExtension<GossipExt> for DirectRouter {
             .iter()
             .find(|info| info.remote_node == payment.node_id)
         {
-            if channel.outboud_capacity_msat < payment.amount_msat {
+            if channel.outbound_capacity_msat < payment.amount_msat {
                 return; // We do not have enough funds
             }
 

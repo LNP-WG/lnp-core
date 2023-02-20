@@ -95,7 +95,7 @@ pub struct LocalChannelInfo {
 
     pub inbound_capacity_msat: u64,
 
-    pub outboud_capacity_msat: u64,
+    pub outbound_capacity_msat: u64,
 
     /// CLTV expiry delta
     pub cltv_expiry: u16,

@@ -329,7 +329,7 @@ impl Channel<BoltExt> {
             short_channel_id: Default::default(),
             chain_hash: self.chain_hash(),
             inbound_capacity_msat: self.remote_amount_msat(),
-            outboud_capacity_msat: self.local_amount_msat(),
+            outbound_capacity_msat: self.local_amount_msat(),
             cltv_expiry: 0,
             htlc_minimum_msat: self
                 .constructor()
