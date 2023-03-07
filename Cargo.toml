@@ -19,7 +19,7 @@ path = "src/lib.rs"
 crate-type = ["rlib", "staticlib"]
 
 [dependencies]
-amplify = "3.13.0"
+amplify = "3.13.1"
 strict_encoding = "0.9.0"
 lightning_encoding = "0.9.0"
 bitcoin_scripts = "0.9.0"

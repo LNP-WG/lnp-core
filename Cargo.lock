@@ -567,9 +567,9 @@ dependencies = [
 
 [[package]]
 name = "inet2_addr"
-version = "0.9.0-rc.1"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3fee84136eb3deacdbdd7618e3b4cce4a3fc922103eb91c2d2811aa3a16df2d8"
+checksum = "f598ff3f1d304119896e65d1d2c8e422ea09fb9d24f68582e636aacecf18a969"
 dependencies = [
  "amplify",
  "lightning_encoding",
@@ -580,9 +580,9 @@ dependencies = [
 
 [[package]]
 name = "inet2_derive"
-version = "0.9.0-rc.1"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2058efb9e12c8c8b7807b5a233575062defc81953a3b91823b4a557c9bc59ea8"
+checksum = "61f3d87919e38693a04e95fbc65cfce0da5a0a094fde4a40f19ca7455f602739"
 dependencies = [
  "amplify",
  "proc-macro2",
@@ -610,9 +610,9 @@ dependencies = [
 
 [[package]]
 name = "internet2"
-version = "0.9.0-rc.1"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0afb751e9427eb26c527a3176570d0bba847fecfa31600695cb406c09180a1ef"
+checksum = "c7b39dd3f6f8003a69a4778afae0bcc3865c3da5e3329cc045d3725145ea62e4"
 dependencies = [
  "amplify",
  "bitcoin_hashes",
@@ -648,9 +648,9 @@ checksum = "349d5a591cd28b49e1d1037471617a32ddcda5731b99419008085f72d5a53836"
 
 [[package]]
 name = "lightning_encoding"
-version = "0.9.0"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f89f6308d1356a8a3aa15083165f4e5024b401e2cdb4fc356738aec78a4b030"
+checksum = "a56f420c81ea9f113a2ccefffc55124394feddf19f5b10ebbad81edee4763d28"
 dependencies = [
  "amplify",
  "bitcoin",
@@ -663,9 +663,9 @@ dependencies = [
 
 [[package]]
 name = "lightning_encoding_derive"
-version = "0.9.0-rc.1"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8816470f7f5fe634a8e370c6faa92e70e144e4996a140b9d23c1bdcb16ecfea8"
+checksum = "1d0f5261aacd87fa76a12ff80b5d0e6782ce969c0301ab7cfbabe20f4492881d"
 dependencies = [
  "amplify_syn",
  "encoding_derive_helpers",

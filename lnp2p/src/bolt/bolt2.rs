@@ -124,7 +124,7 @@ impl Default for ChannelType {
 impl lightning_encoding::LightningEncode for ChannelType {
     fn lightning_encode<E: io::Write>(
         &self,
-        e: E,
+        mut e: E,
     ) -> Result<usize, lightning_encoding::Error> {
         let mut flags = FlagVec::new();
         match self {
@@ -142,16 +142,33 @@ impl lightning_encoding::LightningEncode for ChannelType {
                 flags.set(12);
                 flags.set(22);
             }
-        }
-        flags.lightning_encode(e)
+        };
+
+        // Workaround to avoid lightning encode by FlagVec, because it add plus
+        // informations about length and does not working with lightning and
+        // lnd.
+        let buf = flags.as_inner();
+        let mut buf = buf.to_owned();
+        buf.sort();
+        buf.reverse();
+        e.write_all(&buf)?;
+
+        Ok(buf.len() as usize)
     }
 }
 
 impl lightning_encoding::LightningDecode for ChannelType {
     fn lightning_decode<D: io::Read>(
-        d: D,
+        mut d: D,
     ) -> Result<Self, lightning_encoding::Error> {
-        let mut flags = FlagVec::lightning_decode(d)?;
+        // Workaround to avoid lightning decode by FlagVec, because it add plus
+        // informations about length and does not working with lightning and
+        // lnd.
+        let mut buf = vec![];
+        let _ = d.read_to_end(&mut buf);
+        buf.sort();
+
+        let mut flags = FlagVec::from_inner(buf);
         if flags.shrink() {
             return Err(lightning_encoding::Error::DataIntegrityError(s!(
                 "non-minimal channel type encoding"
@@ -708,8 +725,91 @@ impl DumbDefault for AcceptChannel {
             htlc_basepoint: dumb_pubkey!(),
             first_per_commitment_point: dumb_pubkey!(),
             shutdown_scriptpubkey: None,
-            channel_type: None,
+            channel_type: none!(),
             unknown_tlvs: none!(),
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use lightning_encoding::LightningDecode;
+
+    use crate::bolt::Messages;
+
+    #[test]
+    fn real_clightning_open_channel() {
+        // Real open_channel message sent by clightning
+        let msg_recv = [
+            0, 32, 6, 34, 110, 70, 17, 26, 11, 89, 202, 175, 18, 96, 67, 235,
+            91, 191, 40, 195, 79, 58, 94, 51, 42, 31, 199, 178, 183, 60, 241,
+            136, 145, 15, 55, 163, 222, 247, 199, 217, 62, 176, 50, 239, 35, 1,
+            82, 129, 198, 46, 117, 47, 78, 64, 130, 130, 167, 89, 107, 148,
+            190, 121, 88, 127, 175, 82, 0, 0, 0, 0, 0, 1, 134, 160, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 34, 255, 255, 255, 255, 255, 255,
+            255, 255, 0, 0, 0, 0, 0, 0, 3, 232, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 253, 0, 6, 1, 227, 3, 33, 98, 70, 252, 48, 195, 103, 238, 233,
+            231, 193, 79, 109, 137, 240, 0, 34, 234, 4, 191, 125, 249, 102, 44,
+            137, 141, 152, 246, 118, 166, 205, 60, 3, 96, 241, 203, 115, 211,
+            19, 224, 138, 23, 92, 68, 226, 196, 234, 61, 226, 143, 211, 90, 92,
+            44, 147, 5, 89, 185, 117, 71, 57, 241, 139, 196, 28, 3, 252, 250,
+            227, 188, 85, 7, 237, 113, 4, 18, 45, 7, 192, 165, 147, 18, 113,
+            191, 216, 125, 175, 201, 118, 225, 63, 243, 29, 155, 194, 235, 167,
+            20, 3, 12, 61, 69, 17, 92, 121, 215, 107, 192, 35, 192, 160, 214,
+            235, 86, 202, 92, 206, 239, 201, 48, 28, 215, 9, 43, 255, 250, 80,
+            32, 129, 98, 29, 3, 57, 9, 153, 179, 206, 248, 130, 112, 219, 32,
+            69, 209, 220, 105, 18, 211, 2, 165, 247, 245, 245, 1, 170, 100,
+            208, 34, 98, 123, 207, 130, 10, 66, 2, 21, 90, 74, 135, 143, 98,
+            75, 173, 210, 81, 201, 99, 45, 76, 125, 176, 84, 187, 222, 90, 218,
+            87, 5, 11, 119, 191, 75, 185, 108, 124, 8, 32, 1, 0, 0, 1, 2, 16,
+            0,
+        ];
+        let msg = Messages::lightning_deserialize(&msg_recv);
+        // println!("{:?}", msg);
+        assert_eq!(true, msg.is_ok())
+    }
+
+    #[test]
+    fn real_clightning_accept_message() {
+        // Real accept_channel message sent by clightning
+        let msg_recv = [
+            0, 33, 117, 72, 156, 134, 70, 5, 93, 232, 6, 166, 206, 185, 243,
+            33, 125, 57, 230, 233, 235, 59, 255, 0, 23, 127, 91, 135, 129, 43,
+            74, 208, 254, 247, 0, 0, 0, 0, 0, 0, 2, 34, 255, 255, 255, 255,
+            255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 3, 232, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 6, 1, 227, 3, 147, 217, 39, 113, 17, 182, 164,
+            198, 126, 180, 51, 123, 215, 81, 65, 205, 222, 78, 101, 98, 199, 9,
+            5, 82, 67, 253, 162, 180, 223, 72, 98, 66, 2, 128, 65, 61, 107,
+            193, 243, 6, 121, 64, 101, 217, 132, 255, 102, 24, 104, 82, 231,
+            85, 38, 41, 202, 139, 32, 111, 38, 234, 127, 68, 163, 60, 140, 2,
+            39, 52, 86, 138, 94, 124, 142, 9, 235, 164, 16, 181, 217, 161, 26,
+            12, 8, 130, 181, 137, 220, 99, 201, 127, 201, 112, 190, 163, 193,
+            106, 156, 37, 2, 190, 147, 103, 247, 7, 229, 100, 68, 242, 62, 188,
+            34, 207, 164, 62, 66, 28, 7, 175, 210, 8, 124, 194, 36, 83, 236,
+            44, 127, 223, 168, 157, 68, 3, 14, 128, 103, 81, 154, 149, 202,
+            159, 71, 124, 151, 73, 105, 239, 176, 47, 156, 129, 14, 188, 71,
+            184, 153, 30, 177, 53, 89, 69, 99, 111, 56, 131, 3, 199, 31, 18,
+            222, 84, 187, 107, 58, 128, 108, 91, 102, 62, 231, 232, 67, 121,
+            29, 89, 1, 3, 82, 96, 15, 23, 248, 232, 249, 141, 149, 229, 70, 1,
+            0,
+        ];
+
+        let msg = Messages::lightning_deserialize(&msg_recv);
+        // println!("{:?}", msg);
+        assert_eq!(true, msg.is_ok())
+    }
+
+    #[test]
+    fn real_clightning_close_message() {
+        // Real close_channel message sent by clightning
+        let msg_recv = [
+            0, 38, 240, 6, 9, 251, 176, 118, 10, 79, 144, 36, 249, 193, 225,
+            103, 87, 223, 185, 26, 36, 177, 75, 202, 215, 227, 75, 79, 49, 101,
+            79, 167, 93, 206, 0, 22, 0, 20, 42, 238, 172, 27, 222, 161, 61,
+            181, 251, 208, 97, 79, 71, 255, 98, 8, 213, 205, 114, 94,
+        ];
+        let msg = Messages::lightning_deserialize(&msg_recv);
+        // println!("{:?}", msg);
+        assert_eq!(true, msg.is_ok())
     }
 }

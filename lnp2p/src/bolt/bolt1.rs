@@ -80,14 +80,9 @@ impl LightningDecode for AssetList {
 )]
 #[lightning_encoding(use_tlv)]
 #[display("init({global_features}, {local_features})")]
-#[display("init({global_features}, {local_features}, {assets:#?})")]
 pub struct Init {
     pub global_features: InitFeatures,
     pub local_features: InitFeatures,
-
-    #[lightning_encoding(tlv = 1)]
-    #[cfg_attr(feature = "strict_encoding", network_encoding(tlv = 1))]
-    pub assets: AssetList,
 
     #[lightning_encoding(unknown_tlvs)]
     #[cfg_attr(feature = "strict_encoding", network_encoding(unknown_tlvs))]
@@ -156,37 +151,59 @@ mod test {
     #[test]
     fn bolt1_testvec() {
         let init_msg = Messages::Init(Init {
-            global_features: none!(),
-            local_features: none!(),
-            assets: none!(),
+            global_features: InitFeatures::default(),
+            local_features: InitFeatures::default(),
             unknown_tlvs: none!(),
         });
         assert_eq!(
             init_msg.serialize(),
-            Vec::<u8>::from_hex("001000000000").unwrap()
+            Vec::<u8>::from_hex("0010000100000100").unwrap()
         );
+    }
+
+    #[test]
+    fn real_lnp_testvec() {
+        // Real init message sent by lnp-node
+        let init_recv = [0, 16, 0, 0, 0, 0];
+        let msg = Messages::lightning_deserialize(init_recv);
+        // println!("{:?}", msg);
+        assert_eq!(true, msg.is_ok())
     }
 
     #[test]
     fn real_clightning_testvec() {
         // Real init message sent by c-lightning
         let init_recv = [
-            // msg type
-            0u8, 16, //
-            // global features - 2 bytes
-            0, 2, 34, 0, //
-            // local features - 3 bytes
-            0, 3, 2, 170, 162, //
-            // TLV type = 1 (networks / assets)
-            1, //
-            // len
-            32, //
-            // network value
-            111, 226, 140, 10, 182, 241, 179, 114, 193, 166, 162, 70, 174, 99,
-            247, 79, 147, 30, 131, 101, 225, 90, 8, 156, 104, 214, 25, 0, 0, 0,
-            0, 0,
+            0, 16, 0, 2, 33, 0, 0, 7, 8, 160, 0, 8, 10, 105, 162, 1, 32, 6, 34,
+            110, 70, 17, 26, 11, 89, 202, 175, 18, 96, 67, 235, 91, 191, 40,
+            195, 79, 58, 94, 51, 42, 31, 199, 178, 183, 60, 241, 136, 145, 15,
         ];
-        let msg = Messages::lightning_deserialize(init_recv).unwrap();
-        println!("{}", msg);
+        let msg = Messages::lightning_deserialize(init_recv);
+        // println!("{:?}", msg);
+        assert_eq!(true, msg.is_ok())
+    }
+
+    #[test]
+    fn real_lnd_testvec() {
+        // Real init message sent by lnd
+        let init_recv = [
+            0, 16, 0, 2, 18, 0, 0, 253, 128, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32, 0, 136, 130, 82,
+            161,
+        ];
+
+        let msg = Messages::lightning_deserialize(&init_recv);
+        // println!("{:?}", msg);
+        assert_eq!(true, msg.is_ok())
     }
 }
