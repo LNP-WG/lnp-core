@@ -178,7 +178,11 @@ impl Extension<GossipExt> for DirectRouter {
             UpdateMsg::DirectChannelRemove(channel_id) => {
                 self.remove_direct_channel(*channel_id);
             }
-            UpdateMsg::DirectChannelUpdate{ channel_id, local_amount_msat, remote_amount_msat } => {
+            UpdateMsg::DirectChannelUpdate {
+                channel_id,
+                local_amount_msat,
+                remote_amount_msat,
+            } => {
                 self.channels.iter_mut().for_each(|ch| {
                     if ch.channel_id == *channel_id {
                         ch.outbound_capacity_msat = *local_amount_msat;
