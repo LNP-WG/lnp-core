@@ -108,7 +108,11 @@ impl router::Nomenclature for GossipExt {
 pub enum UpdateMsg {
     DirectChannelAdd(LocalChannelInfo),
     DirectChannelRemove(ChannelId),
-    DirectChannelUpdate(ChannelId),
+    DirectChannelUpdate {
+        channel_id: ChannelId,
+        local_amount_msat: u64,
+        remote_amount_msat: u64,
+    },
 }
 
 /// Router for direct channels (between this node and other nodes) for
@@ -174,8 +178,13 @@ impl Extension<GossipExt> for DirectRouter {
             UpdateMsg::DirectChannelRemove(channel_id) => {
                 self.remove_direct_channel(*channel_id);
             }
-            UpdateMsg::DirectChannelUpdate(_) => {
-                // TODO: implement update for channel balances
+            UpdateMsg::DirectChannelUpdate{ channel_id, local_amount_msat, remote_amount_msat } => {
+                self.channels.iter_mut().for_each(|ch| {
+                    if ch.channel_id == *channel_id {
+                        ch.outbound_capacity_msat = *local_amount_msat;
+                        ch.inbound_capacity_msat = *remote_amount_msat;
+                    };
+                });
             }
         }
         Ok(())
@@ -209,7 +218,7 @@ impl RouterExtension<GossipExt> for DirectRouter {
             .iter()
             .find(|info| info.remote_node == payment.node_id)
         {
-            if channel.outboud_capacity_msat < payment.amount_msat {
+            if channel.outbound_capacity_msat < payment.amount_msat {
                 return; // We do not have enough funds
             }
 
