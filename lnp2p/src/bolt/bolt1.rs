@@ -79,7 +79,6 @@ impl LightningDecode for AssetList {
     network_encoding(use_tlv)
 )]
 #[lightning_encoding(use_tlv)]
-#[display("init({global_features}, {local_features})")]
 #[display("init({global_features}, {local_features}, {assets:#?})")]
 pub struct Init {
     pub global_features: InitFeatures,
@@ -146,7 +145,6 @@ impl Display for Error {
 
 #[cfg(test)]
 mod test {
-    use amplify::hex::FromHex;
     use internet2::TypedEnum;
     use lightning_encoding::LightningDecode;
 
@@ -154,17 +152,16 @@ mod test {
     use crate::bolt::Messages;
 
     #[test]
-    fn bolt1_testvec() {
+    fn default_init() {
         let init_msg = Messages::Init(Init {
             global_features: none!(),
-            local_features: none!(),
+            local_features: default!(),
             assets: none!(),
             unknown_tlvs: none!(),
         });
-        assert_eq!(
-            init_msg.serialize(),
-            Vec::<u8>::from_hex("001000000000").unwrap()
-        );
+        assert_eq!(&init_msg.serialize(), &[
+            0x00, 0x10, 0x00, 0x01, 0x00, 0x00, 0x01, 0x00
+        ]);
     }
 
     #[test]
