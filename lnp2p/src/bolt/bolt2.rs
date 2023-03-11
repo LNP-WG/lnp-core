@@ -24,6 +24,7 @@ use bitcoin_scripts::hlc::{HashLock, HashPreimage};
 use bitcoin_scripts::PubkeyScript;
 use internet2::presentation::sphinx::Onion;
 use internet2::tlv;
+use lightning_encoding::Error;
 use secp256k1::ecdsa::Signature;
 use secp256k1::{PublicKey, SecretKey};
 
@@ -93,6 +94,34 @@ impl ChannelType {
     }
 }
 
+impl TryFrom<FlagVec> for ChannelType {
+    type Error = lightning_encoding::Error;
+
+    fn try_from(mut flags: FlagVec) -> Result<Self, Self::Error> {
+        if flags.shrink() {
+            return Err(lightning_encoding::Error::DataIntegrityError(s!(
+                "non-minimal channel type encoding"
+            )));
+        } else if flags.as_inner() == &[] as &[u8] {
+            return Ok(ChannelType::Basic);
+        }
+
+        let mut iter = flags.iter();
+        match (iter.next(), iter.next(), iter.next()) {
+            (Some(12), None, None) => Ok(ChannelType::StaticRemotekey),
+            (Some(12), Some(20), None) => {
+                Ok(ChannelType::AnchorOutputsStaticRemotekey)
+            }
+            (Some(12), Some(22), None) => {
+                Ok(ChannelType::AnchorsZeroFeeHtlcTxStaticRemotekey)
+            }
+            _ => Err(lightning_encoding::Error::DataIntegrityError(s!(
+                "invalid combination of channel type flags"
+            ))),
+        }
+    }
+}
+
 /// Error parsing [`ChannelType`] from strings
 #[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display, Error)]
 #[display("unknown channel type name `{0}`")]
@@ -151,28 +180,12 @@ impl lightning_encoding::LightningDecode for ChannelType {
     fn lightning_decode<D: io::Read>(
         d: D,
     ) -> Result<Self, lightning_encoding::Error> {
-        let mut flags = FlagVec::lightning_decode(d)?;
-        if flags.shrink() {
-            return Err(lightning_encoding::Error::DataIntegrityError(s!(
-                "non-minimal channel type encoding"
-            )));
-        } else if flags.as_inner() == &[] as &[u8] {
-            return Ok(ChannelType::Basic);
-        }
-
-        let mut iter = flags.iter();
-        match (iter.next(), iter.next(), iter.next()) {
-            (Some(12), None, None) => Ok(ChannelType::StaticRemotekey),
-            (Some(12), Some(20), None) => {
-                Ok(ChannelType::AnchorOutputsStaticRemotekey)
-            }
-            (Some(12), Some(22), None) => {
-                Ok(ChannelType::AnchorsZeroFeeHtlcTxStaticRemotekey)
-            }
-            _ => Err(lightning_encoding::Error::DataIntegrityError(s!(
-                "invalid combination of channel type flags"
-            ))),
-        }
+        let flags = FlagVec::lightning_decode(d)?;
+        ChannelType::try_from(flags)
+    }
+    fn lightning_deserialize(data: impl AsRef<[u8]>) -> Result<Self, Error> {
+        let flags = FlagVec::lightning_deserialize(data)?;
+        ChannelType::try_from(flags)
     }
 }
 
