@@ -19,7 +19,7 @@ use amplify::ToYamlString;
 use bitcoin::util::bip32::{ChildNumber, ExtendedPrivKey, KeySource};
 use bitcoin_scripts::PubkeyScript;
 use p2p::bolt::{AcceptChannel, ChannelType, OpenChannel};
-use secp256k1::{PublicKey, Secp256k1};
+use secp256k1::{PublicKey, Secp256k1, SecretKey};
 use wallet::hd::HardenedIndex;
 
 /// Key + information about its derivation
@@ -67,8 +67,10 @@ pub struct LocalKeyset {
     pub delayed_payment_basepoint: LocalPubkey,
     /// Base point for deriving HTLC-related keys
     pub htlc_basepoint: LocalPubkey,
-    /// Base point for deriving keys used for penalty spending paths
+    /// Commitment point to be used for the first commitment transaction
     pub first_per_commitment_point: LocalPubkey,
+    /// Private Key of the commitment point to be used `revoke_and_ack` message
+    pub first_per_commitment_secret: Option<SecretKey>,
     /// Allows the sending node to commit to where funds will go on mutual
     /// close, which the remote node should enforce even if a node is
     /// compromised later.
@@ -171,6 +173,7 @@ impl DumbDefault for LocalKeyset {
             payment_basepoint: DumbDefault::dumb_default(),
             delayed_payment_basepoint: DumbDefault::dumb_default(),
             htlc_basepoint: DumbDefault::dumb_default(),
+            first_per_commitment_secret: None,
             first_per_commitment_point: DumbDefault::dumb_default(),
             shutdown_scriptpubkey: None,
             static_remotekey: false,
@@ -203,6 +206,19 @@ impl LocalKeyset {
     ) -> Self {
         let fingerpint = channel_source.0;
 
+        let secrets = (0u16..=6)
+            .into_iter()
+            .map(HardenedIndex::from)
+            .map(ChildNumber::from)
+            .map(|index| [index])
+            .map(|path| {
+                channel_xpriv
+                    .derive_priv(secp, &path)
+                    .expect("negligible probability")
+                    .private_key
+            })
+            .collect::<Vec<_>>();
+
         let keys = (0u16..=6)
             .into_iter()
             .map(HardenedIndex::from)
@@ -228,6 +244,7 @@ impl LocalKeyset {
             delayed_payment_basepoint: keys[2].clone(),
             htlc_basepoint: keys[5].clone(),
             first_per_commitment_point: keys[4].clone(),
+            first_per_commitment_secret: Some(secrets[4].clone()),
             shutdown_scriptpubkey,
             static_remotekey: false,
         }

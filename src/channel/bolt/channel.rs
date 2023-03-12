@@ -33,8 +33,9 @@ use secp256k1::ecdsa::Signature;
 use secp256k1::Secp256k1;
 use strict_encoding::StrictDecode;
 use wallet::lex_order::LexOrder;
-use wallet::psbt;
-use wallet::psbt::Psbt;
+use wallet::psbt::{
+    Psbt, {self},
+};
 
 use super::keyset::{LocalKeyset, LocalPubkey, RemoteKeyset};
 use super::policy::{CommonParams, PeerParams, Policy};
@@ -293,12 +294,15 @@ impl Channel<BoltExt> {
         cltv_expiry: u32,
         route: Vec<Hop<PaymentOnion>>,
     ) -> Result<Messages, Error> {
-        self.constructor_mut().compose_add_update_htlc(
+        let mut message = self.constructor_mut().compose_add_update_htlc(
             amount_msat,
             payment_hash,
             cltv_expiry,
-            route,
-        )
+            route.clone(),
+        )?;
+
+        self.state_change(&UpdateReq::PayBolt(route), &mut message)?;
+        Ok(message)
     }
 
     #[inline]
@@ -542,6 +546,7 @@ impl BoltChannel {
     /// Sets local keys for the channel
     #[inline]
     pub fn set_local_keys(&mut self, keys: LocalKeyset) {
+        self.local_per_commitment_point = keys.first_per_commitment_point.key;
         self.local_keys = keys
     }
 
@@ -564,7 +569,7 @@ impl Extension<BoltExt> for BoltChannel {
 
     fn update_from_peer(&mut self, message: &Messages) -> Result<(), Error> {
         // TODO: Check lifecycle
-        match message {
+        let result = match message {
             Messages::OpenChannel(open_channel) => {
                 self.stage = Lifecycle::Proposed;
 
@@ -574,10 +579,6 @@ impl Extension<BoltExt> for BoltChannel {
                 self.remote_amount_msat = open_channel.funding_satoshis * 1000
                     - open_channel.push_msat;
                 self.local_amount_msat = open_channel.push_msat;
-
-                // Policies
-                self.remote_params =
-                    self.policy.validate_inbound(open_channel)?;
 
                 // TODO: Add channel checks and fail on:
                 // 1) the `chain_hash` value is set to a hash of a chain that is
@@ -602,13 +603,17 @@ impl Extension<BoltExt> for BoltChannel {
                     open_channel.first_per_commitment_point;
                 self.remote_per_commitment_point =
                     open_channel.first_per_commitment_point;
+
+                // Policies
+                self.common_params = CommonParams::with(
+                    open_channel,
+                    open_channel.to_self_delay.into(),
+                );
+                let inbound_params = self.policy.validate_inbound(open_channel);
+                self.remote_params = inbound_params?;
             }
             Messages::AcceptChannel(accept_channel) => {
                 self.stage = Lifecycle::Accepted;
-
-                self.remote_params = self
-                    .policy
-                    .confirm_outbound(self.local_params, accept_channel)?;
 
                 // TODO: Add channel type and other checks
                 // 1) the `temporary_channel_id` MUST be the same as the
@@ -631,6 +636,12 @@ impl Extension<BoltExt> for BoltChannel {
                     accept_channel.first_per_commitment_point;
                 self.remote_per_commitment_point =
                     accept_channel.first_per_commitment_point;
+
+                // Policies
+                let outbound_params = self
+                    .policy
+                    .confirm_outbound(self.local_params, accept_channel);
+                self.remote_params = outbound_params?;
             }
             Messages::FundingCreated(funding_created) => {
                 self.stage = Lifecycle::Funding;
@@ -653,9 +664,9 @@ impl Extension<BoltExt> for BoltChannel {
                 self.remote_per_commitment_point =
                     funding_locked.next_per_commitment_point;
             }
-            Messages::Shutdown(_) => {}
-            Messages::ClosingSigned(_) => {}
-            Messages::UpdateAddHtlc(_message) => {
+            Messages::Shutdown(_)
+            | Messages::ClosingSigned(_)
+            | Messages::UpdateAddHtlc(_) => {
                 /* TODO
                 if message.amount_msat + total_htlc_value_in_flight_msat
                     > self.max_htlc_value_in_flight_msat
@@ -666,15 +677,15 @@ impl Extension<BoltExt> for BoltChannel {
                 }
                  */
             }
-            Messages::UpdateFulfillHtlc(_) => {}
-            Messages::UpdateFailHtlc(_) => {}
-            Messages::UpdateFailMalformedHtlc(_) => {}
-            Messages::CommitmentSigned(_) => {}
-            Messages::RevokeAndAck(_) => {}
-            Messages::ChannelReestablish(_) => {}
-            _ => {}
-        }
-        Ok(())
+            Messages::UpdateFulfillHtlc(_)
+            | Messages::UpdateFailHtlc(_)
+            | Messages::UpdateFailMalformedHtlc(_)
+            | Messages::CommitmentSigned(_)
+            | Messages::RevokeAndAck(_)
+            | Messages::ChannelReestablish(_)
+            | _ => (),
+        };
+        Ok(result)
     }
 
     fn load_state(&mut self, state: &ChannelState) {
@@ -793,7 +804,9 @@ impl BoltChannel {
                 .delayed_payment_basepoint
                 .key,
             htlc_basepoint: local_keyset.htlc_basepoint.key,
-            first_per_commitment_point: self.local_per_commitment_point,
+            first_per_commitment_point: local_keyset
+                .first_per_commitment_point
+                .key,
             shutdown_scriptpubkey: local_keyset.shutdown_scriptpubkey,
             channel_flags: u8::from(common_params.announce_channel),
             channel_type: common_params.channel_type.into_option(),
@@ -904,7 +917,7 @@ impl BoltChannel {
         let secp = Secp256k1::new();
         let onion_packet =
             OnionPacket::with(&secp, &route, payment_hash.as_ref())?;
-        let mut message = Messages::UpdateAddHtlc(UpdateAddHtlc {
+        let message = Messages::UpdateAddHtlc(UpdateAddHtlc {
             channel_id: self.try_channel_id()?,
             htlc_id: 0,
             amount_msat,
@@ -913,11 +926,10 @@ impl BoltChannel {
             onion_routing_packet: Onion::Onion(onion_packet),
             unknown_tlvs: none!(),
         });
-        self.state_change(&UpdateReq::PayBolt(route), &mut message)?;
         Ok(message)
     }
 
-    fn next_per_commitment_point(&mut self) -> PublicKey {
+    pub fn next_per_commitment_point(&mut self) -> PublicKey {
         // TODO: Implement per commitment point switching
         self.local_per_commitment_point
     }
@@ -925,7 +937,6 @@ impl BoltChannel {
     fn remote_paymentpubkey(&self, as_remote_node: bool) -> PublicKey {
         // TODO: Optimize and keep Secp256k1 on a permanent basis
         let secp = Secp256k1::verification_only();
-
         let per_commitment_point = if as_remote_node {
             self.remote_per_commitment_point
         } else {
@@ -954,15 +965,15 @@ impl BoltChannel {
         // TODO: Optimize and keep Secp256k1 on a permanent basis
         let secp = Secp256k1::verification_only();
 
-        let per_commitment_point = if as_remote_node {
-            self.local_per_commitment_point
-        } else {
-            self.remote_per_commitment_point
-        };
         let delayed_payment_basepoint = if as_remote_node {
             self.remote_keys.delayed_payment_basepoint
         } else {
             self.local_keys.delayed_payment_basepoint.key
+        };
+        let per_commitment_point = if as_remote_node {
+            self.remote_per_commitment_point
+        } else {
+            self.local_per_commitment_point
         };
 
         let mut engine = sha256::Hash::engine();
@@ -1005,7 +1016,7 @@ impl BoltChannel {
             .mul_tweak(&secp, &revocation_tweak)
             .expect("negligible probability");
 
-        let mut tweaked_per_commitment_point = self.remote_per_commitment_point;
+        let mut tweaked_per_commitment_point = per_commitment_point;
         let mut engine = sha256::Hash::engine();
         engine.input(&per_commitment_point.serialize());
         engine.input(&revocation_basepoint.serialize());
@@ -1064,9 +1075,9 @@ impl ChannelExtension<BoltExt> for BoltChannel {
             self.remote_amount_msat
         };
         let to_self_delay = if as_remote_node {
-            self.remote_params.to_self_delay
-        } else {
             self.local_params.to_self_delay
+        } else {
+            self.remote_params.to_self_delay
         };
         if to_local_amount > 0 {
             tx_graph.cmt_outs.push(ScriptGenerators::ln_to_local(
@@ -1082,7 +1093,6 @@ impl ChannelExtension<BoltExt> for BoltChannel {
                 self.remote_paymentpubkey(as_remote_node),
             ));
         }
-
         Ok(())
     }
 }

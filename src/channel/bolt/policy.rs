@@ -192,7 +192,7 @@ impl Default for Policy {
             to_self_delay_max: 250,
             // normal operational range for the fees in bitcoin network - it
             // really never went above 100 to get tx mined within an hour or two
-            feerate_per_kw_range: 1..100,
+            feerate_per_kw_range: 1..500,
             // three blocks is enough to get sufficient security
             minimum_depth: 3,
             // 6 blocks is enough to provide the necessary security

@@ -21,8 +21,7 @@ use bitcoin_scripts::hlc::{HashLock, HashPreimage};
 use bitcoin_scripts::{LockScript, PubkeyScript, WitnessScript};
 use lnp2p::bolt::{ChannelId, Messages};
 use p2p::bolt::ChannelType;
-use wallet::psbt;
-use wallet::psbt::{Psbt, PsbtVersion};
+use wallet::psbt::{self, Output, Psbt, PsbtVersion};
 
 use crate::channel::bolt::util::UpdateReq;
 use crate::channel::bolt::{BoltExt, ChannelState, Error, TxType};
@@ -230,7 +229,7 @@ impl Extension<BoltExt> for Htlc {
                             "Leading zeros not satisfied for Bitcoin network"
                                 .to_string(),
                         ));
-                    } else if message.htlc_id <= self.next_recieved_htlc_id {
+                    } else if message.htlc_id < self.next_recieved_htlc_id {
                         return Err(Error::Htlc(
                             "HTLC id violation occurred".to_string(),
                         )); // TODO handle reconnection
@@ -350,15 +349,27 @@ impl ChannelExtension<BoltExt> for Htlc {
         _as_remote_node: bool,
     ) -> Result<(), Error> {
         // Process offered HTLCs
+        let mut accumulate = 0;
         for (index, offered) in self.offered_htlcs.iter() {
-            let htlc_output = ScriptGenerators::ln_offered_htlc(
-                offered.amount,
+            let htlc_output: Output = ScriptGenerators::ln_offered_htlc(
+                offered.amount / 1000,
                 self.remote_revocation_basepoint,
                 self.local_basepoint,
                 self.remote_basepoint,
                 offered.hashlock,
             );
-            tx_graph.cmt_outs.push(htlc_output); // Should htlc outputs be inside graph.cmt?
+            // Sum amounts to same OutPoints
+            match tx_graph.cmt_outs.iter().position(|out| {
+                out.script == htlc_output.script
+                    && out.witness_script == htlc_output.witness_script
+            }) {
+                Some(index) => {
+                    let mut htlc_output = tx_graph.cmt_outs.remove(index);
+                    htlc_output.amount += offered.amount;
+                    tx_graph.cmt_outs.insert(index, htlc_output);
+                }
+                _ => tx_graph.cmt_outs.push(htlc_output),
+            };
 
             let htlc_tx = Psbt::ln_htlc(
                 offered.amount,
@@ -376,19 +387,33 @@ impl ChannelExtension<BoltExt> for Htlc {
                 last_index as u64 + index,
                 htlc_tx,
             );
+
+            accumulate += offered.amount / 1000;
         }
 
         // Process received HTLCs
         for (index, recieved) in self.received_htlcs.iter() {
-            let htlc_output = ScriptGenerators::ln_received_htlc(
-                recieved.amount,
+            let htlc_output: Output = ScriptGenerators::ln_received_htlc(
+                recieved.amount / 1000,
                 self.remote_revocation_basepoint,
                 self.local_basepoint,
                 self.remote_basepoint,
                 recieved.cltv_expiry,
                 recieved.hashlock,
             );
-            tx_graph.cmt_outs.push(htlc_output);
+
+            // Sum amounts to same OutPoints
+            match tx_graph.cmt_outs.iter().position(|out| {
+                out.script == htlc_output.script
+                    && out.witness_script == htlc_output.witness_script
+            }) {
+                Some(index) => {
+                    let mut htlc_output = tx_graph.cmt_outs.remove(index);
+                    htlc_output.amount += recieved.amount;
+                    tx_graph.cmt_outs.insert(index, htlc_output);
+                }
+                _ => tx_graph.cmt_outs.push(htlc_output),
+            };
 
             let htlc_tx = Psbt::ln_htlc(
                 recieved.amount,
@@ -406,7 +431,18 @@ impl ChannelExtension<BoltExt> for Htlc {
                 last_index as u64 + index,
                 htlc_tx,
             );
+
+            accumulate += recieved.amount / 1000;
         }
+
+        // Subtracts from the total amount of the commitment transaction
+        if accumulate > 0 {
+            let mut refund_tx = tx_graph.cmt_outs.remove(0);
+            refund_tx.amount -= accumulate;
+
+            tx_graph.cmt_outs.insert(tx_graph.cmt_outs.len(), refund_tx);
+        }
+
         Ok(())
     }
 }
