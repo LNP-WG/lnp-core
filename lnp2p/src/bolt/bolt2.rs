@@ -153,7 +153,7 @@ impl Default for ChannelType {
 impl lightning_encoding::LightningEncode for ChannelType {
     fn lightning_encode<E: io::Write>(
         &self,
-        e: E,
+        mut e: E,
     ) -> Result<usize, lightning_encoding::Error> {
         let mut flags = FlagVec::new();
         match self {
@@ -172,19 +172,27 @@ impl lightning_encoding::LightningEncode for ChannelType {
                 flags.set(22);
             }
         }
-        flags.lightning_encode(e)
+        let mut vec = flags.as_inner().to_vec();
+        vec.reverse();
+        e.write_all(&vec)?;
+        Ok(vec.len())
     }
 }
 
 impl lightning_encoding::LightningDecode for ChannelType {
     fn lightning_decode<D: io::Read>(
-        d: D,
+        mut d: D,
     ) -> Result<Self, lightning_encoding::Error> {
-        let flags = FlagVec::lightning_decode(d)?;
+        let mut vec = vec![];
+        d.read_to_end(&mut vec)?;
+        vec.reverse();
+        let flags = FlagVec::from_inner(vec);
         ChannelType::try_from(flags)
     }
     fn lightning_deserialize(data: impl AsRef<[u8]>) -> Result<Self, Error> {
-        let flags = FlagVec::lightning_deserialize(data)?;
+        let mut vec = data.as_ref().to_vec();
+        vec.reverse();
+        let flags = FlagVec::from_inner(vec);
         ChannelType::try_from(flags)
     }
 }
