@@ -731,6 +731,7 @@ impl DumbDefault for AcceptChannel {
 mod test {
     use lightning_encoding::LightningDecode;
 
+    use super::*;
     use crate::bolt::Messages;
 
     #[test]
@@ -767,7 +768,7 @@ mod test {
     fn real_clightning_accept_message() {
         // Real accept_channel message sent by clightning
         let msg_recv = [
-            0, 33, 117, 72, 156, 134, 70, 5, 93, 232, 6, 166, 206, 185, 243,
+            0u8, 33, 117, 72, 156, 134, 70, 5, 93, 232, 6, 166, 206, 185, 243,
             33, 125, 57, 230, 233, 235, 59, 255, 0, 23, 127, 91, 135, 129, 43,
             74, 208, 254, 247, 0, 0, 0, 0, 0, 0, 2, 34, 255, 255, 255, 255,
             255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 3, 232, 0, 0, 0, 0, 0, 0, 0,
@@ -801,5 +802,17 @@ mod test {
             181, 251, 208, 97, 79, 71, 255, 98, 8, 213, 205, 114, 94,
         ];
         Messages::lightning_deserialize(&msg_recv).unwrap();
+    }
+
+    #[test]
+    fn decode_static_remotekey_channel_type() {
+        // Byte array expected by ChannelType::lightning_deserialize method
+        let bytes = [0u8, 2, 0, 0x10];
+        ChannelType::lightning_deserialize(&bytes).unwrap();
+
+        // The byte array received by `ChannelType::lightning_deserialize` when
+        // we try decode open_channel message sent by clightning
+        let bytes = [0u8, 2, 0x10, 0];
+        ChannelType::lightning_deserialize(&bytes).unwrap();
     }
 }

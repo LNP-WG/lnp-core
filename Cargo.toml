@@ -49,4 +49,4 @@ exclude = ["contrib"]
 default-members = [".", "lnp2p"]
 
 [patch.crates-io]
-lightning_encoding = { git = "https://github.com/LNP-WG/lightning_encoding", branch = "fix/channel-type" }
+lightning_encoding = { git = "https://github.com/LNP-WG/lightning_encoding", branch = "fix/size-encoding" }

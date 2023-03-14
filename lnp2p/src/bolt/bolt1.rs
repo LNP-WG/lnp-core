@@ -160,7 +160,12 @@ mod test {
             unknown_tlvs: none!(),
         });
         assert_eq!(&init_msg.serialize(), &[
-            0x00, 0x10, 0x00, 0x01, 0x00, 0x00, 0x01, 0x00
+            // msg type
+            0x00, 0x10, //
+            // local features - 0 length
+            0, 0, //
+            // global features - 0 length
+            0, 0
         ]);
     }
 

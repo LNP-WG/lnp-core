@@ -630,9 +630,7 @@ impl LightningEncode for InitFeatures {
         &self,
         e: E,
     ) -> Result<usize, lightning_encoding::Error> {
-        let flag_vec = FlagVec::from(self.clone());
-        let vec: Vec<u8> = flag_vec.as_inner().iter().rev().copied().collect();
-        vec.lightning_encode(e)
+        FlagVec::from(self.clone()).lightning_encode(e)
 
         /* Previous implementation:
         let len = self.byte_len();
@@ -665,9 +663,7 @@ impl LightningDecode for InitFeatures {
     fn lightning_decode<D: io::Read>(
         d: D,
     ) -> Result<Self, lightning_encoding::Error> {
-        let vec = Vec::<u8>::lightning_decode(d)?;
-
-        let flag_vec = FlagVec::from_inner(vec.into_iter().rev().collect());
+        let flag_vec = FlagVec::lightning_decode(d)?;
         InitFeatures::try_from(flag_vec).map_err(|e| {
             lightning_encoding::Error::DataIntegrityError(e.to_string())
         })
@@ -735,9 +731,7 @@ impl LightningEncode for ChannelFeatures {
         &self,
         e: E,
     ) -> Result<usize, lightning_encoding::Error> {
-        let flag_vec = FlagVec::from(*self);
-        let vec: Vec<u8> = flag_vec.as_inner().iter().rev().copied().collect();
-        vec.lightning_encode(e)
+        FlagVec::from(*self).lightning_encode(e)
 
         /* Previous implementation:
         let len = self.byte_len();
@@ -770,9 +764,7 @@ impl LightningDecode for ChannelFeatures {
     fn lightning_decode<D: io::Read>(
         d: D,
     ) -> Result<Self, lightning_encoding::Error> {
-        let vec = Vec::<u8>::lightning_decode(d)?;
-
-        let flag_vec = FlagVec::from_inner(vec.into_iter().rev().collect());
+        let flag_vec = FlagVec::lightning_decode(d)?;
         ChannelFeatures::try_from(flag_vec).map_err(|e| {
             lightning_encoding::Error::DataIntegrityError(e.to_string())
         })
