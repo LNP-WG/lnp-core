@@ -660,8 +660,9 @@ checksum = "99227334921fae1a979cf0bfdfcc6b3e5ce376ef57e16fb6fb3ea2ed6095f80c"
 
 [[package]]
 name = "lightning_encoding"
-version = "0.9.2"
-source = "git+https://github.com/LNP-WG/lightning_encoding?branch=fix/size-encoding#7556c3d923181e1df80273748738e5fd49ff5c67"
+version = "0.9.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "763dd2be0ddf36406ea95454c0a20f3fcdd1343920f24e653a65069cca96c142"
 dependencies = [
  "amplify",
  "bitcoin",
@@ -675,7 +676,8 @@ dependencies = [
 [[package]]
 name = "lightning_encoding_derive"
 version = "0.9.1"
-source = "git+https://github.com/LNP-WG/lightning_encoding?branch=fix/size-encoding#7556c3d923181e1df80273748738e5fd49ff5c67"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c81810acde5616571d62928ccebef1e92b941d245e0d3cc830f884ec827c5ca6"
 dependencies = [
  "amplify_syn",
  "encoding_derive_helpers 0.9.0",
@@ -695,7 +697,7 @@ dependencies = [
 
 [[package]]
 name = "lnp-core"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "amplify",
  "bitcoin",
@@ -713,7 +715,7 @@ dependencies = [
 
 [[package]]
 name = "lnp2p"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "amplify",
  "bitcoin",

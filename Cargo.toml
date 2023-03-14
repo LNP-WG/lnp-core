@@ -1,6 +1,6 @@
 [package]
 name = "lnp-core"
-version = "0.9.1"
+version = "0.9.2"
 license = "MIT"
 authors = ["Dr Maxim Orlovsky <orlovsky@pandoracore.com>"]
 description = "LNP Core Library: rust implementation of modular lightning channels architecture"
@@ -21,7 +21,7 @@ crate-type = ["rlib", "staticlib"]
 [dependencies]
 amplify = "3.13.0"
 strict_encoding = "0.9.0"
-lightning_encoding = "0.9.0"
+lightning_encoding = "0.9.3"
 bitcoin_scripts = "0.9.0"
 descriptor-wallet = { version = "0.9.0", features = ["keygen"] }
 lnp2p = { version = "0.9.1", path = "lnp2p", default-features = false }
@@ -47,6 +47,3 @@ rustc-args = ["--cfg", "docsrs"]
 members = [".", "lnp2p"]
 exclude = ["contrib"]
 default-members = [".", "lnp2p"]
-
-[patch.crates-io]
-lightning_encoding = { git = "https://github.com/LNP-WG/lightning_encoding", branch = "fix/size-encoding" }
