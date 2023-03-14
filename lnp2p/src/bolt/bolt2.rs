@@ -814,13 +814,9 @@ mod test {
 
     #[test]
     fn decode_static_remotekey_channel_type() {
-        // Byte array expected by ChannelType::lightning_deserialize method
-        let bytes = [0u8, 2, 0, 0x10];
-        ChannelType::lightning_deserialize(&bytes).unwrap();
-
         // The byte array received by `ChannelType::lightning_deserialize` when
         // we try decode open_channel message sent by clightning
-        let bytes = [0u8, 2, 0x10, 0];
+        let bytes = [0x10, 0u8];
         ChannelType::lightning_deserialize(&bytes).unwrap();
     }
 }

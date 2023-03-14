@@ -661,7 +661,7 @@ checksum = "99227334921fae1a979cf0bfdfcc6b3e5ce376ef57e16fb6fb3ea2ed6095f80c"
 [[package]]
 name = "lightning_encoding"
 version = "0.9.2"
-source = "git+https://github.com/LNP-WG/lightning_encoding?branch=fix/size-encoding#e54d9fba5799968bf71efdd296242f8b7cb85410"
+source = "git+https://github.com/LNP-WG/lightning_encoding?branch=fix/size-encoding#7556c3d923181e1df80273748738e5fd49ff5c67"
 dependencies = [
  "amplify",
  "bitcoin",
@@ -675,7 +675,7 @@ dependencies = [
 [[package]]
 name = "lightning_encoding_derive"
 version = "0.9.1"
-source = "git+https://github.com/LNP-WG/lightning_encoding?branch=fix/size-encoding#e54d9fba5799968bf71efdd296242f8b7cb85410"
+source = "git+https://github.com/LNP-WG/lightning_encoding?branch=fix/size-encoding#7556c3d923181e1df80273748738e5fd49ff5c67"
 dependencies = [
  "amplify_syn",
  "encoding_derive_helpers 0.9.0",
