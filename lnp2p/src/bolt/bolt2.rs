@@ -612,7 +612,6 @@ pub struct UpdateFailMalformedHtlc {
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Display)]
-#[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display("commitment_signed({channel_id}, ...signatures)")]
 pub struct CommitmentSigned {
@@ -735,9 +734,46 @@ impl DumbDefault for AcceptChannel {
     }
 }
 
+// TODO: Replace this custom implementation with derivation in v0.10
+impl lightning_encoding::LightningEncode for CommitmentSigned {
+    fn lightning_encode<E: io::Write>(&self, mut e: E) -> Result<usize, Error> {
+        let mut len = 0;
+        len += self.channel_id.lightning_encode(&mut e)?;
+        len += self.signature.lightning_encode(&mut e)?;
+
+        let num_htlcs = self.htlc_signatures.len() as u16;
+        len += num_htlcs.lightning_encode(&mut e)?;
+        for index in 0..num_htlcs {
+            let sig: Signature = self.htlc_signatures[index as usize];
+            len += sig.lightning_encode(&mut e)?;
+        }
+        Ok(len)
+    }
+}
+
+impl lightning_encoding::LightningDecode for CommitmentSigned {
+    fn lightning_decode<D: io::Read>(mut d: D) -> Result<Self, Error> {
+        let channel_id = ChannelId::lightning_decode(&mut d)?;
+        let signature = Signature::lightning_decode(&mut d)?;
+        let num_htlcs = u16::lightning_decode(&mut d)?;
+
+        let mut htlc_signatures = Vec::with_capacity(num_htlcs as usize);
+        for _ in 0..num_htlcs {
+            let sig = Signature::lightning_decode(&mut d)?;
+            htlc_signatures.push(sig);
+        }
+
+        Ok(CommitmentSigned {
+            channel_id,
+            signature,
+            htlc_signatures,
+        })
+    }
+}
+
 #[cfg(test)]
 mod test {
-    use lightning_encoding::LightningDecode;
+    use lightning_encoding::{LightningDecode, LightningEncode};
 
     use super::*;
     use crate::bolt::Messages;
@@ -818,5 +854,34 @@ mod test {
         // we try decode open_channel message sent by clightning
         let bytes = [0x10, 0u8];
         ChannelType::lightning_deserialize(&bytes).unwrap();
+    }
+
+    #[test]
+    fn real_cln_commit_sig_message() {
+        // Real close_channel message sent by clightning
+        let msg_recv = [
+            // 1. type: 132 (commitment_signed)
+            0, 132, // 2. data
+            // [channel_id:channel_id]
+            144, 126, 57, 252, 212, 105, 195, 245, 167, 53, 85, 84, 78, 225, 18,
+            39, 66, 215, 204, 172, 103, 191, 57, 179, 110, 95, 0, 103, 121,
+            183, 137, 229, // [signature:signature]
+            45, 20, 246, 116, 50, 191, 19, 49, 213, 193, 96, 112, 87, 119, 25,
+            144, 108, 227, 41, 9, 170, 112, 127, 122, 35, 251, 79, 49, 39, 185,
+            230, 77, 55, 70, 213, 71, 199, 35, 196, 15, 62, 241, 71, 186, 102,
+            233, 220, 160, 174, 227, 46, 111, 51, 96, 161, 252, 178, 87, 108,
+            131, 219, 44, 17, 207, // [u16:num_htlcs]
+            0, 1, // [num_htlcs*signature:htlc_signature]
+            29, 140, 31, 126, 37, 240, 28, 159, 160, 6, 50, 83, 231, 11, 215,
+            187, 15, 49, 69, 199, 108, 193, 192, 5, 53, 73, 209, 207, 189, 133,
+            244, 150, 44, 56, 239, 131, 248, 117, 42, 0, 211, 250, 33, 3, 102,
+            156, 250, 137, 97, 142, 135, 174, 39, 31, 114, 193, 18, 91, 209,
+            139, 130, 62, 246, 230,
+        ];
+
+        let commit_sig = Messages::lightning_deserialize(msg_recv).unwrap();
+        let vec = commit_sig.lightning_serialize().unwrap();
+
+        assert_eq!(msg_recv.to_vec(), vec);
     }
 }
