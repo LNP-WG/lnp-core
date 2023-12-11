@@ -31,7 +31,7 @@ pub enum CommonFeeAlgo {
     /// Common fees are paid by the channel coordinator
     ByCoordinator,
 
-    /// Common fees are paid in proportional amounts by all participats
+    /// Common fees are paid in proportional amounts by all participants
     SharedFee,
 }
 
@@ -209,7 +209,7 @@ pub struct UpgradeChannel {
 
 #[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Debug, Display)]
 #[derive(NetworkEncode, NetworkDecode)]
-#[display("donwgrade_channel({channel_id}, {protocol}, ...)")]
+#[display("downgrade_channel({channel_id}, {protocol}, ...)")]
 pub struct DowngradeChannel {
     pub channel_id: ChannelId,
     pub protocol: ProtocolName,

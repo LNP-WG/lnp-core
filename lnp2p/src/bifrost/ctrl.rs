@@ -52,7 +52,7 @@ pub struct Error {
     pub channel_id: Option<ChannelId>,
     pub errno: u64,
     pub message: Option<String>,
-    /// Any additiona error details
+    /// Any additional error details
     #[network_encoding(unknown_tlvs)]
     pub unknown_tlvs: tlv::Stream,
 }

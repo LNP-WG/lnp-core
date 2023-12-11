@@ -360,7 +360,7 @@ pub enum ShortChannelIdParseError {
     WrongOutputIndex,
     /// too many short channel id components; expected three (block height,
     /// tx index and output index)
-    ExessiveComponents,
+    ExcessiveComponents,
 }
 
 impl FromStr for ShortChannelId {
@@ -382,7 +382,7 @@ impl FromStr for ShortChannelId {
                     })?,
                 })
             }
-            _ => Err(ShortChannelIdParseError::ExessiveComponents),
+            _ => Err(ShortChannelIdParseError::ExcessiveComponents),
         }
     }
 }

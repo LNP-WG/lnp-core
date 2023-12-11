@@ -562,7 +562,7 @@ pub struct UpdateAddHtlc {
 #[derive(Clone, PartialEq, Eq, Debug, Display)]
 #[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
-#[display("update_fullfill_htlc({channel_id}, {htlc_id}, ...preimages)")]
+#[display("update_fulfill_htlc({channel_id}, {htlc_id}, ...preimages)")]
 pub struct UpdateFulfillHtlc {
     /// The channel ID
     pub channel_id: ChannelId,
