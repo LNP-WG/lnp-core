@@ -482,7 +482,7 @@ impl Policy {
 }
 
 /// Structure containing part of the channel configuration (and state, as it
-/// contains adjustible fee) which must follow specific policies and be accepted
+/// contains adjustable fee) which must follow specific policies and be accepted
 /// or validated basing on those policies and additional protocol-level
 /// requirements.
 ///
@@ -930,7 +930,7 @@ mod test {
     }
 
     #[test]
-    fn test_local_dust_limit_exeeds_remote_reserve() {
+    fn test_local_dust_limit_exceeds_remote_reserve() {
         let policy = Policy::default();
         let open_channel = get_open_channel();
         let mut accept_channel = get_accept_channel();

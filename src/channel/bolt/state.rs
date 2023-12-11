@@ -97,7 +97,7 @@ pub struct ChannelState {
     pub offered_htlcs: BTreeMap<u64, HtlcSecret>,
     pub received_htlcs: BTreeMap<u64, HtlcSecret>,
     pub resolved_htlcs: BTreeMap<u64, HtlcKnown>,
-    pub last_recieved_htlc_id: u64,
+    pub last_received_htlc_id: u64,
     pub last_offered_htlc_id: u64,
 }
 
@@ -139,7 +139,7 @@ impl DumbDefault for ChannelState {
             offered_htlcs: none!(),
             received_htlcs: none!(),
             resolved_htlcs: none!(),
-            last_recieved_htlc_id: 0,
+            last_received_htlc_id: 0,
             last_offered_htlc_id: 0,
         }
     }

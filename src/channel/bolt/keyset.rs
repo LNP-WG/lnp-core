@@ -204,7 +204,7 @@ impl LocalKeyset {
         channel_xpriv: ExtendedPrivKey,
         shutdown_scriptpubkey: Option<PubkeyScript>,
     ) -> Self {
-        let fingerpint = channel_source.0;
+        let fingerprint = channel_source.0;
 
         let secrets = (0u16..=6)
             .into_iter()
@@ -232,7 +232,7 @@ impl LocalKeyset {
                     .private_key;
                 LocalPubkey {
                     key: PublicKey::from_secret_key(secp, &seckey),
-                    source: (fingerpint, derivation_path),
+                    source: (fingerprint, derivation_path),
                 }
             })
             .collect::<Vec<_>>();

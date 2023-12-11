@@ -85,7 +85,7 @@ pub struct Htlc {
     max_htlc_value_in_flight_msat: u64,
     max_accepted_htlcs: u16,
 
-    next_recieved_htlc_id: u64,
+    next_received_htlc_id: u64,
     next_offered_htlc_id: u64,
 }
 
@@ -106,7 +106,7 @@ impl Default for Htlc {
             htlc_minimum_msat: 0,
             max_htlc_value_in_flight_msat: 0,
             max_accepted_htlcs: 0,
-            next_recieved_htlc_id: 0,
+            next_received_htlc_id: 0,
             next_offered_htlc_id: 0,
         }
     }
@@ -229,7 +229,7 @@ impl Extension<BoltExt> for Htlc {
                             "Leading zeros not satisfied for Bitcoin network"
                                 .to_string(),
                         ));
-                    } else if message.htlc_id < self.next_recieved_htlc_id {
+                    } else if message.htlc_id < self.next_received_htlc_id {
                         return Err(Error::Htlc(
                             "HTLC id violation occurred".to_string(),
                         )); // TODO handle reconnection
@@ -242,11 +242,11 @@ impl Extension<BoltExt> for Htlc {
                         };
                         self.received_htlcs.insert(htlc.id, htlc);
 
-                        self.next_recieved_htlc_id += 1;
+                        self.next_received_htlc_id += 1;
                     }
                 } else {
                     return Err(Error::Htlc(
-                        "Missmatched channel_id, bad remote node".to_string(),
+                        "Mismatched channel_id, bad remote node".to_string(),
                     ));
                 }
             }
@@ -274,7 +274,7 @@ impl Extension<BoltExt> for Htlc {
                     }
                 } else {
                     return Err(Error::Htlc(
-                        "Missmatched channel_id, bad remote node".to_string(),
+                        "Mismatched channel_id, bad remote node".to_string(),
                     ));
                 }
             }
@@ -321,7 +321,7 @@ impl Extension<BoltExt> for Htlc {
             state.remote_params.max_htlc_value_in_flight_msat;
         self.max_accepted_htlcs = state.remote_params.max_accepted_htlcs;
 
-        self.next_recieved_htlc_id = state.last_recieved_htlc_id;
+        self.next_received_htlc_id = state.last_received_htlc_id;
         self.next_offered_htlc_id = state.last_offered_htlc_id;
     }
 
@@ -329,7 +329,7 @@ impl Extension<BoltExt> for Htlc {
         state.offered_htlcs = self.offered_htlcs.clone();
         state.received_htlcs = self.received_htlcs.clone();
         state.resolved_htlcs = self.resolved_htlcs.clone();
-        state.last_recieved_htlc_id = self.next_recieved_htlc_id;
+        state.last_received_htlc_id = self.next_received_htlc_id;
         state.last_offered_htlc_id = self.next_offered_htlc_id;
     }
 }
@@ -392,14 +392,14 @@ impl ChannelExtension<BoltExt> for Htlc {
         }
 
         // Process received HTLCs
-        for (index, recieved) in self.received_htlcs.iter() {
+        for (index, received) in self.received_htlcs.iter() {
             let htlc_output: Output = ScriptGenerators::ln_received_htlc(
-                recieved.amount / 1000,
+                received.amount / 1000,
                 self.remote_revocation_basepoint,
                 self.local_basepoint,
                 self.remote_basepoint,
-                recieved.cltv_expiry,
-                recieved.hashlock,
+                received.cltv_expiry,
+                received.hashlock,
             );
 
             // Sum amounts to same OutPoints
@@ -409,17 +409,17 @@ impl ChannelExtension<BoltExt> for Htlc {
             }) {
                 Some(index) => {
                     let mut htlc_output = tx_graph.cmt_outs.remove(index);
-                    htlc_output.amount += recieved.amount;
+                    htlc_output.amount += received.amount;
                     tx_graph.cmt_outs.insert(index, htlc_output);
                 }
                 _ => tx_graph.cmt_outs.push(htlc_output),
             };
 
             let htlc_tx = Psbt::ln_htlc(
-                recieved.amount,
+                received.amount,
                 // TODO: do a two-staged graph generation process
                 OutPoint::default(),
-                recieved.cltv_expiry,
+                received.cltv_expiry,
                 self.remote_revocation_basepoint,
                 self.local_delayed_basepoint,
                 self.to_self_delay,
@@ -432,7 +432,7 @@ impl ChannelExtension<BoltExt> for Htlc {
                 htlc_tx,
             );
 
-            accumulate += recieved.amount / 1000;
+            accumulate += received.amount / 1000;
         }
 
         // Subtracts from the total amount of the commitment transaction
