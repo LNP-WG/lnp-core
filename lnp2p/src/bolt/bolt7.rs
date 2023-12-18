@@ -198,7 +198,7 @@ pub struct ReplyShortChannelIdsEnd {
 #[derive(LightningEncode, LightningDecode)]
 #[cfg_attr(feature = "strict_encoding", derive(NetworkEncode, NetworkDecode))]
 #[display(
-    "querry_channel_range({chain_hash}, {first_blocknum}, {number_of_blocks}, \
+    "query_channel_range({chain_hash}, {first_blocknum}, {number_of_blocks}, \
      ...tlvs)"
 )]
 pub struct QueryChannelRange {

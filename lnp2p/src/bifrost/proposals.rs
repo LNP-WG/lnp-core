@@ -84,7 +84,7 @@ pub struct ChannelInput {
     /// witness for the input. Always v0+ witness
     pub descriptor: SegwitDescriptor,
 
-    /// Witness satisfying prevous transaction descriptor.
+    /// Witness satisfying previous transaction descriptor.
     ///
     /// Must be present only when the transaction is signed
     pub witness: Option<Witness>,
@@ -152,7 +152,7 @@ pub enum ChannelFunding {
 #[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
 #[derive(NetworkEncode, NetworkDecode)]
 pub struct ChannelLink {
-    /// Amount allocated to the transaction outut and consumed by the child
+    /// Amount allocated to the transaction output and consumed by the child
     /// channel transaction
     pub amount: Amount,
 
@@ -163,7 +163,7 @@ pub struct ChannelLink {
     ///
     /// We provide full descriptor to enable nodes to use custom keys. Still,
     /// the descriptor mod key values MUST match template defined for the
-    /// gived [`TxRole`] from [`ChannelTx::children`] containing this link.
+    /// given [`TxRole`] from [`ChannelTx::children`] containing this link.
     pub descriptor: TaprootDescriptor,
 
     /// Sequence number to use in the child transaction input

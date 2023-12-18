@@ -1,0 +1,4 @@
+[default.extend-words]
+# Don't correct the name "Jon Atack".
+Atack = "Atack"
+optin = "optin"

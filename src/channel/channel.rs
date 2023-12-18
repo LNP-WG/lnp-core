@@ -199,7 +199,7 @@ where
 
     /// Adds new extension to the channel.
     ///
-    /// Will be effective onl upon next channel state update.
+    /// Will be effective only upon next channel state update.
     #[inline]
     pub fn add_extender(&mut self, extension: Box<dyn ChannelExtension<N>>) {
         self.extenders.insert(extension.identity(), extension);
@@ -207,7 +207,7 @@ where
 
     /// Adds new modifier to the channel.
     ///
-    /// Will be effective onl upon next channel state update.
+    /// Will be effective only upon next channel state update.
     #[inline]
     pub fn add_modifier(&mut self, modifier: Box<dyn ChannelExtension<N>>) {
         self.modifiers.insert(modifier.identity(), modifier);
