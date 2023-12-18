@@ -64,7 +64,7 @@ pub struct Htlc {
     /// will be pushed through an anchor transaction.
     anchors_zero_fee_htlc_tx: bool,
 
-    // Sets of HTLC informations
+    // Sets of HTLC information
     offered_htlcs: BTreeMap<u64, HtlcSecret>,
     received_htlcs: BTreeMap<u64, HtlcSecret>,
     resolved_htlcs: BTreeMap<u64, HtlcKnown>,
