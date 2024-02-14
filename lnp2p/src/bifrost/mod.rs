@@ -172,6 +172,7 @@ mod app;
 mod channel;
 mod ctrl;
 mod msg;
+mod peerswap;
 mod proposals;
 mod types;
 
@@ -185,6 +186,7 @@ use internet2::{CreateUnmarshaller, Payload, Unmarshall, Unmarshaller};
 use lnpbp::bech32::Blob;
 pub use msg::Msg;
 use once_cell::sync::Lazy;
+pub use peerswap::*;
 pub use proposals::*;
 use strict_encoding::{self, StrictDecode, StrictEncode};
 pub use types::{
@@ -257,6 +259,49 @@ pub enum Messages {
 
     #[api(type = 0x0028)]
     CloseChannel(CloseChannel),
+
+    #[api(type = 0x0040)]
+    SwapInRequest(SwapInRequestMsg),
+
+    #[api(type = 0x0041)]
+    SwapInAgreement(SwapInAgreementMsg),
+
+    #[api(type = 0x0042)]
+    SwapOutRequest(SwapOutRequestMsg),
+
+    #[api(type = 0x0043)]
+    SwapOutAgreement(SwapOutAgreementMsg),
+
+    #[api(type = 0x0044)]
+    OpeningTxBroadcasted(OpeningTxBroadcastedMsg),
+
+    #[api(type = 0x0045)]
+    Cancel(CancelMsg),
+
+    #[api(type = 0x0046)]
+    CoopClose(CoopCloseMsg),
+}
+
+impl Messages {
+    pub fn swap_id(&self) -> Option<&SwapId> {
+        match self {
+            Self::SwapInRequest(SwapInRequestMsg { swap_id, .. })
+            | Self::SwapOutRequest(SwapOutRequestMsg { swap_id, .. })
+            | Self::SwapInAgreement(SwapInAgreementMsg { swap_id, .. })
+            | Self::SwapOutAgreement(SwapOutAgreementMsg { swap_id, .. })
+            | Self::OpeningTxBroadcasted(OpeningTxBroadcastedMsg {
+                swap_id,
+                ..
+            })
+            | Self::Cancel(CancelMsg { swap_id, .. })
+            | Self::CoopClose(CoopCloseMsg { swap_id, .. }) => Some(swap_id),
+            _ => None,
+        }
+    }
+
+    pub fn is_swap_msg(&self) -> bool {
+        self.swap_id().is_some()
+    }
 }
 
 impl StrictEncode for Messages {
