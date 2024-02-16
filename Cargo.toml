@@ -11,7 +11,7 @@ categories = ["cryptography::cryptocurrencies"]
 readme = "README.md"
 exclude = [".github", "contrib", "lightning_encoding", "lnp2p"]
 edition = "2021"
-rust-version = "1.59.0"
+rust-version = "1.69.0"
 
 [lib]
 name = "lnp"
@@ -19,8 +19,8 @@ path = "src/lib.rs"
 crate-type = ["rlib", "staticlib"]
 
 [dependencies]
-amplify = "3.13.0"
-strict_encoding = "0.9.0"
+amplify = "4.5.0"
+strict_encoding = "2.6.0"
 lightning_encoding = "0.9.3"
 bitcoin_scripts = "0.9.0"
 descriptor-wallet = { version = "0.9.0", features = ["keygen"] }
